@@ -1,27 +1,3 @@
-# hari-client
-
-**hari-client** is the official open source API client package for [HARI (Highly Actionable Real-Time Insights)](https://www.quality-match.com/product) by Quality Match GmbH. This package allows you to interact with the HARI backend, enabling you to create datasets and upload your data with ease.
-
-## Installation
-
-Minimum python version: 3.9
-
-To install the hari-client package, use pip with the following command:
-
-```bash
-python -m pip install "hari_client @ git+https://github.com/quality-match/hari-client@v0.1.0"
-```
-
-## Quickstart
-
-Here's a quick example of how to use the HARI Client to create a dataset and upload data and annotations.
-You can find the referenced image here: `docs/example_code/busy_street.jpg`.
-Every run of this script creates a new dataset.
-
-```python
-# docs/example_code/quickstart.py
-# run from docs/example_code
-
 from hari_client import Config
 from hari_client import HARIClient
 from hari_client import models
@@ -82,20 +58,3 @@ if __name__ == "__main__":
     # The create_crops method requires the thumbnail creation to be finished.
     # If it fails, try only this method again after a few minutes.
     hari.create_crops(dataset_id=new_dataset.id, subset_id=new_subset_id)
-```
-
-### Other annotation geometries
-
-Have a look at the [geometries.py](docs/example_code/geometries.py) example script for examples on how to create other annotation geometries.
-
-## Documentation
-
-For more detailed documentation, including all available methods and their parameters, please refer to the official documentation https://docs.quality-match.com.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
-## Contact
-
-Visit our website https://quality-match.com
