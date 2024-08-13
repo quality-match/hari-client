@@ -1,5 +1,6 @@
 import datetime
 import pathlib
+import types
 import typing
 
 import pydantic
@@ -67,7 +68,11 @@ def _parse_response_model(
         if origin is list:
             item_type = typing.get_args(response_model)[0]
             if isinstance(response_data, list):
-                if isinstance(item_type, type) and issubclass(
+                if typing.get_origin(item_type) in (typing.Union, types.UnionType):
+                    return [
+                        handle_union_parsing(item, item_type) for item in response_data
+                    ]
+                elif isinstance(item_type, type) and issubclass(
                     item_type, pydantic.BaseModel
                 ):
                     return [item_type(**item) for item in response_data]
@@ -90,7 +95,7 @@ def _parse_response_model(
             response_data=response_data,
             response_model=response_model,
             message=f"Can't parse response_data into response_model {response_model},"
-            + "because the combination of received data and expected response_model is unhandled."
+            + f" because the combination of received data and expected response_model is unhandled."
             + f"{response_data=}.",
         )
     except Exception as err:
@@ -99,6 +104,22 @@ def _parse_response_model(
             response_model=response_model,
             message=f"Failed to parse response_data into response_model {response_model}. {response_data=}",
         ) from err
+
+
+def handle_union_parsing(item, union_type):
+    for possible_type in typing.get_args(union_type):
+        if isinstance(possible_type, type) and issubclass(
+            possible_type, pydantic.BaseModel
+        ):
+            try:
+                return possible_type(**item)
+            except Exception:
+                continue
+    raise errors.ParseResponseModelError(
+        response_data=item,
+        response_model=union_type,
+        message=f"Failed to parse item into one of the union types {union_type}. {item=}",
+    )
 
 
 class HARIClient:
@@ -1265,7 +1286,7 @@ class HARIClient:
             "PUT",
             f"/datasets/{dataset_id}/histograms",
             params={"compute_for_all_subsets": compute_for_all_subsets},
-            success_response_item_model=None,
+            success_response_item_model=models.UpdateHistogramsResponse,
         )
 
     def create_crops(
@@ -1297,5 +1318,7 @@ class HARIClient:
             f"/datasets/{dataset_id}/crops",
             params={"subset_id": subset_id},
             json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
-            success_response_item_model=None,
+            success_response_item_model=list[
+                models.UpdateHistogramsResponse | models.CreateCropsResponse
+            ],
         )

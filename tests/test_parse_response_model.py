@@ -12,6 +12,12 @@ class MyModel(pydantic.BaseModel):
     c: str
 
 
+class MyModel2(pydantic.BaseModel):
+    x: int
+    y: float
+    z: str
+
+
 @pytest.mark.parametrize(
     "response_data, response_model",
     [
@@ -151,3 +157,33 @@ def test_parse_response_model_works_with_dict_of_parametrized_generics(
         assert response["item1"].a == 1
         assert response["item1"].b == 6.78
         assert response["item1"].c == "hello"
+
+
+@pytest.mark.parametrize(
+    "response_data, response_model, expected_types",
+    [
+        (
+            [{"a": 1, "b": 6.78, "c": "hello"}, {"x": 2, "y": 16.78, "z": "bye"}],
+            list[MyModel | MyModel2],
+            [MyModel, MyModel2],
+        ),
+    ],
+)
+def test_parse_response_model_works_with_list_of_unions(
+    response_data, response_model, expected_types
+):
+    response = _parse_response_model(
+        response_data=response_data, response_model=response_model
+    )
+
+    assert isinstance(response, list)
+    assert all(
+        isinstance(item, expected_types[idx]) for idx, item in enumerate(response)
+    )
+
+    assert response[0].a == 1
+    assert response[0].b == 6.78
+    assert response[0].c == "hello"
+    assert response[1].x == 2
+    assert response[1].y == 16.78
+    assert response[1].z == "bye"

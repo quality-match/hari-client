@@ -829,7 +829,7 @@ class ProcessingType(str, enum.Enum):
     REMOTE = "remote"
 
 
-class Parameters(pydantic.BaseModel):
+class CreateThumbnailsParameters(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(from_attributes=True)
     dataset_id: str
     query: QueryList | None = []
@@ -844,7 +844,53 @@ class Parameters(pydantic.BaseModel):
 
 class CreateThumbnailsResponse(pydantic.BaseModel):
     method_name: typing.Literal["create_thumbnails"] = "create_thumbnails"
-    parameters: Parameters
+    parameters: CreateThumbnailsParameters
+    batch: bool = False
+    override_processing_type: ProcessingType | None = None
+    task_token: str | None = None
+    job_id: uuid.UUID | None = None
+    trace_id: uuid.UUID | None = None
+    user_id: uuid.UUID | None = None
+    user_group: str | None = None
+
+
+class UpdateHistogramsParameters(pydantic.BaseModel):
+    dataset_id: str
+    subset_ids: list[str] | None = None
+    attribute_ids: list[str] | None = None
+    num_buckets: int = 360
+    ignore_complete_dataset_histogram: bool = False
+    compute_for_all_subsets: bool = False
+
+
+class UpdateHistogramsResponse(pydantic.BaseModel):
+    method_name: typing.Literal["update_histograms"] = "update_histograms"
+    parameters: UpdateHistogramsParameters
+    batch: bool = False
+    override_processing_type: ProcessingType | None = None
+    task_token: str | None = None
+    job_id: uuid.UUID | None = None
+    trace_id: uuid.UUID | None = None
+    user_id: uuid.UUID | None = None
+    user_group: str | None = None
+
+
+class CreateCropsParameters(pydantic.BaseModel):
+    dataset_id: str
+    query: QueryList | None = []
+    pagination: PaginationParameter | None = None
+    upload_folder_name: str = "cropped_image"
+    s3_bucket: str | None = None
+    s3_folder: str | None = None
+    aspect_ratio: tuple[int, int]
+    padding_percent: int
+    padding_minimum: int
+    max_size: tuple[int, int] | None
+
+
+class CreateCropsResponse(pydantic.BaseModel):
+    method_name: typing.Literal["create_crops"] = "create_crops"
+    parameters: CreateCropsParameters
     batch: bool = False
     override_processing_type: ProcessingType | None = None
     task_token: str | None = None
