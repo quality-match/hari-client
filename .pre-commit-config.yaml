@@ -1,0 +1,53 @@
+default_language_version:
+  python: python3.9
+default_stages: [commit, push, prepare-commit-msg]
+repos:
+  ############################################
+  #  MISC / JSON  / BRANCHES / FILESIZE
+  ############################################
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-json
+      - id: forbid-new-submodules
+        # Excluded because they failed
+      - id: detect-private-key
+      - id: check-added-large-files
+      - id: no-commit-to-branch
+        args: ["--branch", "main"]
+
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/asottile/reorder_python_imports
+    rev: v3.13.0
+    hooks:
+      - id: reorder-python-imports
+
+  ############################################
+  #  MyPy - static type-checker for python
+  ############################################
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.1
+    hooks:
+      - id: mypy
+        args: [--no-strict-optional, --ignore-missing-imports]
+        files: templates/fast_api_application
+
+  ############################################
+  #  Flake8 - style guide checker
+  ############################################
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.1.0
+    hooks:
+      - id: flake8
+        files: templates/
+        # ignore line-length-PEP
+        args: [--ignore=E501]
