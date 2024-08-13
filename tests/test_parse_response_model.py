@@ -6,6 +6,12 @@ from hari_client import models
 from hari_client.client.client import _parse_response_model
 
 
+class MyModel(pydantic.BaseModel):
+    a: int
+    b: float
+    c: str
+
+
 @pytest.mark.parametrize(
     "response_data, response_model",
     [
@@ -30,11 +36,6 @@ def test_parse_response_model_works_with_none():
 
 
 def test_parse_response_model_works_with_pydantic_models():
-    class MyModel(pydantic.BaseModel):
-        a: int
-        b: float
-        c: str
-
     response = _parse_response_model(
         response_data={"a": 1, "b": 6.78, "c": "hello"}, response_model=MyModel
     )
@@ -96,3 +97,57 @@ def test_parse_response_model_fails_for_response_data_not_matching_expected_resp
         _parse_response_model(
             response_data=response_data, response_model=response_model
         )
+
+
+@pytest.mark.parametrize(
+    "response_data, response_model, expected_type",
+    [
+        ([{"a": 1, "b": 6.78, "c": "hello"}], list[MyModel], MyModel),
+        ([1, 2, 3], list[int], int),
+    ],
+)
+def test_parse_response_model_works_with_list_of_parametrized_generics(
+    response_data, response_model, expected_type
+):
+    response = _parse_response_model(
+        response_data=response_data, response_model=response_model
+    )
+
+    assert isinstance(response, list)
+    assert all(isinstance(item, expected_type) for item in response)
+
+    if expected_type == MyModel:
+        assert response[0].a == 1
+        assert response[0].b == 6.78
+        assert response[0].c == "hello"
+
+
+@pytest.mark.parametrize(
+    "response_data, response_model, key_type, value_type",
+    [
+        (
+            {"item1": {"a": 1, "b": 6.78, "c": "hello"}},
+            dict[str, MyModel],
+            str,
+            MyModel,
+        ),
+        ({"key1": 1, "key2": 2}, dict[str, int], str, int),
+    ],
+)
+def test_parse_response_model_works_with_dict_of_parametrized_generics(
+    response_data, response_model, key_type, value_type
+):
+    response = _parse_response_model(
+        response_data=response_data, response_model=response_model
+    )
+
+    assert isinstance(response, dict)
+    assert all(
+        isinstance(k, key_type) and isinstance(v, value_type)
+        for k, v in response.items()
+    )
+
+    if value_type == MyModel:
+        assert response["item1"].a == 1
+        assert response["item1"].b == 6.78
+        assert response["item1"].c == "hello"

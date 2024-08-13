@@ -2,6 +2,7 @@ import datetime
 import pathlib
 import typing
 
+import pydantic
 import requests
 
 from hari_client.client import errors
@@ -51,24 +52,47 @@ def _parse_response_model(
                 response_model=response_model,
                 message=f"Expected response_data to be None, but received {response_data=}",
             )
-        elif isinstance(response_data, response_model):
-            # this case works when the response_json is already an instance of the expected response_model.
-            # For example any of the basic builtins (str, int, etc.) or dict or list.
+
+        # handle pydantic models
+        if isinstance(response_model, type) and issubclass(
+            response_model, pydantic.BaseModel
+        ):
+            if isinstance(response_data, dict):
+                return response_model(**response_data)
+            elif isinstance(response_data, list):
+                return [response_model(**item) for item in response_data]
+
+        # handle parametrized generics
+        origin = typing.get_origin(response_model)
+        if origin is list:
+            item_type = typing.get_args(response_model)[0]
+            if isinstance(response_data, list):
+                if isinstance(item_type, type) and issubclass(
+                    item_type, pydantic.BaseModel
+                ):
+                    return [item_type(**item) for item in response_data]
+                else:
+                    return [item_type(item) for item in response_data]
+        if origin is dict:
+            key_type, value_type = typing.get_args(response_model)
+            if isinstance(response_data, dict):
+                return {
+                    key_type(k): value_type(**v)
+                    if isinstance(v, dict)
+                    else value_type(v)
+                    for k, v in response_data.items()
+                }
+
+        if isinstance(response_data, response_model):
             return response_data
-        elif isinstance(response_data, dict):
-            return response_model(**response_data)
-        elif isinstance(response_data, list):
-            # this case works when the response_data is a list of dicts and the expectation is that each
-            # dict can be parsed into the response_model.
-            return [response_model(**item_dict) for item_dict in response_data]
-        else:
-            raise errors.ParseResponseModelError(
-                response_data=response_data,
-                response_model=response_model,
-                message=f"Can't parse response_data into response_model {response_model},"
-                + "because the combination of received data and expected response_model is unhandled."
-                + f"{response_data=}.",
-            )
+
+        raise errors.ParseResponseModelError(
+            response_data=response_data,
+            response_model=response_model,
+            message=f"Can't parse response_data into response_model {response_model},"
+            + "because the combination of received data and expected response_model is unhandled."
+            + f"{response_data=}.",
+        )
     except Exception as err:
         raise errors.ParseResponseModelError(
             response_data=response_data,
@@ -1222,7 +1246,7 @@ class HARIClient:
             f"/datasets/{dataset_id}/thumbnails",
             params={"subset_id": subset_id},
             json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
-            success_response_item_model=None,
+            success_response_item_model=list[models.CreateThumbnailsResponse],
         )
 
     def update_histograms(

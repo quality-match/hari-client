@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 import typing
+import uuid
 
 import pydantic
 
@@ -33,9 +34,9 @@ class LogicParameter(pydantic.BaseModel):
     queries: list[typing.Union[QueryParameter, LogicParameter]]
 
 
-class LogicParameter(pydantic.BaseModel):
-    operator: LogicOperator
-    queries: list[typing.Union[QueryParameter, LogicParameter]]
+class PaginationParameter(pydantic.BaseModel):
+    limit: typing.Optional[int] = None
+    skip: typing.Optional[int] = None
 
 
 QueryList = list[typing.Union[QueryParameter, LogicParameter]]
@@ -821,3 +822,33 @@ GeometryUnion = typing.Union[
     Point2DAggregation,
     Point3DAggregation,
 ]
+
+
+class ProcessingType(str, enum.Enum):
+    LOCAL = "local"
+    REMOTE = "remote"
+
+
+class Parameters(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(from_attributes=True)
+    dataset_id: str
+    query: QueryList | None = []
+    pagination: PaginationParameter | None = None
+    upload_folder_name: str = "thumbnails"
+    s3_bucket: str | None = None
+    s3_folder: str | None = None
+    max_size: tuple[int, int] | None
+    aspect_ratio: tuple[int, int]
+    calc_and_write_image_info: bool = True
+
+
+class CreateThumbnailsResponse(pydantic.BaseModel):
+    method_name: typing.Literal["create_thumbnails"] = "create_thumbnails"
+    parameters: Parameters
+    batch: bool = False
+    override_processing_type: ProcessingType | None = None
+    task_token: str | None = None
+    job_id: uuid.UUID | None = None
+    trace_id: uuid.UUID | None = None
+    user_id: uuid.UUID | None = None
+    user_group: str | None = None
