@@ -2,6 +2,7 @@ import datetime
 import pathlib
 import typing
 
+import pydantic
 import requests
 
 from hari_client.client import errors
@@ -20,15 +21,20 @@ def _parse_response_model(
     """
     Parses data of type typing.Any to a generic response_model type.
     Cases:
-        - isinstance(response_data, response_model) == True (for example both are int, list, dict, etc.)
-            - the response_data is returned without modification
         - both response_data and response_model are None (meaning you expect to receive None as response)
             - None is returned
-        - response_data is a dict, then response_model is treated like a pydantic model and the response_data
-          is parsed into an instance of the response_model.
-        - response_data is a list and response_model isn't, then response_model will be treated like a pydantic model
-          and every item in the list as a dict to be parsed into an instance of the response_model.
-
+        - response_model is a pydantic model:
+            - if response_data is a dict, response_data is parsed into an instance of the response_model.
+            - if response_data is a list, each item in the list is treated as a dict and parsed into an instance of the response_model.
+        - response_model is a parametrized generic:
+            - if response_data is a list and response_model is a list of unions:
+                - each item in the response_data list is checked against the possible types in the union.
+                - the parser attempts to parse each item using each type in the union until one succeeds.
+                - if an item is successfully parsed into one of the union types, and it contains nested fields that are also complex structures (e.g., lists of unions), the parser recurses into those nested structures to fully parse them.
+            - if response_data is a dict and response_model is a dict with specified key and value types:
+                - each key-value pair in the response_data dict is parsed, with the keys being converted to the specified key type, and the values being recursively parsed according to the specified value type.
+        - response_data is of the expected type (response_model):
+            - The response_data is returned as is.
 
     Args:
         response_data (typing.Any): the input data
@@ -51,30 +57,73 @@ def _parse_response_model(
                 response_model=response_model,
                 message=f"Expected response_data to be None, but received {response_data=}",
             )
-        elif isinstance(response_data, response_model):
-            # this case works when the response_json is already an instance of the expected response_model.
-            # For example any of the basic builtins (str, int, etc.) or dict or list.
+
+        # handle pydantic models
+        if isinstance(response_model, type) and issubclass(
+            response_model, pydantic.BaseModel
+        ):
+            if isinstance(response_data, dict):
+                return response_model(**response_data)
+            elif isinstance(response_data, list):
+                return [response_model(**item) for item in response_data]
+
+        # handle parametrized generics
+        origin = typing.get_origin(response_model)
+        if origin is list:
+            item_type = typing.get_args(response_model)[0]
+            if isinstance(response_data, list):
+                if typing.get_origin(item_type) is typing.Union:
+                    return [
+                        handle_union_parsing(item, item_type) for item in response_data
+                    ]
+                elif isinstance(item_type, type) and issubclass(
+                    item_type, pydantic.BaseModel
+                ):
+                    return [item_type(**item) for item in response_data]
+                else:
+                    return [item_type(item) for item in response_data]
+        if origin is dict:
+            key_type, value_type = typing.get_args(response_model)
+            if isinstance(response_data, dict):
+                return {
+                    key_type(k): value_type(**v)
+                    if isinstance(v, dict)
+                    else value_type(v)
+                    for k, v in response_data.items()
+                }
+
+        if isinstance(response_data, response_model):
             return response_data
-        elif isinstance(response_data, dict):
-            return response_model(**response_data)
-        elif isinstance(response_data, list):
-            # this case works when the response_data is a list of dicts and the expectation is that each
-            # dict can be parsed into the response_model.
-            return [response_model(**item_dict) for item_dict in response_data]
-        else:
-            raise errors.ParseResponseModelError(
-                response_data=response_data,
-                response_model=response_model,
-                message=f"Can't parse response_data into response_model {response_model},"
-                + "because the combination of received data and expected response_model is unhandled."
-                + f"{response_data=}.",
-            )
+
+        raise errors.ParseResponseModelError(
+            response_data=response_data,
+            response_model=response_model,
+            message=f"Can't parse response_data into response_model {response_model},"
+            + f" because the combination of received data and expected response_model is unhandled."
+            + f"{response_data=}.",
+        )
     except Exception as err:
         raise errors.ParseResponseModelError(
             response_data=response_data,
             response_model=response_model,
             message=f"Failed to parse response_data into response_model {response_model}. {response_data=}",
         ) from err
+
+
+def handle_union_parsing(item, union_type):
+    for possible_type in typing.get_args(union_type):
+        if isinstance(possible_type, type) and issubclass(
+            possible_type, pydantic.BaseModel
+        ):
+            try:
+                return possible_type(**item)
+            except Exception:
+                continue
+    raise errors.ParseResponseModelError(
+        response_data=item,
+        response_model=union_type,
+        message=f"Failed to parse item into one of the union types {union_type}. {item=}",
+    )
 
 
 class HARIClient:
@@ -420,7 +469,7 @@ class HARIClient:
             "GET",
             f"/datasets",
             params=self._pack(locals()),
-            success_response_item_model=models.DatasetResponse,
+            success_response_item_model=list[models.DatasetResponse],
         )
 
     def get_subsets_for_dataset(
@@ -447,7 +496,7 @@ class HARIClient:
             f"/datasets/{dataset_id}/subsets",
             params=self._pack(locals(), ignore=["dataset_id"]),
             # the response model for a subset is the same as for a dataset
-            success_response_item_model=models.DatasetResponse,
+            success_response_item_model=list[models.DatasetResponse],
         )
 
     def archive_dataset(self, dataset_id: str) -> str:
@@ -723,7 +772,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaResponse,
+            success_response_item_model=list[models.MediaResponse],
         )
 
     def archive_media(self, dataset_id: str, media_id: str) -> str:
@@ -777,7 +826,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/visualisations/uploadUrl",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.VisualisationUploadUrlInfo,
+            success_response_item_model=list[models.VisualisationUploadUrlInfo],
         )
 
     def get_media_histograms(
@@ -799,7 +848,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_instance_histograms(
@@ -821,7 +870,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/instances/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_media_object_count_statistics(
@@ -990,7 +1039,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias/uploadUrl",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaUploadUrlInfo,
+            success_response_item_model=list[models.MediaUploadUrlInfo],
         )
 
     ### media object ###
@@ -1199,7 +1248,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/mediaObjects",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaObjectResponse,
+            success_response_item_model=list[models.MediaObjectResponse],
         )
 
     def archive_media_object(self, dataset_id: str, media_object_id: str) -> str:
@@ -1240,7 +1289,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/mediaObjects/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_media_object_count(
@@ -1328,7 +1377,7 @@ class HARIClient:
         subset_id: str,
         max_size: typing.Optional[tuple[int]] = None,
         aspect_ratio: typing.Optional[tuple[int]] = None,
-    ) -> None:
+    ) -> list[models.CreateThumbnailsResponse]:
         """Triggers the creation of thumbnails for a given dataset.
 
         Args:
@@ -1339,18 +1388,21 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            list[models.CreateThumbnailsResponse]: list of the created thumbnails
         """
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/thumbnails",
             params={"subset_id": subset_id},
             json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
-            success_response_item_model=None,
+            success_response_item_model=list[models.CreateThumbnailsResponse],
         )
 
     def update_histograms(
         self, dataset_id: str, compute_for_all_subsets: typing.Optional[bool] = False
-    ) -> None:
+    ) -> models.UpdateHistogramsResponse:
         """Triggers the update of the histograms for a given dataset.
 
         Args:
@@ -1359,12 +1411,15 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            models.UpdateHistogramsResponse: updated histograms
         """
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/histograms",
             params={"compute_for_all_subsets": compute_for_all_subsets},
-            success_response_item_model=None,
+            success_response_item_model=models.UpdateHistogramsResponse,
         )
 
     def create_crops(
@@ -1376,7 +1431,9 @@ class HARIClient:
         max_size: typing.Optional[tuple[int]] = None,
         padding_minimum: typing.Optional[int] = None,
         padding_percent: typing.Optional[int] = None,
-    ) -> None:
+    ) -> list[
+        typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse],
+    ]:
         """Creates the crops for a given dataset if the correct api key is provided in the
 
         Args:
@@ -1390,11 +1447,18 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            list[typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse]]: list of updated histograms and created crops
         """
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/crops",
             params={"subset_id": subset_id},
             json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
-            success_response_item_model=None,
+            success_response_item_model=list[
+                typing.Union[
+                    models.UpdateHistogramsResponse, models.CreateCropsResponse
+                ],
+            ],
         )
