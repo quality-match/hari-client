@@ -1,6 +1,7 @@
 import typing
 
 import requests
+from hari_client.models import models
 
 T = typing.TypeVar("T")
 
@@ -35,3 +36,10 @@ class ParseResponseModelError(Exception):
             self.message = f"{response_data=}, {response_model=}"
 
         super().__init__(self.message)
+
+
+class MediaCreateMissingFilePathError(Exception):
+    def __init__(self, media_create: models.MediaCreate):
+        super().__init__(
+            f"The 'file_path' has to be set when using an instance of models.MediaCreate in HARIClient.create_medias(). Found: {media_create.file_path=}"
+        )

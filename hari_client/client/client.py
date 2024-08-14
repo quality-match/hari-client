@@ -569,8 +569,14 @@ class HARIClient:
         """
 
         # 1. upload files
+        file_paths = []
+        for media in medias:
+            if not media.file_path:
+                raise errors.MediaCreateMissingFilePathError(media)
+            file_paths.append(media.file_path)
+
         media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths=[media.file_path for media in medias]
+            dataset_id, file_paths=file_paths
         )
 
         # 2. parse medias to dicts and set their media_urls
