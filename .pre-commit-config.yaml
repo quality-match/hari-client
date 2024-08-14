@@ -51,3 +51,10 @@ repos:
         files: templates/
         # ignore line-length-PEP
         args: [--ignore=E501]
+
+  # Autoflake for removing unused imports
+  -   repo: https://github.com/PyCQA/autoflake
+      rev: v2.2.1
+      hooks:
+      -   id: autoflake
+          args: [--remove-all-unused-imports, --in-place]

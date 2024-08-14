@@ -1,6 +1,5 @@
 import datetime
 import pathlib
-import types
 import typing
 
 import pydantic
@@ -439,7 +438,7 @@ class HARIClient:
             "GET",
             f"/datasets",
             params=self._pack(locals()),
-            success_response_item_model=models.DatasetResponse,
+            success_response_item_model=list[models.DatasetResponse],
         )
 
     def get_subsets_for_dataset(
@@ -466,7 +465,7 @@ class HARIClient:
             f"/datasets/{dataset_id}/subsets",
             params=self._pack(locals(), ignore=["dataset_id"]),
             # the response model for a subset is the same as for a dataset
-            success_response_item_model=models.DatasetResponse,
+            success_response_item_model=list[models.DatasetResponse],
         )
 
     def archive_dataset(self, dataset_id: str) -> str:
@@ -693,7 +692,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaResponse,
+            success_response_item_model=list[models.MediaResponse],
         )
 
     def archive_media(self, dataset_id: str, media_id: str) -> str:
@@ -747,7 +746,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/visualisations/uploadUrl",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.VisualisationUploadUrlInfo,
+            success_response_item_model=list[models.VisualisationUploadUrlInfo],
         )
 
     def get_media_histograms(
@@ -769,7 +768,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_instance_histograms(
@@ -791,7 +790,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/instances/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_media_object_count_statistics(
@@ -956,7 +955,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias/uploadUrl",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaUploadUrlInfo,
+            success_response_item_model=list[models.MediaUploadUrlInfo],
         )
 
     ### media object ###
@@ -1130,7 +1129,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/mediaObjects",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaObjectResponse,
+            success_response_item_model=list[models.MediaObjectResponse],
         )
 
     def archive_media_object(self, dataset_id: str, media_object_id: str) -> str:
@@ -1171,7 +1170,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/mediaObjects/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_media_object_count(
