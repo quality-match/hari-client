@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 import typing
-
+import datetime
 import pydantic
 
 
@@ -77,9 +77,9 @@ class BoundingBox2DAggregationMetrics(pydantic.BaseModel):
     iou_to_aggregated_box: typing.Optional[dict[str, typing.Any]] = pydantic.Field(
         default=None, title="Iou To Aggregated Box"
     )
-    distance_to_center_of_aggregated_box: typing.Optional[
-        dict[str, typing.Any]
-    ] = pydantic.Field(default=None, title="Distance To Center Of Aggregated Box")
+    distance_to_center_of_aggregated_box: typing.Optional[dict[str, typing.Any]] = (
+        pydantic.Field(default=None, title="Distance To Center Of Aggregated Box")
+    )
     absolute_difference_to_area_of_aggregated_box: typing.Optional[
         dict[str, typing.Any]
     ] = pydantic.Field(
@@ -320,9 +320,9 @@ class CameraIntrinsics(pydantic.BaseModel):
     principal_point: Point2DTuple = pydantic.Field()
     width_px: typing.Any = pydantic.Field(title="Width Px")
     height_px: typing.Any = pydantic.Field(title="Height Px")
-    distortion_coefficients: typing.Optional[
-        CameraDistortionCoefficients
-    ] = pydantic.Field(default=None, title="CameraDistortionCoefficients")
+    distortion_coefficients: typing.Optional[CameraDistortionCoefficients] = (
+        pydantic.Field(default=None, title="CameraDistortionCoefficients")
+    )
 
 
 class PointCloudMetadata(pydantic.BaseModel):
@@ -511,9 +511,9 @@ class Media(pydantic.BaseModel):
     media_url: str = pydantic.Field(title="Media Url")
     pii_media_url: str = pydantic.Field(title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
-    metadata: typing.Optional[
-        typing.Union[ImageMetadata, PointCloudMetadata]
-    ] = pydantic.Field(default=None, title="ImageMetadata")
+    metadata: typing.Optional[typing.Union[ImageMetadata, PointCloudMetadata]] = (
+        pydantic.Field(default=None, title="ImageMetadata")
+    )
     frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
     media_type: typing.Optional[MediaType] = pydantic.Field(
         default=None, title="MediaType"
@@ -553,9 +553,9 @@ class MediaResponse(pydantic.BaseModel):
         default=None, title="Pii Media Url"
     )
     name: typing.Optional[str] = pydantic.Field(default=None, title="Name")
-    metadata: typing.Optional[
-        typing.Union[ImageMetadata, PointCloudMetadata]
-    ] = pydantic.Field(default=None, title="ImageMetadata")
+    metadata: typing.Optional[typing.Union[ImageMetadata, PointCloudMetadata]] = (
+        pydantic.Field(default=None, title="ImageMetadata")
+    )
     frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
     media_type: typing.Optional[MediaType] = pydantic.Field(
         default=None, title="MediaType"
@@ -821,3 +821,98 @@ GeometryUnion = typing.Union[
     Point2DAggregation,
     Point3DAggregation,
 ]
+
+
+class BulkOperationStatusEnum(str, enum.Enum):
+    SUCCESS = "success"
+    PARTIAL_SUCCESS = "partial_success"
+    FAILURE = "failure"
+    PROCESSING = "processing"
+
+
+class SuccessSummary(pydantic.BaseModel):
+    """Quantifies how many items were successfully uploaded and how many failed.
+
+    Attributes:
+        total: The total number of items.
+        successful: The number of successful uploads.
+        failed: The number of failed uploads.
+    """
+
+    total: int = 0
+    successful: int = 0
+    failed: int = 0
+
+
+class ResponseStatesEnum(str, enum.Enum):
+    SUCCESS = "success"
+    MISSING_DATA = "missing_data"
+    SERVER_ERROR = "server_error"
+    BAD_DATA = "bad_data"
+
+
+class BaseBulkItemResponse(pydantic.BaseModel, arbitrary_types_allowed=True):
+    item_id: typing.Optional[str] = None
+    status: ResponseStatesEnum
+    errors: typing.Optional[list[str]] = None
+
+
+class AnnotatableCreateResponse(BaseBulkItemResponse):
+    back_reference: str
+
+
+class AttributeCreateResponse(BaseBulkItemResponse):
+    annotatable_id: str
+
+
+class BulkResponse(pydantic.BaseModel):
+    status: BulkOperationStatusEnum = BulkOperationStatusEnum.PROCESSING
+    summary: SuccessSummary = pydantic.Field(default_factory=SuccessSummary)
+    results: list[
+        typing.Union[
+            BaseBulkItemResponse, AnnotatableCreateResponse, AttributeCreateResponse
+        ]
+    ] = pydantic.Field(default_factory=list)
+
+
+class MediaCreate(pydantic.BaseModel):
+    # file_path is not part of the HARI API, but is used to define where to read the media file from
+    file_path: typing.Optional[str] = pydantic.Field(default=None, exclude=True)
+
+    name: str
+    media_type: MediaType
+    back_reference: str
+    media_url: typing.Optional[str] = None
+
+    archived: bool = False
+    scene_id: typing.Optional[str] = None
+    realWorldObject_id: typing.Optional[str] = None
+    visualisations: typing.Optional[list[VisualisationUnion]] = None
+    subset_ids: typing.Union[set[str], list[str], None] = None
+
+    metadata: typing.Union[ImageMetadata, PointCloudMetadata, None] = None
+    frame_idx: typing.Optional[int] = None
+    frame_timestamp: typing.Optional[datetime.datetime] = None
+    back_reference_json: typing.Optional[str] = None
+
+
+class MediaObjectCreate(pydantic.BaseModel):
+    media_id: str
+    source: DataSource
+    back_reference: str
+
+    archived: bool = False
+    scene_id: typing.Optional[str] = None
+    realWorldObject_id: typing.Optional[str] = None
+    visualisations: typing.Optional[list[VisualisationUnion]] = None
+    subset_ids: typing.Union[set[str], list[str], None] = None
+
+    instance_id: typing.Optional[str] = None
+    object_category: typing.Optional[str] = None
+    # source represents if the media object is either a geometry that was constructed by
+    # QM, e.g., by annotating media data; or a geometry that was already provided by a
+    # customer, and hence, would be a REFERENCE.
+    qm_data: typing.Optional[list[GeometryUnion]] = None
+    reference_data: typing.Optional[GeometryUnion] = None
+    frame_idx: typing.Optional[int] = None
+    media_object_type: typing.Optional[GeometryUnion] = None

@@ -78,6 +78,9 @@ def _parse_response_model(
 
 
 class HARIClient:
+
+    BULK_UPLOAD_LIMIT = 500
+
     def __init__(self, config: config.Config):
         self.config = config
 
@@ -191,51 +194,71 @@ class HARIClient:
 
         return {k: locals_[k] for k in local_vars if k not in ["self", "kwargs"]}
 
-    def _upload_to_presigned_url(
-        self,
-        dataset_id: str,
-        file_path: str,
-        visualisation_config_id: typing.Optional[str] = None,
-    ) -> str:
-        """Upload a single file to a presigned url of AWS (media or visualisation).
+    def _upload_file(self, file_path: str, upload_url: str) -> None:
+        with open(file_path, "rb") as fp:
+            response = requests.put(upload_url, data=fp)
+            response.raise_for_status()
+
+    def _upload_visualisation_file_with_presigned_url(
+        self, dataset_id: str, visualisation_config_id: str, file_path: str
+    ) -> models.VisualisationUploadUrlInfo:
+        """Creates a presigned S3 upload url for the media visualisation located in file_path and uploads it.
 
         Args:
             dataset_id: The dataset id
             file_path: The path to the file to upload
-            visualisation_config_id: If it is set, the file is uploaded as a visualisation with that visualisation
-                 config id, otherwise as a media.
+            visualisation_config_id: The id of the visualisation config to which the visualisation belongs. Has to already exist.
 
         Returns:
-            The URL where the file was uploaded to
+            The VisualisationUploadUrlInfo object.
         """
-
-        def upload_file(filename: str, upload_url: str):
-            with open(filename, "rb") as fp:
-                response = requests.put(upload_url, data=fp)
-                response.raise_for_status()
 
         # 1. get presigned upload url for the image
         file_extension = pathlib.Path(file_path).suffix
-        if visualisation_config_id is not None:
-            presign_response = self.get_presigned_visualisation_upload_url(
-                dataset_id=dataset_id,
-                file_extension=file_extension,
-                visualisation_config_id=visualisation_config_id,
-                batch_size=1,
-            )
-        else:
-            presign_response = self.get_presigned_media_upload_url(
-                dataset_id=dataset_id, file_extension=file_extension, batch_size=1
-            )
+        presign_responses = self.get_presigned_visualisation_upload_url(
+            dataset_id=dataset_id,
+            file_extension=file_extension,
+            visualisation_config_id=visualisation_config_id,
+            batch_size=1,
+        )
+        self._upload_file(
+            file_path=file_path, upload_url=presign_responses[0].upload_url
+        )
+
+        return presign_responses[0]
+
+    def _upload_media_files_with_presigned_urls(
+        self,
+        dataset_id: str,
+        file_paths: list[str],
+        visualisation_config_id: typing.Optional[str] = None,
+    ) -> list[models.MediaUploadUrlInfo]:
+        """Creates a presigned S3 upload url for every media file and uploads them.
+
+        Args:
+            dataset_id: The dataset id
+            file_paths: The paths to the file to upload
+
+        Returns:
+            A list of MediaUploadUrlInfo objects.
+        """
+
+        # 1. get presigned upload url for the image
+        # TODO: validate that all files have the same file_extension
+        file_extension = pathlib.Path(file_paths[0]).suffix
+        presign_response = self.get_presigned_media_upload_url(
+            dataset_id=dataset_id,
+            file_extension=file_extension,
+            batch_size=len(file_paths),
+        )
 
         # 2. upload the image
-        upload_file(filename=file_path, upload_url=presign_response[0].upload_url)
+        for idx, file_path in enumerate(file_paths):
+            self._upload_file(
+                file_path=file_path, upload_url=presign_response[idx].upload_url
+            )
 
-        return (
-            presign_response[0].visualisation_url
-            if visualisation_config_id is not None
-            else presign_response[0].media_url
-        )
+        return presign_response
 
     ### dataset ###
     def create_dataset(
@@ -510,22 +533,58 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        # 1. upload file to presigned URL
-        media_url = self._upload_to_presigned_url(dataset_id, file_path)
+        # 1. upload file
+        media_upload_responses = self._upload_media_files_with_presigned_urls(
+            dataset_id, file_paths=[file_path]
+        )
+        media_url = media_upload_responses[0].media_url
 
         # 2. create the media in HARI
         json_body = self._pack(
             locals(),
-            ignore=[
-                "file_path",
-                "dataset_id",
-            ],
+            ignore=["file_path", "dataset_id", "media_upload_responses"],
         )
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/medias",
             json=json_body,
             success_response_item_model=models.Media,
+        )
+
+    def create_medias(
+        self, dataset_id: str, medias: list[models.MediaCreate]
+    ) -> models.BulkResponse:
+        """Accepts a multiple files, uploads them, and creates the medias in the db.
+        The limit is 500 per call.
+
+        Args:
+            dataset_id: The dataset id
+            medias: A list of MediaCreate objects. Each object contains the file_path as a field.
+
+        Returns:
+            A BulkResponse with information on upload successes and failures.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        # 1. upload files
+        media_upload_responses = self._upload_media_files_with_presigned_urls(
+            dataset_id, file_paths=[media.file_path for media in medias]
+        )
+
+        # 2. parse medias to dicts and set their media_urls
+        media_dicts = []
+        for idx, media in enumerate(medias):
+            media_dicts.append(media.dict())
+            media_dicts[idx]["media_url"] = media_upload_responses[idx].media_url
+
+        # 3. create the medias in HARI
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/medias:bulk",
+            json=media_dicts,
+            success_response_item_model=models.BulkResponse,
         )
 
     def update_media(
@@ -689,9 +748,9 @@ class HARIClient:
             APIException: If the request fails.
             ValueError: If the validating input args fails.
         """
-        if batch_size < 1 or batch_size > 500:
+        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
             raise ValueError(
-                f"Expected batch_size to be in range 1 <= batch_size <= 500, but received: {batch_size}."
+                f"Expected batch_size to be in range 1 <= batch_size <= {HARIClient.BULK_UPLOAD_LIMIT}, but received: {batch_size}."
             )
         return self._request(
             "GET",
@@ -853,11 +912,14 @@ class HARIClient:
             APIException: If the request fails.
         """
         # 1. upload file to presigned URL
-        visualisation_url = self._upload_to_presigned_url(
-            dataset_id,
-            file_path,
-            visualisation_config_id=visualisation_configuration_id,
+        visualisation_upload_response = (
+            self._upload_visualisation_file_with_presigned_url(
+                dataset_id=dataset_id,
+                visualisation_config_id=visualisation_configuration_id,
+                file_path=file_path,
+            )
         )
+        visualisation_url = visualisation_upload_response.upload_url
 
         # 2. create the visualisation in HARI
         query_params = self._pack(
@@ -866,6 +928,7 @@ class HARIClient:
                 "file_path",
                 "dataset_id",
                 "media_id",
+                "visualisation_upload_response",
             ],
         )
         # We need to add annotatable_id and annotatable_type to the query_params
@@ -898,9 +961,9 @@ class HARIClient:
             APIException: If the request fails.
             ValueError: If the validating input args fails.
         """
-        if batch_size < 1 or batch_size > 500:
+        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
             raise ValueError(
-                f"Expected batch_size to be in range 1 <= batch_size <= 500, but received: {batch_size}."
+                f"Expected batch_size to be in range 1 <= batch_size <= {HARIClient.BULK_UPLOAD_LIMIT}, but received: {batch_size}."
             )
         return self._request(
             "GET",
@@ -964,6 +1027,34 @@ class HARIClient:
             f"/datasets/{dataset_id}/mediaObjects",
             json=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=models.MediaObject,
+        )
+
+    def create_media_objects(
+        self,
+        dataset_id: str,
+        media_objects: list[models.MediaObjectCreate],
+    ) -> models.BulkResponse:
+        """Creates new media_objects in the database. The limit is 500 per call.
+
+        Args:
+            dataset_id: dataset id
+            media_objects: List of media objects
+
+        Returns:
+            A BulkResponse with information on upload successes and failures.
+
+        Raises:
+            APIException: If the request fails.
+        """
+        # 1. parse media_objects to dicts before upload
+        media_object_dicts = [media_object.dict() for media_object in media_objects]
+
+        # 2. send media_objects to HARI
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/mediaObjects:bulk",
+            json=media_object_dicts,
+            success_response_item_model=models.BulkResponse,
         )
 
     def update_media_object(
@@ -1172,11 +1263,14 @@ class HARIClient:
             APIException: If the request fails.
         """
         # 1. upload file to presigned URL
-        visualisation_url = self._upload_to_presigned_url(
-            dataset_id,
-            file_path,
-            visualisation_config_id=visualisation_configuration_id,
+        visualisation_upload_response = (
+            self._upload_visualisation_file_with_presigned_url(
+                dataset_id=dataset_id,
+                visualisation_config_id=visualisation_configuration_id,
+                file_path=file_path,
+            )
         )
+        visualisation_url = visualisation_upload_response.upload_url
 
         # 2. create the visualisation in HARI
         query_params = self._pack(
@@ -1185,6 +1279,7 @@ class HARIClient:
                 "file_path",
                 "dataset_id",
                 "media_object_id",
+                "visualisation_upload_response",
             ],
         )
         # We need to add annotatable_id and annotatable_type to the query_params
