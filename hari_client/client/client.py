@@ -246,13 +246,17 @@ class HARIClient:
             UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
         """
 
-        # 1. get presigned upload url for the image
-        file_extensions = [pathlib.Path(file_path).suffix for file_path in file_paths]
+        # validate that all files have the same file extension
+        file_extensions = set(
+            [pathlib.Path(file_path).suffix for file_path in file_paths]
+        )
         if len(file_extensions) > 1:
             raise errors.UploadingFilesWithDifferentFileExtensionsError(file_extensions)
+
+        # 1. get presigned upload url for the files
         presign_response = self.get_presigned_media_upload_url(
             dataset_id=dataset_id,
-            file_extension=file_extensions[0],
+            file_extension=list(file_extensions)[0],
             batch_size=len(file_paths),
         )
 
@@ -571,7 +575,13 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
             UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
+            BulkUploadLimitExceededError: if the number of medias exceeds the per call upload limit.
         """
+
+        if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
+            raise errors.BulkUploadLimitExceededError(
+                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
+            )
 
         # 1. upload files
         file_paths = []
@@ -1056,7 +1066,14 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+            BulkUploadLimitExceededError: if the number of medias exceeds the per call upload limit.
         """
+
+        if len(media_objects) > HARIClient.BULK_UPLOAD_LIMIT:
+            raise errors.BulkUploadLimitExceededError(
+                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
+            )
+
         # 1. parse media_objects to dicts before upload
         media_object_dicts = [media_object.dict() for media_object in media_objects]
 

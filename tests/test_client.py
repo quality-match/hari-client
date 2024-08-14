@@ -39,3 +39,40 @@ def test_create_medias_with_different_file_extensions():
     # Act + Assert
     with pytest.raises(errors.UploadingFilesWithDifferentFileExtensionsError):
         hari.create_medias(dataset_id="1234", medias=[media_create_1, media_create_2])
+
+
+def test_create_medias_with_too_many_objects():
+    # Arrange
+    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    media_create = models.MediaCreate(
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+        file_path="./my_test_media.jpg",
+    )
+
+    # Act + Assert
+    with pytest.raises(errors.BulkUploadLimitExceededError):
+        hari.create_medias(
+            dataset_id="1234",
+            medias=[media_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)],
+        )
+
+
+def test_create_media_objects_with_too_many_objects():
+    # Arrange
+    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    media_object_create = models.MediaObjectCreate(
+        media_id="1234",
+        source=models.DataSource.REFERENCE,
+        back_reference="obj 1 - backref",
+    )
+
+    # Act + Assert
+    with pytest.raises(errors.BulkUploadLimitExceededError):
+        hari.create_media_objects(
+            dataset_id="1234",
+            media_objects=[
+                media_object_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)
+            ],
+        )

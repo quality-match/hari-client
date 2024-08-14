@@ -50,3 +50,10 @@ class UploadingFilesWithDifferentFileExtensionsError(Exception):
         super().__init__(
             f"You can only upload files with the same file extension. Found: {found_extensions=}"
         )
+
+
+class BulkUploadLimitExceededError(Exception):
+    def __init__(self, limit: int, found_amount: int):
+        super().__init__(
+            f"You can only upload up to {limit=} objects at once. {found_amount=}"
+        )
