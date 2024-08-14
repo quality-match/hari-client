@@ -43,3 +43,10 @@ class MediaCreateMissingFilePathError(Exception):
         super().__init__(
             f"The 'file_path' has to be set when using an instance of models.MediaCreate in HARIClient.create_medias(). Found: {media_create.file_path=}"
         )
+
+
+class UploadingFilesWithDifferentFileExtensionsError(Exception):
+    def __init__(self, found_extensions: list[str]):
+        super().__init__(
+            f"You can only upload files with the same file extension. Found: {found_extensions=}"
+        )

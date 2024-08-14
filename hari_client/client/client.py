@@ -237,18 +237,22 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            file_paths: The paths to the file to upload
+            file_paths: The paths to the file to upload. All files have to have the same file_extension.
 
         Returns:
             A list of MediaUploadUrlInfo objects.
+
+        Raises:
+            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
         """
 
         # 1. get presigned upload url for the image
-        # TODO: validate that all files have the same file_extension
-        file_extension = pathlib.Path(file_paths[0]).suffix
+        file_extensions = [pathlib.Path(file_path).suffix for file_path in file_paths]
+        if len(file_extensions) > 1:
+            raise errors.UploadingFilesWithDifferentFileExtensionsError(file_extensions)
         presign_response = self.get_presigned_media_upload_url(
             dataset_id=dataset_id,
-            file_extension=file_extension,
+            file_extension=file_extensions[0],
             batch_size=len(file_paths),
         )
 
@@ -566,6 +570,7 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
         """
 
         # 1. upload files
