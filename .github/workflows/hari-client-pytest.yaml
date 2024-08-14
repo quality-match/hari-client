@@ -29,7 +29,7 @@ jobs:
 
       - name: Get changed files
         id: changes
-        run: echo "files=$(git diff --name-only origin/master...${{ github.event.pull_request.head.sha }} | xargs)" >> $GITHUB_OUTPUT
+        run: echo "files=$(git diff --name-only origin/main...${{ github.event.pull_request.head.sha }} | xargs)" >> $GITHUB_OUTPUT
 
       - name: Run pre-commit on changed files
         run: |
