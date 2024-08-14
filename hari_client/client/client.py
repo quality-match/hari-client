@@ -1327,7 +1327,7 @@ class HARIClient:
             APIException: If the request fails.
 
         Returns:
-            list[models.UpdateHistogramsResponse, models.CreateCropsResponse]: list of updated histograms and created crops
+            list[typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse]]: list of updated histograms and created crops
         """
         return self._request(
             "PUT",
