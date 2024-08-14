@@ -918,3 +918,16 @@ class CreateCropsResponse(ResponseBaseParameters):
         default="create_crops", title="Method Name"
     )
     parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
+
+
+class ProcessingJob(pydantic.BaseModel):
+    id: str = pydantic.Field(title="ID")
+    status: str = pydantic.Field(title="Status")
+    owner: str = pydantic.Field(default=None, title="Owner")
+    user_group: str = pydantic.Field(default=None, title="User Group")
+    created_at: str = pydantic.Field(title="Created At")
+    updated_at: str = pydantic.Field(title="Updated At")
+    archived_at: typing.Optional[str] = pydantic.Field(title="Archived At")
+    process_name: str = pydantic.Field(title="Process Name")
+    details: str = pydantic.Field(title="Details")
+    trace_id: typing.Optional[str] = pydantic.Field(title="Trace ID")

@@ -1340,3 +1340,31 @@ class HARIClient:
                 ],
             ],
         )
+
+    def get_processing_jobs(
+        self,
+        trace_id: str = None,
+    ) -> list[models.ProcessingJob]:
+        """
+        Retrieves the list of processing jobs that the user has access to.
+
+        Args:
+            trace_id (str, optional): A unique identifier of the trace. Defaults to None.
+
+        Raises:
+            APIException: If the request fails.
+
+        Returns:
+            list[models.ProcessingJob]: A list of processing jobs for the user
+            or [] if there are no jobs of trace_id is not found.
+        """
+        params = {}
+        if trace_id:
+            params["trace_id"] = trace_id
+
+        return self._request(
+            "GET",
+            "/processingJobs/",
+            params=params,
+            success_response_item_model=list[models.ProcessingJob],
+        )
