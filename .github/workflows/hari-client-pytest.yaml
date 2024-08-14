@@ -1,9 +1,6 @@
 name: Hari-Client PyTest
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
