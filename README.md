@@ -4,7 +4,7 @@
 
 ## Installation
 
-Minimum python version: 3.9
+Minimum python version: **3.11**
 
 To install the hari-client package, use pip with the following command:
 
@@ -91,6 +91,10 @@ Have a look at the [geometries.py](docs/example_code/geometries.py) example scri
 ## Documentation
 
 For more detailed documentation, including all available methods and their parameters, please refer to the official documentation https://docs.quality-match.com.
+
+## Changelog
+
+See: [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
