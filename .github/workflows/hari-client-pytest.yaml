@@ -27,5 +27,16 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -e .[tests]
 
+      - name: Get changed files
+        id: changes
+        run: echo "files=$(git diff --name-only origin/master...${{ github.event.pull_request.head.sha }} | xargs)" >> $GITHUB_OUTPUT
+
+      - name: Run pre-commit on changed files
+        run: |
+          changed_files="${{ steps.changes.outputs.files }}"
+          if [ -n "$changed_files" ]; then
+            pre-commit run --files $changed_files || exit 1
+          fi
+
       - name: Run tests with pytest
         run: pytest
