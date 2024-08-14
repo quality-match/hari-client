@@ -22,15 +22,20 @@ def _parse_response_model(
     """
     Parses data of type typing.Any to a generic response_model type.
     Cases:
-        - isinstance(response_data, response_model) == True (for example both are int, list, dict, etc.)
-            - the response_data is returned without modification
         - both response_data and response_model are None (meaning you expect to receive None as response)
             - None is returned
-        - response_data is a dict, then response_model is treated like a pydantic model and the response_data
-          is parsed into an instance of the response_model.
-        - response_data is a list and response_model isn't, then response_model will be treated like a pydantic model
-          and every item in the list as a dict to be parsed into an instance of the response_model.
-
+        - response_model is a pydantic model:
+            - if response_data is a dict, response_data is parsed into an instance of the response_model.
+            - if response_data is a list, each item in the list is treated as a dict and parsed into an instance of the response_model.
+        - response_model is a parametrized generic:
+            - if response_data is a list and response_model is a list of unions:
+                - each item in the response_data list is checked against the possible types in the union.
+                - the parser attempts to parse each item using each type in the union until one succeeds.
+                - if an item is successfully parsed into one of the union types, and it contains nested fields that are also complex structures (e.g., lists of unions), the parser recurses into those nested structures to fully parse them.
+            - if response_data is a dict and response_model is a dict with specified key and value types:
+                - each key-value pair in the response_data dict is parsed, with the keys being converted to the specified key type, and the values being recursively parsed according to the specified value type.
+        - response_data is of the expected type (response_model):
+            - The response_data is returned as is.
 
     Args:
         response_data (typing.Any): the input data
@@ -68,7 +73,7 @@ def _parse_response_model(
         if origin is list:
             item_type = typing.get_args(response_model)[0]
             if isinstance(response_data, list):
-                if typing.get_origin(item_type) in (typing.Union, types.UnionType):
+                if typing.get_origin(item_type) is typing.Union:
                     return [
                         handle_union_parsing(item, item_type) for item in response_data
                     ]
