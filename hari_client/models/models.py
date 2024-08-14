@@ -829,72 +829,92 @@ class ProcessingType(str, enum.Enum):
     REMOTE = "remote"
 
 
+class ResponseBaseParameters(pydantic.BaseModel):
+    batch: bool = pydantic.Field(default=False, title="Batch")
+    override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
+        default=None, title="Override Processing Type"
+    )
+    task_token: typing.Optional[str] = pydantic.Field(default=None, title="Task Token")
+    job_id: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Job ID")
+    trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
+        default=None, title="Trace ID"
+    )
+    user_id: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="User ID")
+    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
+
+
 class CreateThumbnailsParameters(pydantic.BaseModel):
-    model_config = pydantic.ConfigDict(from_attributes=True)
-    dataset_id: str
-    query: QueryList | None = []
-    pagination: PaginationParameter | None = None
-    upload_folder_name: str = "thumbnails"
-    s3_bucket: str | None = None
-    s3_folder: str | None = None
-    max_size: tuple[int, int] | None
-    aspect_ratio: tuple[int, int]
-    calc_and_write_image_info: bool = True
+    dataset_id: str = pydantic.Field(title="Dataset ID")
+    query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
+    pagination: typing.Optional[PaginationParameter] = pydantic.Field(
+        default=None, title="Pagination"
+    )
+    upload_folder_name: str = pydantic.Field(
+        default="thumbnails", title="Upload Folder Name"
+    )
+    s3_bucket: typing.Optional[str] = pydantic.Field(default=None, title="S3 Bucket")
+    s3_folder: typing.Optional[str] = pydantic.Field(default=None, title="S3 Folder")
+    max_size: typing.Optional[tuple[int, int]] = pydantic.Field(
+        default=None, title="Max Size"
+    )
+    aspect_ratio: tuple[int, int] = pydantic.Field(title="Aspect Ratio")
+    calc_and_write_image_info: bool = pydantic.Field(
+        default=True, title="Calculate and Write Image Info"
+    )
 
 
-class CreateThumbnailsResponse(pydantic.BaseModel):
-    method_name: typing.Literal["create_thumbnails"] = "create_thumbnails"
-    parameters: CreateThumbnailsParameters
-    batch: bool = False
-    override_processing_type: ProcessingType | None = None
-    task_token: str | None = None
-    job_id: uuid.UUID | None = None
-    trace_id: uuid.UUID | None = None
-    user_id: uuid.UUID | None = None
-    user_group: str | None = None
+class CreateThumbnailsResponse(ResponseBaseParameters):
+    method_name: typing.Literal["create_thumbnails"] = pydantic.Field(
+        default="create_thumbnails", title="Method Name"
+    )
+    parameters: CreateThumbnailsParameters = pydantic.Field(title="Parameters")
 
 
 class UpdateHistogramsParameters(pydantic.BaseModel):
-    dataset_id: str
-    subset_ids: list[str] | None = None
-    attribute_ids: list[str] | None = None
-    num_buckets: int = 360
-    ignore_complete_dataset_histogram: bool = False
-    compute_for_all_subsets: bool = False
+    dataset_id: str = pydantic.Field(title="Dataset ID")
+    subset_ids: typing.Optional[list[str]] = pydantic.Field(
+        default=None, title="Subset IDs"
+    )
+    attribute_ids: typing.Optional[list[str]] = pydantic.Field(
+        default=None, title="Attribute IDs"
+    )
+    num_buckets: int = pydantic.Field(default=360, title="Number of Buckets")
+    ignore_complete_dataset_histogram: bool = pydantic.Field(
+        default=False, title="Ignore Complete Dataset Histogram"
+    )
+    compute_for_all_subsets: bool = pydantic.Field(
+        default=False, title="Compute for All Subsets"
+    )
 
 
-class UpdateHistogramsResponse(pydantic.BaseModel):
-    method_name: typing.Literal["update_histograms"] = "update_histograms"
-    parameters: UpdateHistogramsParameters
-    batch: bool = False
-    override_processing_type: ProcessingType | None = None
-    task_token: str | None = None
-    job_id: uuid.UUID | None = None
-    trace_id: uuid.UUID | None = None
-    user_id: uuid.UUID | None = None
-    user_group: str | None = None
+class UpdateHistogramsResponse(ResponseBaseParameters):
+    method_name: typing.Literal["update_histograms"] = pydantic.Field(
+        default="update_histograms", title="Method Name"
+    )
+    parameters: UpdateHistogramsParameters = pydantic.Field(title="Parameters")
 
 
 class CreateCropsParameters(pydantic.BaseModel):
-    dataset_id: str
-    query: QueryList | None = []
-    pagination: PaginationParameter | None = None
-    upload_folder_name: str = "cropped_image"
-    s3_bucket: str | None = None
-    s3_folder: str | None = None
-    aspect_ratio: tuple[int, int]
-    padding_percent: int
-    padding_minimum: int
-    max_size: tuple[int, int] | None
+    dataset_id: str = pydantic.Field(title="Dataset ID")
+    query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
+    pagination: typing.Optional[PaginationParameter] = pydantic.Field(
+        default=None, title="Pagination"
+    )
+    upload_folder_name: str = pydantic.Field(
+        default="cropped_image", title="Upload Folder Name"
+    )
+    s3_bucket: typing.Optional[str] = pydantic.Field(default=None, title="S3 Bucket")
+    s3_folder: typing.Optional[str] = pydantic.Field(default=None, title="S3 Folder")
+    aspect_ratio: tuple[int, int] = pydantic.Field(title="Aspect Ratio")
+    padding_percent: int = pydantic.Field(title="Padding Percent")
+    padding_minimum: int = pydantic.Field(title="Padding Minimum")
+    max_size: typing.Optional[tuple[int, int]] = pydantic.Field(
+        default=None, title="Max Size"
+    )
 
 
-class CreateCropsResponse(pydantic.BaseModel):
-    method_name: typing.Literal["create_crops"] = "create_crops"
-    parameters: CreateCropsParameters
-    batch: bool = False
-    override_processing_type: ProcessingType | None = None
-    task_token: str | None = None
-    job_id: uuid.UUID | None = None
-    trace_id: uuid.UUID | None = None
-    user_id: uuid.UUID | None = None
-    user_group: str | None = None
+class CreateCropsResponse(ResponseBaseParameters):
+    method_name: typing.Literal["create_crops"] = pydantic.Field(
+        default="create_crops", title="Method Name"
+    )
+    parameters: CreateCropsParameters = pydantic.Field(title="Parameters")

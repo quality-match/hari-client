@@ -1,3 +1,5 @@
+import typing
+
 import pydantic
 import pytest
 
@@ -164,7 +166,7 @@ def test_parse_response_model_works_with_dict_of_parametrized_generics(
     [
         (
             [{"a": 1, "b": 6.78, "c": "hello"}, {"x": 2, "y": 16.78, "z": "bye"}],
-            list[MyModel | MyModel2],
+            list[typing.Union[MyModel, MyModel2]],
             [MyModel, MyModel2],
         ),
     ],

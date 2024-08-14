@@ -1250,7 +1250,7 @@ class HARIClient:
         subset_id: str,
         max_size: typing.Optional[tuple[int]] = None,
         aspect_ratio: typing.Optional[tuple[int]] = None,
-    ) -> None:
+    ) -> list[models.CreateThumbnailsResponse]:
         """Triggers the creation of thumbnails for a given dataset.
 
         Args:
@@ -1261,6 +1261,9 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            list[models.CreateThumbnailsResponse]: list of the created thumbnails
         """
         return self._request(
             "PUT",
@@ -1272,7 +1275,7 @@ class HARIClient:
 
     def update_histograms(
         self, dataset_id: str, compute_for_all_subsets: typing.Optional[bool] = False
-    ) -> None:
+    ) -> models.UpdateHistogramsResponse:
         """Triggers the update of the histograms for a given dataset.
 
         Args:
@@ -1281,6 +1284,9 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            models.UpdateHistogramsResponse: updated histograms
         """
         return self._request(
             "PUT",
@@ -1298,7 +1304,9 @@ class HARIClient:
         max_size: typing.Optional[tuple[int]] = None,
         padding_minimum: typing.Optional[int] = None,
         padding_percent: typing.Optional[int] = None,
-    ) -> None:
+    ) -> list[
+        typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse],
+    ]:
         """Creates the crops for a given dataset if the correct api key is provided in the
 
         Args:
@@ -1312,6 +1320,9 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            list[models.UpdateHistogramsResponse, models.CreateCropsResponse]: list of updated histograms and created crops
         """
         return self._request(
             "PUT",
@@ -1319,6 +1330,8 @@ class HARIClient:
             params={"subset_id": subset_id},
             json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
             success_response_item_model=list[
-                models.UpdateHistogramsResponse | models.CreateCropsResponse
+                typing.Union[
+                    models.UpdateHistogramsResponse, models.CreateCropsResponse
+                ],
             ],
         )
