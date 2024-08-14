@@ -1367,3 +1367,26 @@ class HARIClient:
             params=params,
             success_response_item_model=list[models.ProcessingJob],
         )
+
+    def get_processing_job(
+        self,
+        processing_job_id: str,
+    ) -> models.ProcessingJob:
+        """
+        Retrieves a specific processing job by its id.
+
+        Args:
+            processing_job_id (str): The unique identifier of the processing job to retrieve.
+
+        Raises:
+            APIException: If the request fails.
+
+        Returns:
+            models.ProcessingJob: The ProcessingJob model retrieved from the API.
+        """
+
+        return self._request(
+            "GET",
+            f"/processingJobs/{processing_job_id}",
+            success_response_item_model=models.ProcessingJob,
+        )
