@@ -285,7 +285,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            file_paths: The paths to the file to upload. All files have to have the same file_extension.
+            file_paths: The paths to the files to upload. All files have to have the same file extension.
 
         Returns:
             A list of MediaUploadUrlInfo objects.
@@ -610,7 +610,7 @@ class HARIClient:
     def create_medias(
         self, dataset_id: str, medias: list[models.MediaCreate]
     ) -> models.BulkResponse:
-        """Accepts a multiple files, uploads them, and creates the medias in the db.
+        """Accepts multiple files, uploads them, and creates the medias in the db.
         The limit is 500 per call.
 
         Args:
