@@ -1,6 +1,7 @@
 import typing
 
 import requests
+
 from hari_client.models import models
 
 T = typing.TypeVar("T")

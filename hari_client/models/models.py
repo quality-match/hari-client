@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import datetime
 import enum
 import typing
-import datetime
 import uuid
 
 import pydantic
@@ -79,9 +79,9 @@ class BoundingBox2DAggregationMetrics(pydantic.BaseModel):
     iou_to_aggregated_box: typing.Optional[dict[str, typing.Any]] = pydantic.Field(
         default=None, title="Iou To Aggregated Box"
     )
-    distance_to_center_of_aggregated_box: typing.Optional[dict[str, typing.Any]] = (
-        pydantic.Field(default=None, title="Distance To Center Of Aggregated Box")
-    )
+    distance_to_center_of_aggregated_box: typing.Optional[
+        dict[str, typing.Any]
+    ] = pydantic.Field(default=None, title="Distance To Center Of Aggregated Box")
     absolute_difference_to_area_of_aggregated_box: typing.Optional[
         dict[str, typing.Any]
     ] = pydantic.Field(
@@ -322,9 +322,9 @@ class CameraIntrinsics(pydantic.BaseModel):
     principal_point: Point2DTuple = pydantic.Field()
     width_px: typing.Any = pydantic.Field(title="Width Px")
     height_px: typing.Any = pydantic.Field(title="Height Px")
-    distortion_coefficients: typing.Optional[CameraDistortionCoefficients] = (
-        pydantic.Field(default=None, title="CameraDistortionCoefficients")
-    )
+    distortion_coefficients: typing.Optional[
+        CameraDistortionCoefficients
+    ] = pydantic.Field(default=None, title="CameraDistortionCoefficients")
 
 
 class PointCloudMetadata(pydantic.BaseModel):
@@ -513,9 +513,9 @@ class Media(pydantic.BaseModel):
     media_url: str = pydantic.Field(title="Media Url")
     pii_media_url: str = pydantic.Field(title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
-    metadata: typing.Optional[typing.Union[ImageMetadata, PointCloudMetadata]] = (
-        pydantic.Field(default=None, title="ImageMetadata")
-    )
+    metadata: typing.Optional[
+        typing.Union[ImageMetadata, PointCloudMetadata]
+    ] = pydantic.Field(default=None, title="ImageMetadata")
     frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
     media_type: typing.Optional[MediaType] = pydantic.Field(
         default=None, title="MediaType"
@@ -555,9 +555,9 @@ class MediaResponse(pydantic.BaseModel):
         default=None, title="Pii Media Url"
     )
     name: typing.Optional[str] = pydantic.Field(default=None, title="Name")
-    metadata: typing.Optional[typing.Union[ImageMetadata, PointCloudMetadata]] = (
-        pydantic.Field(default=None, title="ImageMetadata")
-    )
+    metadata: typing.Optional[
+        typing.Union[ImageMetadata, PointCloudMetadata]
+    ] = pydantic.Field(default=None, title="ImageMetadata")
     frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
     media_type: typing.Optional[MediaType] = pydantic.Field(
         default=None, title="MediaType"

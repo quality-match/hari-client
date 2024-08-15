@@ -1,9 +1,9 @@
 import pytest
 
 from hari_client import Config
+from hari_client import errors
 from hari_client import HARIClient
 from hari_client import models
-from hari_client import errors
 
 
 def test_create_medias_with_missing_file_paths():

@@ -127,7 +127,6 @@ def handle_union_parsing(item, union_type):
 
 
 class HARIClient:
-
     BULK_UPLOAD_LIMIT = 500
 
     def __init__(self, config: config.Config):

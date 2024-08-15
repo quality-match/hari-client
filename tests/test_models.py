@@ -1,4 +1,3 @@
-import pytest
 from hari_client import models
 
 
