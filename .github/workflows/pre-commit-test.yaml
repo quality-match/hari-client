@@ -1,0 +1,38 @@
+name: Pre-Commit Hook Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+        with:
+          # Required for git diff
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install Pre-Commit
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pre-commit
+
+      - name: Get changed files
+        id: changes
+        run: echo "files=$(git diff --name-only origin/main...${{ github.event.pull_request.head.sha }} | xargs)" >> $GITHUB_OUTPUT
+
+      - name: Run pre-commit on changed files
+        run: |
+          changed_files="${{ steps.changes.outputs.files }}"
+          if [ -n "$changed_files" ]; then
+            pre-commit run --files $changed_files || exit 1
+          fi
