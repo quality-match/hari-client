@@ -9,11 +9,9 @@ setup(
     author_email="info@quality-match.com",
     packages=find_packages(),
     install_requires=["requests>=2.32", "pydantic>=2.8", "pydantic-settings>=2.3"],
-    extras_require={"tests": ["pytest"]},
+    extras_require={"tests": ["pytest", "pre-commit"]},
     classifiers=[
         "Intended Audience :: Developers",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
     ],
