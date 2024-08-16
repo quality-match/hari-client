@@ -902,6 +902,9 @@ class MediaCreate(pydantic.BaseModel):
 
 class MediaObjectCreate(pydantic.BaseModel):
     media_id: str
+    # source represents if the media object is either a geometry that was constructed by
+    # QM, e.g., by annotating media data; or a geometry that was already provided by a
+    # customer, and hence, would be a REFERENCE.
     source: DataSource
     back_reference: str
 
@@ -913,9 +916,6 @@ class MediaObjectCreate(pydantic.BaseModel):
 
     instance_id: typing.Optional[str] = None
     object_category: typing.Optional[str] = None
-    # source represents if the media object is either a geometry that was constructed by
-    # QM, e.g., by annotating media data; or a geometry that was already provided by a
-    # customer, and hence, would be a REFERENCE.
     qm_data: typing.Optional[list[GeometryUnion]] = None
     reference_data: typing.Optional[GeometryUnion] = None
     frame_idx: typing.Optional[int] = None

@@ -6,42 +6,68 @@ from hari_client import models
 config = Config(hari_username="jane.doe@gmail.com", hari_password="SuperSecretPassword")
 
 
-class ExampleMedia:
-    def __init__(self, file_path, name, geometry, object_back_reference):
-        self.file_path = file_path
-        self.name = name
-        self.geometry = geometry
-        self.object_back_reference = object_back_reference
+class ExampleMediaAndObject:
+    def __init__(
+        self, media: models.MediaCreate, media_object: models.MediaObjectCreate
+    ):
+        self.media = media
+        self.media_object = media_object
 
 
-def get_example_medias() -> list[ExampleMedia]:
+def get_example_medias_and_objects() -> list[ExampleMediaAndObject]:
     return [
-        ExampleMedia(
-            file_path="images/image1.jpg",
-            name="A busy street",
-            geometry=models.BBox2DCenterPoint(
-                type=models.BBox2DType.BBOX2D_CENTER_POINT,
-                x=1400.0,
-                y=1806.0,
-                width=344.0,
-                height=732.0,
+        ExampleMediaAndObject(
+            media=models.MediaCreate(
+                file_path="images/image1.jpg",
+                name="A busy street 1",
+                back_reference="image 1",
+                media_type=models.MediaType.IMAGE,
             ),
-            object_back_reference="pedestrian",
-        ),
-        ExampleMedia(
-            file_path="images/image2.jpg",
-            name="A busy street",
-            geometry=models.Point2DXY(x=975.0, y=2900.0),
-            object_back_reference="motorcycle wheel",
-        ),
-        ExampleMedia(
-            file_path="images/image3.jpg",
-            name="A busy street",
-            geometry=models.PolyLine2DFlatCoordinates(
-                coordinates=[1450, 1550, 1450, 1000],
-                closed=False,
+            media_object=models.MediaObjectCreate(
+                media_id="",  # will be filled in when corresponding media is created
+                source=models.DataSource.REFERENCE,
+                back_reference="pedestrian",
+                reference_data=models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=1400.0,
+                    y=1806.0,
+                    width=344.0,
+                    height=732.0,
+                ),
             ),
-            object_back_reference="road marking",
+        ),
+        ExampleMediaAndObject(
+            media=models.MediaCreate(
+                file_path="images/image2.jpg",
+                name="A busy street 2",
+                back_reference="image 2",
+                media_type=models.MediaType.IMAGE,
+            ),
+            media_object=models.MediaObjectCreate(
+                media_id="",  # will be filled in when corresponding media is created
+                source=models.DataSource.REFERENCE,
+                back_reference="motorcycle wheel",
+                media_type=models.MediaType.IMAGE,
+                reference_data=models.Point2DXY(x=975.0, y=2900.0),
+            ),
+        ),
+        ExampleMediaAndObject(
+            media=models.MediaCreate(
+                file_path="images/image3.jpg",
+                name="A busy street 3",
+                back_reference="image 3",
+                media_type=models.MediaType.IMAGE,
+            ),
+            media_object=models.MediaObjectCreate(
+                media_id="",  # will be filled in when corresponding media is created
+                source=models.DataSource.REFERENCE,
+                back_reference="road marking",
+                media_type=models.MediaType.IMAGE,
+                reference_data=models.PolyLine2DFlatCoordinates(
+                    coordinates=[1450, 1550, 1450, 1000],
+                    closed=False,
+                ),
+            ),
         ),
     ]
 
@@ -56,28 +82,30 @@ if __name__ == "__main__":
     new_dataset = hari.create_dataset(name="My first dataset", customer=user_group)
     print("Dataset created with id:", new_dataset.id)
 
-    medias = get_example_medias()
+    # create example medias and media objects
+    example_medias_and_objects_list = get_example_medias_and_objects()
+    medias = [example.media for example in example_medias_and_objects_list]
+    media_objects = [
+        example.media_object for example in example_medias_and_objects_list
+    ]
 
-    for media in medias:
-        # 3. Upload an image
-        new_media = hari.create_media(
-            dataset_id=new_dataset.id,
-            file_path=media.file_path,
-            name=media.name,
-            media_type=models.MediaType.IMAGE,
-            back_reference=media.file_path,
-        )
-        print("New media created with id: ", new_media.id)
+    # 3. Create medias
+    create_medias_response = hari.create_medias(new_dataset.id, medias)
+    print(
+        f"Create medias status={create_medias_response.status.value}, summary={create_medias_response.summary}"
+    )
 
-        # 4. Create a geometry on the image
-        new_media_object = hari.create_media_object(
-            dataset_id=new_dataset.id,
-            media_id=new_media.id,
-            back_reference=media.object_back_reference,
-            source=models.DataSource.REFERENCE,
-            reference_data=media.geometry,
-        )
-        print("New media object created with id:", new_media_object.id)
+    # 4. Create media objects
+    # update media_id with created media id for each media object
+    for i, media_object in enumerate(media_objects):
+        media_objects[i].media_id = create_medias_response.results[i].item_id
+
+    create_media_objects_response = hari.create_media_objects(
+        new_dataset.id, media_objects
+    )
+    print(
+        f"Create media objects status={create_media_objects_response.status.value}, summary={create_media_objects_response.summary}"
+    )
 
     # 5. Create a subset
     new_subset_id = hari.create_subset(
@@ -94,3 +122,4 @@ if __name__ == "__main__":
     # The create_crops method requires the thumbnail creation to be finished.
     # If it fails, try only this method again after a few minutes.
     hari.create_crops(dataset_id=new_dataset.id, subset_id=new_subset_id)
+    print("Metadata successfully updated")
