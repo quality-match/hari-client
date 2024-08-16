@@ -47,14 +47,27 @@ class MediaCreateMissingFilePathError(Exception):
 
 
 class UploadingFilesWithDifferentFileExtensionsError(Exception):
-    def __init__(self, found_extensions: list[str]):
+    def __init__(self, found_extensions: set[str]):
         super().__init__(
             f"You can only upload files with the same file extension. Found: {found_extensions=}"
         )
 
 
-class BulkUploadLimitExceededError(Exception):
+class BulkUploadSizeRangeError(Exception):
     def __init__(self, limit: int, found_amount: int):
         super().__init__(
-            f"You can only upload up to {limit=} objects at once. {found_amount=}"
+            f"You tried uploading {found_amount} items at once, but it has to be at least 1 and max {limit}"
+        )
+
+
+class ParameterRangeError(Exception):
+    def __init__(
+        self,
+        param_name: str,
+        minimum: 1,
+        maximum: int,
+        found_amount: int,
+    ):
+        super().__init__(
+            f"The valid range for the {param_name} parameter is: {minimum=}, {maximum=}, but found {found_amount} items"
         )

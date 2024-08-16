@@ -52,7 +52,7 @@ def test_create_medias_with_too_many_objects():
     )
 
     # Act + Assert
-    with pytest.raises(errors.BulkUploadLimitExceededError):
+    with pytest.raises(errors.BulkUploadSizeRangeError):
         hari.create_medias(
             dataset_id="1234",
             medias=[media_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)],
@@ -69,7 +69,7 @@ def test_create_media_objects_with_too_many_objects():
     )
 
     # Act + Assert
-    with pytest.raises(errors.BulkUploadLimitExceededError):
+    with pytest.raises(errors.BulkUploadSizeRangeError):
         hari.create_media_objects(
             dataset_id="1234",
             media_objects=[

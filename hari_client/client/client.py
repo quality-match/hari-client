@@ -86,9 +86,9 @@ def _parse_response_model(
             key_type, value_type = typing.get_args(response_model)
             if isinstance(response_data, dict):
                 return {
-                    key_type(k): value_type(**v)
-                    if isinstance(v, dict)
-                    else value_type(v)
+                    key_type(k): (
+                        value_type(**v) if isinstance(v, dict) else value_type(v)
+                    )
                     for k, v in response_data.items()
                 }
 
@@ -261,7 +261,7 @@ class HARIClient:
             The VisualisationUploadUrlInfo object.
         """
 
-        # 1. get presigned upload url for the image
+        # 1. get presigned upload url for the visualisation
         file_extension = pathlib.Path(file_path).suffix
         presign_responses = self.get_presigned_visualisation_upload_url(
             dataset_id=dataset_id,
@@ -623,11 +623,12 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
             UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
-            BulkUploadLimitExceededError: if the number of medias exceeds the per call upload limit.
+            BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
         """
 
         if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
-            raise errors.BulkUploadLimitExceededError(
+            raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
 
@@ -815,11 +816,14 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            ValueError: If the validating input args fails.
+            ParameterRangeError: If the batch_size is out of range.
         """
         if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
-            raise ValueError(
-                f"Expected batch_size to be in range 1 <= batch_size <= {HARIClient.BULK_UPLOAD_LIMIT}, but received: {batch_size}."
+            raise errors.ParameterRangeError(
+                param_name="batch_size",
+                minimum=1,
+                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                found_amount=batch_size,
             )
         return self._request(
             "GET",
@@ -1028,11 +1032,14 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            ValueError: If the validating input args fails.
+            ParameterRangeError: If the validating input args fails.
         """
         if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
-            raise ValueError(
-                f"Expected batch_size to be in range 1 <= batch_size <= {HARIClient.BULK_UPLOAD_LIMIT}, but received: {batch_size}."
+            raise errors.ParameterRangeError(
+                param_name="batch_size",
+                minimum=1,
+                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                found_amount=batch_size,
             )
         return self._request(
             "GET",
@@ -1114,11 +1121,11 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            BulkUploadLimitExceededError: if the number of medias exceeds the per call upload limit.
+            BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
         """
 
         if len(media_objects) > HARIClient.BULK_UPLOAD_LIMIT:
-            raise errors.BulkUploadLimitExceededError(
+            raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
             )
 
