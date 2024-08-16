@@ -2,6 +2,8 @@ import typing
 
 import requests
 
+from hari_client.models import models
+
 T = typing.TypeVar("T")
 
 
@@ -35,3 +37,37 @@ class ParseResponseModelError(Exception):
             self.message = f"{response_data=}, {response_model=}"
 
         super().__init__(self.message)
+
+
+class MediaCreateMissingFilePathError(Exception):
+    def __init__(self, media_create: models.MediaCreate):
+        super().__init__(
+            f"The 'file_path' has to be set when using an instance of models.MediaCreate in HARIClient.create_medias(). Found: {media_create.file_path=}"
+        )
+
+
+class UploadingFilesWithDifferentFileExtensionsError(Exception):
+    def __init__(self, found_extensions: set[str]):
+        super().__init__(
+            f"You can only upload files with the same file extension. Found: {found_extensions=}"
+        )
+
+
+class BulkUploadSizeRangeError(Exception):
+    def __init__(self, limit: int, found_amount: int):
+        super().__init__(
+            f"You tried uploading {found_amount} items at once, but it has to be at least 1 and max {limit}"
+        )
+
+
+class ParameterRangeError(Exception):
+    def __init__(
+        self,
+        param_name: str,
+        minimum: int,
+        maximum: int,
+        value: int,
+    ):
+        super().__init__(
+            f"The valid range for the {param_name} parameter is: {minimum=}, {maximum=}, but found {value} items"
+        )

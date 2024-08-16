@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import datetime
 import enum
 import typing
+import uuid
 
 import pydantic
 
@@ -33,9 +35,9 @@ class LogicParameter(pydantic.BaseModel):
     queries: list[typing.Union[QueryParameter, LogicParameter]]
 
 
-class LogicParameter(pydantic.BaseModel):
-    operator: LogicOperator
-    queries: list[typing.Union[QueryParameter, LogicParameter]]
+class PaginationParameter(pydantic.BaseModel):
+    limit: typing.Optional[int] = None
+    skip: typing.Optional[int] = None
 
 
 QueryList = list[typing.Union[QueryParameter, LogicParameter]]
@@ -821,3 +823,217 @@ GeometryUnion = typing.Union[
     Point2DAggregation,
     Point3DAggregation,
 ]
+
+
+class BulkOperationStatusEnum(str, enum.Enum):
+    SUCCESS = "success"
+    PARTIAL_SUCCESS = "partial_success"
+    FAILURE = "failure"
+    PROCESSING = "processing"
+
+
+class BulkUploadSuccessSummary(pydantic.BaseModel):
+    """Quantifies how many items were successfully uploaded and how many failed in a bulk request.
+
+    Attributes:
+        total: The total number of items.
+        successful: The number of successful uploads.
+        failed: The number of failed uploads.
+    """
+
+    total: int = 0
+    successful: int = 0
+    failed: int = 0
+
+
+class ResponseStatesEnum(str, enum.Enum):
+    SUCCESS = "success"
+    MISSING_DATA = "missing_data"
+    SERVER_ERROR = "server_error"
+    BAD_DATA = "bad_data"
+
+
+class BaseBulkItemResponse(pydantic.BaseModel, arbitrary_types_allowed=True):
+    item_id: typing.Optional[str] = None
+    status: ResponseStatesEnum
+    errors: typing.Optional[list[str]] = None
+
+
+class AnnotatableCreateResponse(BaseBulkItemResponse):
+    back_reference: str
+
+
+class AttributeCreateResponse(BaseBulkItemResponse):
+    annotatable_id: str
+
+
+class BulkResponse(pydantic.BaseModel):
+    status: BulkOperationStatusEnum = BulkOperationStatusEnum.PROCESSING
+    summary: BulkUploadSuccessSummary = pydantic.Field(
+        default_factory=BulkUploadSuccessSummary
+    )
+    results: list[
+        typing.Union[
+            BaseBulkItemResponse, AnnotatableCreateResponse, AttributeCreateResponse
+        ]
+    ] = pydantic.Field(default_factory=list)
+
+
+class MediaCreate(pydantic.BaseModel):
+    # file_path is not part of the HARI API, but is used to define where to read the media file from
+    file_path: typing.Optional[str] = pydantic.Field(default=None, exclude=True)
+
+    name: str
+    media_type: MediaType
+    back_reference: str
+    media_url: typing.Optional[str] = None
+
+    archived: bool = False
+    scene_id: typing.Optional[str] = None
+    realWorldObject_id: typing.Optional[str] = None
+    visualisations: typing.Optional[list[VisualisationUnion]] = None
+    subset_ids: typing.Union[set[str], list[str], None] = None
+
+    metadata: typing.Union[ImageMetadata, PointCloudMetadata, None] = None
+    frame_idx: typing.Optional[int] = None
+    frame_timestamp: typing.Optional[datetime.datetime] = None
+    back_reference_json: typing.Optional[str] = None
+
+
+class MediaObjectCreate(pydantic.BaseModel):
+    media_id: str
+    source: DataSource
+    back_reference: str
+
+    archived: bool = False
+    scene_id: typing.Optional[str] = None
+    realWorldObject_id: typing.Optional[str] = None
+    visualisations: typing.Optional[list[VisualisationUnion]] = None
+    subset_ids: typing.Union[set[str], list[str], None] = None
+
+    instance_id: typing.Optional[str] = None
+    object_category: typing.Optional[str] = None
+    # source represents if the media object is either a geometry that was constructed by
+    # QM, e.g., by annotating media data; or a geometry that was already provided by a
+    # customer, and hence, would be a REFERENCE.
+    qm_data: typing.Optional[list[GeometryUnion]] = None
+    reference_data: typing.Optional[GeometryUnion] = None
+    frame_idx: typing.Optional[int] = None
+    media_object_type: typing.Optional[GeometryUnion] = None
+
+
+class ProcessingType(str, enum.Enum):
+    LOCAL = "local"
+    REMOTE = "remote"
+
+
+class ResponseBaseParameters(pydantic.BaseModel):
+    batch: bool = pydantic.Field(default=False, title="Batch")
+    override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
+        default=None, title="Override Processing Type"
+    )
+    task_token: typing.Optional[str] = pydantic.Field(default=None, title="Task Token")
+    job_id: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Job ID")
+    trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
+        default=None, title="Trace ID"
+    )
+    user_id: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="User ID")
+    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
+
+
+class CreateThumbnailsParameters(pydantic.BaseModel):
+    dataset_id: str = pydantic.Field(title="Dataset ID")
+    query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
+    pagination: typing.Optional[PaginationParameter] = pydantic.Field(
+        default=None, title="Pagination"
+    )
+    upload_folder_name: str = pydantic.Field(
+        default="thumbnails", title="Upload Folder Name"
+    )
+    s3_bucket: typing.Optional[str] = pydantic.Field(default=None, title="S3 Bucket")
+    s3_folder: typing.Optional[str] = pydantic.Field(default=None, title="S3 Folder")
+    max_size: typing.Optional[tuple[int, int]] = pydantic.Field(
+        default=None, title="Max Size"
+    )
+    aspect_ratio: tuple[int, int] = pydantic.Field(title="Aspect Ratio")
+    calc_and_write_image_info: bool = pydantic.Field(
+        default=True, title="Calculate and Write Image Info"
+    )
+
+
+class CreateThumbnailsResponse(ResponseBaseParameters):
+    method_name: typing.Literal["create_thumbnails"] = pydantic.Field(
+        default="create_thumbnails", title="Method Name"
+    )
+    parameters: CreateThumbnailsParameters = pydantic.Field(title="Parameters")
+
+
+class UpdateHistogramsParameters(pydantic.BaseModel):
+    dataset_id: str = pydantic.Field(title="Dataset ID")
+    subset_ids: typing.Optional[list[str]] = pydantic.Field(
+        default=None, title="Subset IDs"
+    )
+    attribute_ids: typing.Optional[list[str]] = pydantic.Field(
+        default=None, title="Attribute IDs"
+    )
+    num_buckets: int = pydantic.Field(default=360, title="Number of Buckets")
+    ignore_complete_dataset_histogram: bool = pydantic.Field(
+        default=False, title="Ignore Complete Dataset Histogram"
+    )
+    compute_for_all_subsets: bool = pydantic.Field(
+        default=False, title="Compute for All Subsets"
+    )
+
+
+class UpdateHistogramsResponse(ResponseBaseParameters):
+    method_name: typing.Literal["update_histograms"] = pydantic.Field(
+        default="update_histograms", title="Method Name"
+    )
+    parameters: UpdateHistogramsParameters = pydantic.Field(title="Parameters")
+
+
+class CreateCropsParameters(pydantic.BaseModel):
+    dataset_id: str = pydantic.Field(title="Dataset ID")
+    query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
+    pagination: typing.Optional[PaginationParameter] = pydantic.Field(
+        default=None, title="Pagination"
+    )
+    upload_folder_name: str = pydantic.Field(
+        default="cropped_image", title="Upload Folder Name"
+    )
+    s3_bucket: typing.Optional[str] = pydantic.Field(default=None, title="S3 Bucket")
+    s3_folder: typing.Optional[str] = pydantic.Field(default=None, title="S3 Folder")
+    aspect_ratio: tuple[int, int] = pydantic.Field(title="Aspect Ratio")
+    padding_percent: int = pydantic.Field(title="Padding Percent")
+    padding_minimum: int = pydantic.Field(title="Padding Minimum")
+    max_size: typing.Optional[tuple[int, int]] = pydantic.Field(
+        default=None, title="Max Size"
+    )
+
+
+class CreateCropsResponse(ResponseBaseParameters):
+    method_name: typing.Literal["create_crops"] = pydantic.Field(
+        default="create_crops", title="Method Name"
+    )
+    parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
+
+
+class ProcessingJob(pydantic.BaseModel):
+    id: uuid.UUID = pydantic.Field(title="ID")
+    status: str = pydantic.Field(title="Status")
+    owner: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Owner")
+    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
+    created_at: typing.Optional[datetime.datetime] = pydantic.Field(
+        title="Created At", default=None
+    )
+    updated_at: typing.Optional[datetime.datetime] = pydantic.Field(
+        title="Updated At", default=None
+    )
+    archived_at: typing.Optional[datetime.datetime] = pydantic.Field(
+        title="Archived At", default=None
+    )
+    process_name: str = pydantic.Field(title="Process Name")
+    details: str = pydantic.Field(title="Details")
+    trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
+        default=None, title="Trace ID"
+    )

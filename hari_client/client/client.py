@@ -2,6 +2,7 @@ import datetime
 import pathlib
 import typing
 
+import pydantic
 import requests
 
 from hari_client.client import errors
@@ -20,15 +21,20 @@ def _parse_response_model(
     """
     Parses data of type typing.Any to a generic response_model type.
     Cases:
-        - isinstance(response_data, response_model) == True (for example both are int, list, dict, etc.)
-            - the response_data is returned without modification
         - both response_data and response_model are None (meaning you expect to receive None as response)
             - None is returned
-        - response_data is a dict, then response_model is treated like a pydantic model and the response_data
-          is parsed into an instance of the response_model.
-        - response_data is a list and response_model isn't, then response_model will be treated like a pydantic model
-          and every item in the list as a dict to be parsed into an instance of the response_model.
-
+        - response_model is a pydantic model:
+            - if response_data is a dict, response_data is parsed into an instance of the response_model.
+            - if response_data is a list, each item in the list is treated as a dict and parsed into an instance of the response_model.
+        - response_model is a parametrized generic:
+            - if response_data is a list and response_model is a list of unions:
+                - each item in the response_data list is checked against the possible types in the union.
+                - the parser attempts to parse each item using each type in the union until one succeeds.
+                - if an item is successfully parsed into one of the union types, and it contains nested fields that are also complex structures (e.g., lists of unions), the parser recurses into those nested structures to fully parse them.
+            - if response_data is a dict and response_model is a dict with specified key and value types:
+                - each key-value pair in the response_data dict is parsed, with the keys being converted to the specified key type, and the values being recursively parsed according to the specified value type.
+        - response_data is of the expected type (response_model):
+            - The response_data is returned as is.
 
     Args:
         response_data (typing.Any): the input data
@@ -51,24 +57,51 @@ def _parse_response_model(
                 response_model=response_model,
                 message=f"Expected response_data to be None, but received {response_data=}",
             )
-        elif isinstance(response_data, response_model):
-            # this case works when the response_json is already an instance of the expected response_model.
-            # For example any of the basic builtins (str, int, etc.) or dict or list.
+
+        # handle pydantic models
+        if isinstance(response_model, type) and issubclass(
+            response_model, pydantic.BaseModel
+        ):
+            if isinstance(response_data, dict):
+                return response_model(**response_data)
+            elif isinstance(response_data, list):
+                return [response_model(**item) for item in response_data]
+
+        # handle parametrized generics
+        origin = typing.get_origin(response_model)
+        if origin is list:
+            item_type = typing.get_args(response_model)[0]
+            if isinstance(response_data, list):
+                if typing.get_origin(item_type) is typing.Union:
+                    return [
+                        handle_union_parsing(item, item_type) for item in response_data
+                    ]
+                elif isinstance(item_type, type) and issubclass(
+                    item_type, pydantic.BaseModel
+                ):
+                    return [item_type(**item) for item in response_data]
+                else:
+                    return [item_type(item) for item in response_data]
+        if origin is dict:
+            key_type, value_type = typing.get_args(response_model)
+            if isinstance(response_data, dict):
+                return {
+                    key_type(k): (
+                        value_type(**v) if isinstance(v, dict) else value_type(v)
+                    )
+                    for k, v in response_data.items()
+                }
+
+        if isinstance(response_data, response_model):
             return response_data
-        elif isinstance(response_data, dict):
-            return response_model(**response_data)
-        elif isinstance(response_data, list):
-            # this case works when the response_data is a list of dicts and the expectation is that each
-            # dict can be parsed into the response_model.
-            return [response_model(**item_dict) for item_dict in response_data]
-        else:
-            raise errors.ParseResponseModelError(
-                response_data=response_data,
-                response_model=response_model,
-                message=f"Can't parse response_data into response_model {response_model},"
-                + "because the combination of received data and expected response_model is unhandled."
-                + f"{response_data=}.",
-            )
+
+        raise errors.ParseResponseModelError(
+            response_data=response_data,
+            response_model=response_model,
+            message=f"Can't parse response_data into response_model {response_model},"
+            + f" because the combination of received data and expected response_model is unhandled."
+            + f"{response_data=}.",
+        )
     except Exception as err:
         raise errors.ParseResponseModelError(
             response_data=response_data,
@@ -77,7 +110,25 @@ def _parse_response_model(
         ) from err
 
 
+def handle_union_parsing(item, union_type):
+    for possible_type in typing.get_args(union_type):
+        if isinstance(possible_type, type) and issubclass(
+            possible_type, pydantic.BaseModel
+        ):
+            try:
+                return possible_type(**item)
+            except Exception:
+                continue
+    raise errors.ParseResponseModelError(
+        response_data=item,
+        response_model=union_type,
+        message=f"Failed to parse item into one of the union types {union_type}. {item=}",
+    )
+
+
 class HARIClient:
+    BULK_UPLOAD_LIMIT = 500
+
     def __init__(self, config: config.Config):
         self.config = config
 
@@ -191,51 +242,78 @@ class HARIClient:
 
         return {k: locals_[k] for k in local_vars if k not in ["self", "kwargs"]}
 
-    def _upload_to_presigned_url(
-        self,
-        dataset_id: str,
-        file_path: str,
-        visualisation_config_id: typing.Optional[str] = None,
-    ) -> str:
-        """Upload a single file to a presigned url of AWS (media or visualisation).
+    def _upload_file(self, file_path: str, upload_url: str) -> None:
+        with open(file_path, "rb") as fp:
+            response = requests.put(upload_url, data=fp)
+            response.raise_for_status()
+
+    def _upload_visualisation_file_with_presigned_url(
+        self, dataset_id: str, visualisation_config_id: str, file_path: str
+    ) -> models.VisualisationUploadUrlInfo:
+        """Creates a presigned S3 upload url for the media visualisation located in file_path and uploads it.
 
         Args:
             dataset_id: The dataset id
             file_path: The path to the file to upload
-            visualisation_config_id: If it is set, the file is uploaded as a visualisation with that visualisation
-                 config id, otherwise as a media.
+            visualisation_config_id: The id of the visualisation config to which the visualisation belongs. Has to already exist.
 
         Returns:
-            The URL where the file was uploaded to
+            The VisualisationUploadUrlInfo object.
         """
 
-        def upload_file(filename: str, upload_url: str):
-            with open(filename, "rb") as fp:
-                response = requests.put(upload_url, data=fp)
-                response.raise_for_status()
-
-        # 1. get presigned upload url for the image
+        # 1. get presigned upload url for the visualisation
         file_extension = pathlib.Path(file_path).suffix
-        if visualisation_config_id is not None:
-            presign_response = self.get_presigned_visualisation_upload_url(
-                dataset_id=dataset_id,
-                file_extension=file_extension,
-                visualisation_config_id=visualisation_config_id,
-                batch_size=1,
-            )
-        else:
-            presign_response = self.get_presigned_media_upload_url(
-                dataset_id=dataset_id, file_extension=file_extension, batch_size=1
-            )
+        presign_responses = self.get_presigned_visualisation_upload_url(
+            dataset_id=dataset_id,
+            file_extension=file_extension,
+            visualisation_config_id=visualisation_config_id,
+            batch_size=1,
+        )
+        self._upload_file(
+            file_path=file_path, upload_url=presign_responses[0].upload_url
+        )
+
+        return presign_responses[0]
+
+    def _upload_media_files_with_presigned_urls(
+        self,
+        dataset_id: str,
+        file_paths: list[str],
+    ) -> list[models.MediaUploadUrlInfo]:
+        """Creates a presigned S3 upload url for every media file and uploads them.
+
+        Args:
+            dataset_id: The dataset id
+            file_paths: The paths to the files to upload. All files have to have the same file extension.
+
+        Returns:
+            A list of MediaUploadUrlInfo objects.
+
+        Raises:
+            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
+        """
+
+        # validate that all files have the same file extension
+        file_extensions = set(
+            [pathlib.Path(file_path).suffix for file_path in file_paths]
+        )
+        if len(file_extensions) > 1:
+            raise errors.UploadingFilesWithDifferentFileExtensionsError(file_extensions)
+
+        # 1. get presigned upload url for the files
+        presign_response = self.get_presigned_media_upload_url(
+            dataset_id=dataset_id,
+            file_extension=list(file_extensions)[0],
+            batch_size=len(file_paths),
+        )
 
         # 2. upload the image
-        upload_file(filename=file_path, upload_url=presign_response[0].upload_url)
+        for idx, file_path in enumerate(file_paths):
+            self._upload_file(
+                file_path=file_path, upload_url=presign_response[idx].upload_url
+            )
 
-        return (
-            presign_response[0].visualisation_url
-            if visualisation_config_id is not None
-            else presign_response[0].media_url
-        )
+        return presign_response
 
     ### dataset ###
     def create_dataset(
@@ -389,7 +467,7 @@ class HARIClient:
             "GET",
             f"/datasets",
             params=self._pack(locals()),
-            success_response_item_model=models.DatasetResponse,
+            success_response_item_model=list[models.DatasetResponse],
         )
 
     def get_subsets_for_dataset(
@@ -416,7 +494,7 @@ class HARIClient:
             f"/datasets/{dataset_id}/subsets",
             params=self._pack(locals(), ignore=["dataset_id"]),
             # the response model for a subset is the same as for a dataset
-            success_response_item_model=models.DatasetResponse,
+            success_response_item_model=list[models.DatasetResponse],
         )
 
     def archive_dataset(self, dataset_id: str) -> str:
@@ -510,22 +588,72 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        # 1. upload file to presigned URL
-        media_url = self._upload_to_presigned_url(dataset_id, file_path)
+        # 1. upload file
+        media_upload_responses = self._upload_media_files_with_presigned_urls(
+            dataset_id, file_paths=[file_path]
+        )
+        media_url = media_upload_responses[0].media_url
 
         # 2. create the media in HARI
         json_body = self._pack(
             locals(),
-            ignore=[
-                "file_path",
-                "dataset_id",
-            ],
+            ignore=["file_path", "dataset_id", "media_upload_responses"],
         )
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/medias",
             json=json_body,
             success_response_item_model=models.Media,
+        )
+
+    def create_medias(
+        self, dataset_id: str, medias: list[models.MediaCreate]
+    ) -> models.BulkResponse:
+        """Accepts multiple files, uploads them, and creates the medias in the db.
+        The limit is 500 per call.
+
+        Args:
+            dataset_id: The dataset id
+            medias: A list of MediaCreate objects. Each object contains the file_path as a field.
+
+        Returns:
+            A BulkResponse with information on upload successes and failures.
+
+        Raises:
+            APIException: If the request fails.
+            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
+            BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
+        """
+
+        if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
+            raise errors.BulkUploadSizeRangeError(
+                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
+            )
+
+        # 1. upload files
+        file_paths = []
+        for media in medias:
+            if not media.file_path:
+                raise errors.MediaCreateMissingFilePathError(media)
+            file_paths.append(media.file_path)
+
+        media_upload_responses = self._upload_media_files_with_presigned_urls(
+            dataset_id, file_paths=file_paths
+        )
+
+        # 2. parse medias to dicts and set their media_urls
+        media_dicts = []
+        for idx, media in enumerate(medias):
+            media_dicts.append(media.dict())
+            media_dicts[idx]["media_url"] = media_upload_responses[idx].media_url
+
+        # 3. create the medias in HARI
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/medias:bulk",
+            json=media_dicts,
+            success_response_item_model=models.BulkResponse,
         )
 
     def update_media(
@@ -643,7 +771,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaResponse,
+            success_response_item_model=list[models.MediaResponse],
         )
 
     def archive_media(self, dataset_id: str, media_id: str) -> str:
@@ -687,17 +815,20 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            ValueError: If the validating input args fails.
+            ParameterRangeError: If the batch_size is out of range.
         """
-        if batch_size < 1 or batch_size > 500:
-            raise ValueError(
-                f"Expected batch_size to be in range 1 <= batch_size <= 500, but received: {batch_size}."
+        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
+            raise errors.ParameterRangeError(
+                param_name="batch_size",
+                minimum=1,
+                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                value=batch_size,
             )
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/visualisations/uploadUrl",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.VisualisationUploadUrlInfo,
+            success_response_item_model=list[models.VisualisationUploadUrlInfo],
         )
 
     def get_media_histograms(
@@ -719,7 +850,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/medias/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_instance_histograms(
@@ -741,7 +872,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/instances/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_media_object_count_statistics(
@@ -853,11 +984,14 @@ class HARIClient:
             APIException: If the request fails.
         """
         # 1. upload file to presigned URL
-        visualisation_url = self._upload_to_presigned_url(
-            dataset_id,
-            file_path,
-            visualisation_config_id=visualisation_configuration_id,
+        visualisation_upload_response = (
+            self._upload_visualisation_file_with_presigned_url(
+                dataset_id=dataset_id,
+                visualisation_config_id=visualisation_configuration_id,
+                file_path=file_path,
+            )
         )
+        visualisation_url = visualisation_upload_response.upload_url
 
         # 2. create the visualisation in HARI
         query_params = self._pack(
@@ -866,6 +1000,7 @@ class HARIClient:
                 "file_path",
                 "dataset_id",
                 "media_id",
+                "visualisation_upload_response",
             ],
         )
         # We need to add annotatable_id and annotatable_type to the query_params
@@ -896,17 +1031,20 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            ValueError: If the validating input args fails.
+            ParameterRangeError: If the validating input args fails.
         """
-        if batch_size < 1 or batch_size > 500:
-            raise ValueError(
-                f"Expected batch_size to be in range 1 <= batch_size <= 500, but received: {batch_size}."
+        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
+            raise errors.ParameterRangeError(
+                param_name="batch_size",
+                minimum=1,
+                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                value=batch_size,
             )
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/medias/uploadUrl",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaUploadUrlInfo,
+            success_response_item_model=list[models.MediaUploadUrlInfo],
         )
 
     ### media object ###
@@ -964,6 +1102,41 @@ class HARIClient:
             f"/datasets/{dataset_id}/mediaObjects",
             json=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=models.MediaObject,
+        )
+
+    def create_media_objects(
+        self,
+        dataset_id: str,
+        media_objects: list[models.MediaObjectCreate],
+    ) -> models.BulkResponse:
+        """Creates new media_objects in the database. The limit is 500 per call.
+
+        Args:
+            dataset_id: dataset id
+            media_objects: List of media objects
+
+        Returns:
+            A BulkResponse with information on upload successes and failures.
+
+        Raises:
+            APIException: If the request fails.
+            BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
+        """
+
+        if len(media_objects) > HARIClient.BULK_UPLOAD_LIMIT:
+            raise errors.BulkUploadSizeRangeError(
+                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
+            )
+
+        # 1. parse media_objects to dicts before upload
+        media_object_dicts = [media_object.dict() for media_object in media_objects]
+
+        # 2. send media_objects to HARI
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/mediaObjects:bulk",
+            json=media_object_dicts,
+            success_response_item_model=models.BulkResponse,
         )
 
     def update_media_object(
@@ -1080,7 +1253,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/mediaObjects",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.MediaObjectResponse,
+            success_response_item_model=list[models.MediaObjectResponse],
         )
 
     def archive_media_object(self, dataset_id: str, media_object_id: str) -> str:
@@ -1121,7 +1294,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/mediaObjects/histograms",
             params=self._pack(locals(), ignore=["dataset_id"]),
-            success_response_item_model=models.AttributeHistogram,
+            success_response_item_model=list[models.AttributeHistogram],
         )
 
     def get_media_object_count(
@@ -1172,11 +1345,14 @@ class HARIClient:
             APIException: If the request fails.
         """
         # 1. upload file to presigned URL
-        visualisation_url = self._upload_to_presigned_url(
-            dataset_id,
-            file_path,
-            visualisation_config_id=visualisation_configuration_id,
+        visualisation_upload_response = (
+            self._upload_visualisation_file_with_presigned_url(
+                dataset_id=dataset_id,
+                visualisation_config_id=visualisation_configuration_id,
+                file_path=file_path,
+            )
         )
+        visualisation_url = visualisation_upload_response.upload_url
 
         # 2. create the visualisation in HARI
         query_params = self._pack(
@@ -1185,6 +1361,7 @@ class HARIClient:
                 "file_path",
                 "dataset_id",
                 "media_object_id",
+                "visualisation_upload_response",
             ],
         )
         # We need to add annotatable_id and annotatable_type to the query_params
@@ -1203,63 +1380,87 @@ class HARIClient:
         self,
         dataset_id: str,
         subset_id: str,
+        trace_id: typing.Optional[str] = None,
         max_size: typing.Optional[tuple[int]] = None,
         aspect_ratio: typing.Optional[tuple[int]] = None,
-    ) -> None:
+    ) -> list[models.CreateThumbnailsResponse]:
         """Triggers the creation of thumbnails for a given dataset.
 
         Args:
             dataset_id: The dataset id
             subset_id: The subset id
+            trace_id: An id to trace the processing job(s). Is created by the user
             max_size: The maximum size of the thumbnails
             aspect_ratio: The aspect ratio of the thumbnails
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            list[models.CreateThumbnailsResponse]: list of the created thumbnails
         """
+        params = {"subset_id": subset_id}
+
+        if trace_id is not None:
+            params["trace_id"] = trace_id
+
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/thumbnails",
-            params={"subset_id": subset_id},
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
-            success_response_item_model=None,
+            params=params,
+            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
+            success_response_item_model=list[models.CreateThumbnailsResponse],
         )
 
     def update_histograms(
-        self, dataset_id: str, compute_for_all_subsets: typing.Optional[bool] = False
-    ) -> None:
+        self,
+        dataset_id: str,
+        trace_id: typing.Optional[str] = None,
+        compute_for_all_subsets: typing.Optional[bool] = False,
+    ) -> models.UpdateHistogramsResponse:
         """Triggers the update of the histograms for a given dataset.
 
         Args:
             dataset_id: The dataset id
+            trace_id: An id to trace the processing job(s). Is created by the user
             compute_for_all_subsets: Update histograms for all subsets
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            models.UpdateHistogramsResponse: updated histograms
         """
+        params = {"compute_for_all_subsets": compute_for_all_subsets}
+
+        if trace_id is not None:
+            params["trace_id"] = trace_id
+
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/histograms",
-            params={"compute_for_all_subsets": compute_for_all_subsets},
-            success_response_item_model=None,
+            params=params,
+            success_response_item_model=models.UpdateHistogramsResponse,
         )
 
     def create_crops(
         self,
         dataset_id: str,
         subset_id: str,
-        box_type: typing.Optional[list[models.DataSource]] = None,
+        trace_id: typing.Optional[str] = None,
         aspect_ratio: typing.Optional[tuple[int]] = None,
         max_size: typing.Optional[tuple[int]] = None,
         padding_minimum: typing.Optional[int] = None,
         padding_percent: typing.Optional[int] = None,
-    ) -> None:
+    ) -> list[
+        typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse],
+    ]:
         """Creates the crops for a given dataset if the correct api key is provided in the
 
         Args:
             dataset_id: The dataset id
             subset_id: The subset id
-            box_type: The box type to create crops for (QM or REFERENCE), default: QM
+            trace_id: An id to trace the processing job(s). Is created by the user
             aspect_ratio: The aspect ratio of the crops
             max_size: The max size of the crops
             padding_minimum: The minimum padding to add to the crops
@@ -1267,11 +1468,75 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+
+        Returns:
+            list[typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse]]: list of updated histograms and created crops
         """
+        params = {"subset_id": subset_id}
+
+        if trace_id is not None:
+            params["trace_id"] = trace_id
+
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/crops",
-            params={"subset_id": subset_id},
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
-            success_response_item_model=None,
+            params=params,
+            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
+            success_response_item_model=list[
+                typing.Union[
+                    models.UpdateHistogramsResponse, models.CreateCropsResponse
+                ],
+            ],
+        )
+
+    ### processing_jobs ###
+    def get_processing_jobs(
+        self,
+        trace_id: str = None,
+    ) -> list[models.ProcessingJob]:
+        """
+        Retrieves the list of processing jobs that the user has access to.
+
+        Args:
+            trace_id (str, optional): Helps to identify related processing jobs. Use the trace_id that was specified when triggering a processing job
+
+        Raises:
+            APIException: If the request fails.
+
+        Returns:
+            list[models.ProcessingJob]: A list of processing jobs for the user
+            or [] if there are no jobs of trace_id is not found.
+        """
+        params = {}
+        if trace_id:
+            params["trace_id"] = trace_id
+
+        return self._request(
+            "GET",
+            "/processingJobs/",
+            params=params,
+            success_response_item_model=list[models.ProcessingJob],
+        )
+
+    def get_processing_job(
+        self,
+        processing_job_id: str,
+    ) -> models.ProcessingJob:
+        """
+        Retrieves a specific processing job by its id.
+
+        Args:
+            processing_job_id (str): The unique identifier of the processing job to retrieve.
+
+        Raises:
+            APIException: If the request fails.
+
+        Returns:
+            models.ProcessingJob: The ProcessingJob model retrieved from the API.
+        """
+
+        return self._request(
+            "GET",
+            f"/processingJobs/{processing_job_id}",
+            success_response_item_model=models.ProcessingJob,
         )

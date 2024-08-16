@@ -4,7 +4,7 @@
 
 ## Installation
 
-Minimum python version: 3.9
+Minimum python version: **3.11**
 
 To install the hari-client package, use pip with the following command:
 
@@ -27,6 +27,26 @@ Have a look at the [geometries.py](docs/example_code/geometries.py) example scri
 
 For more detailed documentation, including all available methods and their parameters, please refer to the official documentation https://docs.quality-match.com.
 
+## Changelog
+
+See: [CHANGELOG.md](CHANGELOG.md)
+
+## Development Setup
+
+To set up your local development environment, follow these steps:
+
+- Clone the repository
+- Setup a virtual environment with Python 3.11
+- Install the package in editable mode with the following command:
+  ```bash
+  python -m pip install -e .[tests]
+  ```
+  - This also installs pytest and the [pre-commit](https://github.com/pre-commit/pre-commit) tool into the environment
+- Install the pre-commit hooks with the following command:
+  ```bash
+  pre-commit install
+  ```
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
@@ -34,3 +54,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contact
 
 Visit our website https://quality-match.com
+
+```
+
+```
