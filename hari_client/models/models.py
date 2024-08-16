@@ -825,6 +825,103 @@ GeometryUnion = typing.Union[
 ]
 
 
+class BulkOperationStatusEnum(str, enum.Enum):
+    SUCCESS = "success"
+    PARTIAL_SUCCESS = "partial_success"
+    FAILURE = "failure"
+    PROCESSING = "processing"
+
+
+class BulkUploadSuccessSummary(pydantic.BaseModel):
+    """Quantifies how many items were successfully uploaded and how many failed in a bulk request.
+
+    Attributes:
+        total: The total number of items.
+        successful: The number of successful uploads.
+        failed: The number of failed uploads.
+    """
+
+    total: int = 0
+    successful: int = 0
+    failed: int = 0
+
+
+class ResponseStatesEnum(str, enum.Enum):
+    SUCCESS = "success"
+    MISSING_DATA = "missing_data"
+    SERVER_ERROR = "server_error"
+    BAD_DATA = "bad_data"
+
+
+class BaseBulkItemResponse(pydantic.BaseModel, arbitrary_types_allowed=True):
+    item_id: typing.Optional[str] = None
+    status: ResponseStatesEnum
+    errors: typing.Optional[list[str]] = None
+
+
+class AnnotatableCreateResponse(BaseBulkItemResponse):
+    back_reference: str
+
+
+class AttributeCreateResponse(BaseBulkItemResponse):
+    annotatable_id: str
+
+
+class BulkResponse(pydantic.BaseModel):
+    status: BulkOperationStatusEnum = BulkOperationStatusEnum.PROCESSING
+    summary: BulkUploadSuccessSummary = pydantic.Field(
+        default_factory=BulkUploadSuccessSummary
+    )
+    results: list[
+        typing.Union[
+            BaseBulkItemResponse, AnnotatableCreateResponse, AttributeCreateResponse
+        ]
+    ] = pydantic.Field(default_factory=list)
+
+
+class MediaCreate(pydantic.BaseModel):
+    # file_path is not part of the HARI API, but is used to define where to read the media file from
+    file_path: typing.Optional[str] = pydantic.Field(default=None, exclude=True)
+
+    name: str
+    media_type: MediaType
+    back_reference: str
+    media_url: typing.Optional[str] = None
+
+    archived: bool = False
+    scene_id: typing.Optional[str] = None
+    realWorldObject_id: typing.Optional[str] = None
+    visualisations: typing.Optional[list[VisualisationUnion]] = None
+    subset_ids: typing.Union[set[str], list[str], None] = None
+
+    metadata: typing.Union[ImageMetadata, PointCloudMetadata, None] = None
+    frame_idx: typing.Optional[int] = None
+    frame_timestamp: typing.Optional[datetime.datetime] = None
+    back_reference_json: typing.Optional[str] = None
+
+
+class MediaObjectCreate(pydantic.BaseModel):
+    media_id: str
+    source: DataSource
+    back_reference: str
+
+    archived: bool = False
+    scene_id: typing.Optional[str] = None
+    realWorldObject_id: typing.Optional[str] = None
+    visualisations: typing.Optional[list[VisualisationUnion]] = None
+    subset_ids: typing.Union[set[str], list[str], None] = None
+
+    instance_id: typing.Optional[str] = None
+    object_category: typing.Optional[str] = None
+    # source represents if the media object is either a geometry that was constructed by
+    # QM, e.g., by annotating media data; or a geometry that was already provided by a
+    # customer, and hence, would be a REFERENCE.
+    qm_data: typing.Optional[list[GeometryUnion]] = None
+    reference_data: typing.Optional[GeometryUnion] = None
+    frame_idx: typing.Optional[int] = None
+    media_object_type: typing.Optional[GeometryUnion] = None
+
+
 class ProcessingType(str, enum.Enum):
     LOCAL = "local"
     REMOTE = "remote"
