@@ -1370,7 +1370,7 @@ class HARIClient:
         Retrieves the list of processing jobs that the user has access to.
 
         Args:
-            trace_id (str, optional): A trace id to identify related processing jobs
+            trace_id (str, optional): Helps to identify related processing jobs. Use the trace_id that was specified when triggering a processing job
 
         Raises:
             APIException: If the request fails.
