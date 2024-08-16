@@ -279,7 +279,6 @@ class HARIClient:
         self,
         dataset_id: str,
         file_paths: list[str],
-        visualisation_config_id: typing.Optional[str] = None,
     ) -> list[models.MediaUploadUrlInfo]:
         """Creates a presigned S3 upload url for every media file and uploads them.
 
