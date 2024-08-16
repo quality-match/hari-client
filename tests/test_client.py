@@ -76,3 +76,45 @@ def test_create_media_objects_with_too_many_objects():
                 media_object_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)
             ],
         )
+
+
+def test_get_presigned_media_upload_url_batch_size_range():
+    # Arrange
+    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+
+    # Act + Assert
+    with pytest.raises(errors.ParameterRangeError):
+        hari.get_presigned_media_upload_url(
+            dataset_id="1234",
+            file_extension=".jpg",
+            batch_size=0,
+        )
+
+    with pytest.raises(errors.ParameterRangeError):
+        hari.get_presigned_media_upload_url(
+            dataset_id="1234",
+            file_extension=".jpg",
+            batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
+        )
+
+
+def test_get_presigned_visualisation_upload_url_batch_size_range():
+    # Arrange
+    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+
+    # Act + Assert
+    with pytest.raises(errors.ParameterRangeError):
+        hari.get_presigned_visualisation_upload_url(
+            dataset_id="1234",
+            file_extension=".jpg",
+            visualisation_config_id="1234",
+            batch_size=0,
+        )
+
+    with pytest.raises(errors.ParameterRangeError):
+        hari.get_presigned_visualisation_upload_url(
+            dataset_id="1234",
+            file_extension=".jpg",
+            visualisation_config_id="1234",
+            batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
+        )

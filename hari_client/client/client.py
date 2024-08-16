@@ -822,7 +822,7 @@ class HARIClient:
                 param_name="batch_size",
                 minimum=1,
                 maximum=HARIClient.BULK_UPLOAD_LIMIT,
-                found_amount=batch_size,
+                value=batch_size,
             )
         return self._request(
             "GET",
@@ -1038,7 +1038,7 @@ class HARIClient:
                 param_name="batch_size",
                 minimum=1,
                 maximum=HARIClient.BULK_UPLOAD_LIMIT,
-                found_amount=batch_size,
+                value=batch_size,
             )
         return self._request(
             "GET",

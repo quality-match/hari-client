@@ -64,10 +64,10 @@ class ParameterRangeError(Exception):
     def __init__(
         self,
         param_name: str,
-        minimum: 1,
+        minimum: int,
         maximum: int,
-        found_amount: int,
+        value: int,
     ):
         super().__init__(
-            f"The valid range for the {param_name} parameter is: {minimum=}, {maximum=}, but found {found_amount} items"
+            f"The valid range for the {param_name} parameter is: {minimum=}, {maximum=}, but found {value} items"
         )

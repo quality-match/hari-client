@@ -832,8 +832,8 @@ class BulkOperationStatusEnum(str, enum.Enum):
     PROCESSING = "processing"
 
 
-class SuccessSummary(pydantic.BaseModel):
-    """Quantifies how many items were successfully uploaded and how many failed.
+class BulkUploadSuccessSummary(pydantic.BaseModel):
+    """Quantifies how many items were successfully uploaded and how many failed in a bulk request.
 
     Attributes:
         total: The total number of items.
@@ -869,7 +869,9 @@ class AttributeCreateResponse(BaseBulkItemResponse):
 
 class BulkResponse(pydantic.BaseModel):
     status: BulkOperationStatusEnum = BulkOperationStatusEnum.PROCESSING
-    summary: SuccessSummary = pydantic.Field(default_factory=SuccessSummary)
+    summary: BulkUploadSuccessSummary = pydantic.Field(
+        default_factory=BulkUploadSuccessSummary
+    )
     results: list[
         typing.Union[
             BaseBulkItemResponse, AnnotatableCreateResponse, AttributeCreateResponse
