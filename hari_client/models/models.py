@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import enum
 import typing
 import uuid
@@ -918,3 +919,24 @@ class CreateCropsResponse(ResponseBaseParameters):
         default="create_crops", title="Method Name"
     )
     parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
+
+
+class ProcessingJob(pydantic.BaseModel):
+    id: uuid.UUID = pydantic.Field(title="ID")
+    status: str = pydantic.Field(title="Status")
+    owner: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Owner")
+    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
+    created_at: typing.Optional[datetime.datetime] = pydantic.Field(
+        title="Created At", default=None
+    )
+    updated_at: typing.Optional[datetime.datetime] = pydantic.Field(
+        title="Updated At", default=None
+    )
+    archived_at: typing.Optional[datetime.datetime] = pydantic.Field(
+        title="Archived At", default=None
+    )
+    process_name: str = pydantic.Field(title="Process Name")
+    details: str = pydantic.Field(title="Details")
+    trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
+        default=None, title="Trace ID"
+    )
