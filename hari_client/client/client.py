@@ -1252,6 +1252,7 @@ class HARIClient:
         self,
         dataset_id: str,
         subset_id: str,
+        trace_id: typing.Optional[str] = None,
         max_size: typing.Optional[tuple[int]] = None,
         aspect_ratio: typing.Optional[tuple[int]] = None,
     ) -> list[models.CreateThumbnailsResponse]:
@@ -1260,6 +1261,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             subset_id: The subset id
+            trace_id: An id to trace the processing job(s). Is created by the user
             max_size: The maximum size of the thumbnails
             aspect_ratio: The aspect ratio of the thumbnails
 
@@ -1269,21 +1271,30 @@ class HARIClient:
         Returns:
             list[models.CreateThumbnailsResponse]: list of the created thumbnails
         """
+        params = {"subset_id": subset_id}
+
+        if trace_id is not None:
+            params["trace_id"] = trace_id
+
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/thumbnails",
-            params={"subset_id": subset_id},
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
+            params=params,
+            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
             success_response_item_model=list[models.CreateThumbnailsResponse],
         )
 
     def update_histograms(
-        self, dataset_id: str, compute_for_all_subsets: typing.Optional[bool] = False
+        self,
+        dataset_id: str,
+        trace_id: typing.Optional[str] = None,
+        compute_for_all_subsets: typing.Optional[bool] = False,
     ) -> models.UpdateHistogramsResponse:
         """Triggers the update of the histograms for a given dataset.
 
         Args:
             dataset_id: The dataset id
+            trace_id: An id to trace the processing job(s). Is created by the user
             compute_for_all_subsets: Update histograms for all subsets
 
         Raises:
@@ -1292,10 +1303,15 @@ class HARIClient:
         Returns:
             models.UpdateHistogramsResponse: updated histograms
         """
+        params = {"compute_for_all_subsets": compute_for_all_subsets}
+
+        if trace_id is not None:
+            params["trace_id"] = trace_id
+
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/histograms",
-            params={"compute_for_all_subsets": compute_for_all_subsets},
+            params=params,
             success_response_item_model=models.UpdateHistogramsResponse,
         )
 
@@ -1303,7 +1319,7 @@ class HARIClient:
         self,
         dataset_id: str,
         subset_id: str,
-        box_type: typing.Optional[list[models.DataSource]] = None,
+        trace_id: typing.Optional[str] = None,
         aspect_ratio: typing.Optional[tuple[int]] = None,
         max_size: typing.Optional[tuple[int]] = None,
         padding_minimum: typing.Optional[int] = None,
@@ -1316,7 +1332,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             subset_id: The subset id
-            box_type: The box type to create crops for (QM or REFERENCE), default: QM
+            trace_id: An id to trace the processing job(s). Is created by the user
             aspect_ratio: The aspect ratio of the crops
             max_size: The max size of the crops
             padding_minimum: The minimum padding to add to the crops
@@ -1328,11 +1344,16 @@ class HARIClient:
         Returns:
             list[typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse]]: list of updated histograms and created crops
         """
+        params = {"subset_id": subset_id}
+
+        if trace_id is not None:
+            params["trace_id"] = trace_id
+
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/crops",
-            params={"subset_id": subset_id},
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id"]),
+            params=params,
+            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
             success_response_item_model=list[
                 typing.Union[
                     models.UpdateHistogramsResponse, models.CreateCropsResponse
@@ -1340,6 +1361,7 @@ class HARIClient:
             ],
         )
 
+    ### processing_jobs ###
     def get_processing_jobs(
         self,
         trace_id: str = None,
@@ -1348,7 +1370,7 @@ class HARIClient:
         Retrieves the list of processing jobs that the user has access to.
 
         Args:
-            trace_id (str, optional): A unique identifier of the trace. Defaults to None.
+            trace_id (str, optional): A trace id to identify related processing jobs
 
         Raises:
             APIException: If the request fails.
