@@ -92,6 +92,6 @@ if __name__ == "__main__":
         subset_type=models.SubsetType.MEDIA_OBJECT,
         subset_name="All geometries",
     )
-    hari.create_thumbnails(dataset_id, new_subset_id)
-    hari.update_histograms(dataset_id, compute_for_all_subsets=True)
-    hari.create_crops(dataset_id=dataset_id, subset_id=new_subset_id)
+    hari.trigger_thumbnails_creation(dataset_id, new_subset_id)
+    hari.trigger_histograms_update(dataset_id, compute_for_all_subsets=True)
+    hari.trigger_crops_creation(dataset_id=dataset_id, subset_id=new_subset_id)
