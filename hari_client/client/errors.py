@@ -71,3 +71,15 @@ class ParameterRangeError(Exception):
         super().__init__(
             f"The valid range for the {param_name} parameter is: {minimum=}, {maximum=}, but found {value} items"
         )
+
+
+class DuplicateHARIMediaBackReferenceError(Exception):
+    def __init__(self, back_reference: str):
+        super().__init__(f"Duplicate back_reference found: {back_reference=}")
+
+
+class MediaCreateMissingBackReferenceError(Exception):
+    def __init__(self, media_create: models.MediaCreate):
+        super().__init__(
+            f"MediaCreate object doesn't have a back_reference: {media_create=}"
+        )
