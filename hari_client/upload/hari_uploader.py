@@ -45,7 +45,7 @@ class HARIMedia(models.MediaCreate):
             str: The back reference id
 
         Raises:
-            HARIMediaMissingBackReferenceError: If the MediaCreate object doesn't have a back_reference
+            HARIMediaMissingBackReferenceError: If the HARIMedia object doesn't have a back_reference
         """
         if self.back_reference == "" or self.back_reference is None:
             raise HARIMediaMissingBackReferenceError(self)
@@ -122,8 +122,8 @@ class HARIUploader:
         Upload all Media and their MediaObjects to HARI.
 
         Returns:
-            HARIUploadResults | None: All bulk upload summaries for the
-            medias (first element) and media objects (second element), or None if nothing was uploaded
+            HARIUploadResults | None: All upload results and summaries for the
+            upload of medias and media_objects, or None if nothing was uploaded
         """
 
         if len(self._medias) == 0:
