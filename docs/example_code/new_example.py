@@ -91,5 +91,13 @@ uploader.add_media(media_3)
 # trigger upload
 upload_results = uploader.upload()
 
-print("media upload summary\n  ", upload_results.media.summary)
-print("media object upload summary\n  ", upload_results.media_objects.summary)
+# inspect upload results
+print(f"media upload status: {upload_results.medias.status}")
+print(f"media upload summary\n  {upload_results.medias.summary}")
+if upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS:
+    print(upload_results.medias.results)
+
+print(f"media_object upload status: {upload_results.media_objects.status}")
+print(f"media object upload summary\n  {upload_results.media_objects.summary}")
+if upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS:
+    print(upload_results.media_objects.results)
