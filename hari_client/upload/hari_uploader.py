@@ -89,36 +89,37 @@ class HARIUploader:
         self._medias: dict[str, HARIMedia] = {}
         self._media_object_back_references: set[str] = set()
 
-    def add_media(self, hari_media: HARIMedia) -> None:
+    def add_media(self, *args: HARIMedia) -> None:
         """
-        Add a HARIMedia object to the uploader. Only use this method to add medias to the uploader.
+        Add one or more HARIMedia objects to the uploader. Only use this method to add medias to the uploader.
         The back_reference is used as a unique identifier.
         Also verifies that the media object back_references are unique across all media objects
         known to the uploader.
 
         Args:
-            hari_media (HARIMedia): A HARIMedia object
+            *args (HARIMedia): Multiple HARIMedia objects
 
         Raises:
             DuplicateHARIMediaBackReferenceError: If the provided media back_reference is already known to the uploader
             DuplicateHARIMediaObjectBackReferenceError: If a provided media object back_reference is already known to the uploader
         """
-        # check and remember media by its back_reference
-        media_back_reference = hari_media.get_back_reference()
-        if media_back_reference in self._medias:
-            raise DuplicateHARIMediaBackReferenceError(
-                back_reference=media_back_reference
-            )
-        self._medias[media_back_reference] = hari_media
-
-        # check and remember media object back_references
-        for media_object in hari_media.media_objects:
-            media_object_back_reference = media_object.get_back_reference()
-            if media_object_back_reference in self._media_object_back_references:
-                raise DuplicateHARIMediaObjectBackReferenceError(
-                    back_reference=media_object_back_reference
+        for media in args:
+            # check and remember media by its back_reference
+            media_back_reference = media.get_back_reference()
+            if media_back_reference in self._medias:
+                raise DuplicateHARIMediaBackReferenceError(
+                    back_reference=media_back_reference
                 )
-            self._media_object_back_references.add(media_object_back_reference)
+            self._medias[media_back_reference] = media
+
+            # check and remember media object back_references
+            for media_object in media.media_objects:
+                media_object_back_reference = media_object.get_back_reference()
+                if media_object_back_reference in self._media_object_back_references:
+                    raise DuplicateHARIMediaObjectBackReferenceError(
+                        back_reference=media_object_back_reference
+                    )
+                self._media_object_back_references.add(media_object_back_reference)
 
     def upload(
         self,
@@ -138,7 +139,9 @@ class HARIUploader:
             return None
 
         # upload batches of medias
-        log.info(f"Starting upload of {len(self._medias)} medias to HARI.")
+        log.info(
+            f"Starting upload of {len(self._medias)} medias with {len(self._media_object_back_references)} media_objects to HARI."
+        )
         media_upload_responses: list[models.BulkResponse] = []
         media_object_upload_responses: list[models.BulkResponse] = []
         medias_list = list(self._medias.values())
