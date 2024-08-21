@@ -103,17 +103,22 @@ class HARIUploader:
             DuplicateHARIMediaBackReferenceError: If the provided media back_reference is already known to the uploader
             DuplicateHARIMediaObjectBackReferenceError: If a provided media object back_reference is already known to the uploader
         """
-        back_reference = hari_media.get_back_reference()
-        if back_reference in self._medias:
-            raise DuplicateHARIMediaBackReferenceError(back_reference=back_reference)
-        self._medias[back_reference] = hari_media
+        # check and remember media by its back_reference
+        media_back_reference = hari_media.get_back_reference()
+        if media_back_reference in self._medias:
+            raise DuplicateHARIMediaBackReferenceError(
+                back_reference=media_back_reference
+            )
+        self._medias[media_back_reference] = hari_media
 
+        # check and remember media object back_references
         for media_object in hari_media.media_objects:
-            if media_object.back_reference in self._media_object_back_references:
+            media_object_back_reference = media_object.get_back_reference()
+            if media_object_back_reference in self._media_object_back_references:
                 raise DuplicateHARIMediaObjectBackReferenceError(
-                    back_reference=media_object.back_reference
+                    back_reference=media_object_back_reference
                 )
-            self._media_object_back_references.add(media_object.back_reference)
+            self._media_object_back_references.add(media_object_back_reference)
 
     def upload(
         self,
