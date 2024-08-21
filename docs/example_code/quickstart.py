@@ -59,28 +59,36 @@ if __name__ == "__main__":
     # create a trace_id to track triggered metadata update jobs
     trace_id = str(uuid.uuid4())
 
-    hari.trigger_thumbnails_creation(
+    hari.trigger_thumbnails_creation_job(
         dataset_id=new_dataset.id, subset_id=new_subset_id, trace_id=trace_id
     )
-    hari.trigger_histograms_update(
+    hari.trigger_histograms_update_job(
         new_dataset.id, compute_for_all_subsets=True, trace_id=trace_id
     )
 
     # in order to trigger crops creation, thumbnails should be created first.
-    # query all the jobs for the given trace_id
-    jobs = hari.get_processing_jobs(trace_id=trace_id)
+    time.sleep(5)  # give jobs time to start
+    jobs = hari.get_processing_jobs(
+        trace_id=trace_id
+    )  # query all the jobs for the given trace_id
     # get the thumbnails job id
     thumbnails_job_id = next(
-        (job.id for job in jobs if job.process_name == "create_thumbnails"), ""
+        (
+            job.id
+            for job in jobs
+            if job.process_name
+            == models.ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
+        ),
+        "",
     )
 
     job_status = ""
-    while job_status != "success":
+    while job_status != models.ProcessingJobStatus.SUCCESS:
         status = hari.get_processing_job(processing_job_id=thumbnails_job_id)
         job_status = status.status
         print(f"waiting for thumbnails to be created, status={job_status}")
         time.sleep(10)
 
-    hari.trigger_crops_creation(
+    hari.trigger_crops_creation_job(
         dataset_id=new_dataset.id, subset_id=new_subset_id, trace_id=trace_id
     )

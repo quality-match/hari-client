@@ -927,6 +927,12 @@ class ProcessingType(str, enum.Enum):
     REMOTE = "remote"
 
 
+class ProcessingJobsForMetadataUpdate(str, enum.Enum):
+    THUMBNAILS_CREATION = "create_thumbnails"
+    HISTOGRAMS_UPDATE = "update_histograms"
+    CROPS_CREATION = "create_crops"
+
+
 class ResponseBaseParameters(pydantic.BaseModel):
     batch: bool = pydantic.Field(default=False, title="Batch")
     override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
@@ -962,8 +968,10 @@ class CreateThumbnailsParameters(pydantic.BaseModel):
 
 
 class CreateThumbnailsResponse(ResponseBaseParameters):
-    method_name: typing.Literal["create_thumbnails"] = pydantic.Field(
-        default="create_thumbnails", title="Method Name"
+    method_name: typing.Literal[
+        ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
+    ] = pydantic.Field(
+        default=ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION, title="Method Name"
     )
     parameters: CreateThumbnailsParameters = pydantic.Field(title="Parameters")
 
@@ -986,8 +994,10 @@ class UpdateHistogramsParameters(pydantic.BaseModel):
 
 
 class UpdateHistogramsResponse(ResponseBaseParameters):
-    method_name: typing.Literal["update_histograms"] = pydantic.Field(
-        default="update_histograms", title="Method Name"
+    method_name: typing.Literal[
+        ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE
+    ] = pydantic.Field(
+        default=ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE, title="Method Name"
     )
     parameters: UpdateHistogramsParameters = pydantic.Field(title="Parameters")
 
@@ -1012,8 +1022,10 @@ class CreateCropsParameters(pydantic.BaseModel):
 
 
 class CreateCropsResponse(ResponseBaseParameters):
-    method_name: typing.Literal["create_crops"] = pydantic.Field(
-        default="create_crops", title="Method Name"
+    method_name: typing.Literal[
+        ProcessingJobsForMetadataUpdate.CROPS_CREATION
+    ] = pydantic.Field(
+        default=ProcessingJobsForMetadataUpdate.CROPS_CREATION, title="Method Name"
     )
     parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
 
@@ -1037,3 +1049,10 @@ class ProcessingJob(pydantic.BaseModel):
     trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
         default=None, title="Trace ID"
     )
+
+
+class ProcessingJobStatus(str, enum.Enum):
+    CREATED = "created"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"

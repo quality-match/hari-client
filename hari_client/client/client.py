@@ -1376,7 +1376,7 @@ class HARIClient:
         )
 
     ### metadata ###
-    def trigger_thumbnails_creation(
+    def trigger_thumbnails_creation_job(
         self,
         dataset_id: str,
         subset_id: str,
@@ -1412,7 +1412,7 @@ class HARIClient:
             success_response_item_model=list[models.CreateThumbnailsResponse],
         )
 
-    def trigger_histograms_update(
+    def trigger_histograms_update_job(
         self,
         dataset_id: str,
         trace_id: typing.Optional[str] = None,
@@ -1443,7 +1443,7 @@ class HARIClient:
             success_response_item_model=models.UpdateHistogramsResponse,
         )
 
-    def trigger_crops_creation(
+    def trigger_crops_creation_job(
         self,
         dataset_id: str,
         subset_id: str,
