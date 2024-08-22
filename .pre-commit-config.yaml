@@ -48,9 +48,8 @@ repos:
     rev: 7.1.0
     hooks:
       - id: flake8
-        files: templates/
-        # ignore line-length-PEP
-        args: [--ignore=E501]
+        # ignore some PEPs conflicting with black
+        args: [--max-line-length=88,--extend-ignore=E203 E501,]
 
   # Autoflake for removing unused imports
   -   repo: https://github.com/PyCQA/autoflake

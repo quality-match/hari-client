@@ -99,7 +99,7 @@ def _parse_response_model(
             response_data=response_data,
             response_model=response_model,
             message=f"Can't parse response_data into response_model {response_model},"
-            + f" because the combination of received data and expected response_model is unhandled."
+            + " because the combination of received data and expected response_model is unhandled."
             + f"{response_data=}.",
         )
     except Exception as err:
@@ -164,7 +164,7 @@ class HARIClient:
         if not response.ok:
             raise errors.APIError(response)
 
-        if not "application/json" in response.headers.get("Content-Type", ""):
+        if "application/json" not in response.headers.get("Content-Type", ""):
             raise ValueError(
                 "Expected application/json to be in Content-Type header, but couldn't find it."
             )
@@ -315,7 +315,8 @@ class HARIClient:
 
         return presign_response
 
-    ### dataset ###
+    """DATASET"""
+
     def create_dataset(
         self,
         name: str,
@@ -371,7 +372,7 @@ class HARIClient:
         """
         return self._request(
             "POST",
-            f"/datasets",
+            "/datasets",
             json=self._pack(locals(), not_none=["creation_timestamp", "id"]),
             success_response_item_model=models.Dataset,
         )
@@ -465,7 +466,7 @@ class HARIClient:
         """
         return self._request(
             "GET",
-            f"/datasets",
+            "/datasets",
             params=self._pack(locals()),
             success_response_item_model=list[models.DatasetResponse],
         )
@@ -512,7 +513,8 @@ class HARIClient:
             "DELETE", f"/datasets/{dataset_id}", success_response_item_model=str
         )
 
-    ### subset ###
+    """SUBSET"""
+
     def create_subset(
         self,
         dataset_id: str,
@@ -538,12 +540,13 @@ class HARIClient:
         """
         return self._request(
             "POST",
-            f"/subsets:createFiltered",
+            "/subsets:createFiltered",
             params=self._pack(locals()),
             success_response_item_model=str,
         )
 
-    ### media ###
+    """MEDIA"""
+
     def create_media(
         self,
         dataset_id: str,
@@ -1047,7 +1050,8 @@ class HARIClient:
             success_response_item_model=list[models.MediaUploadUrlInfo],
         )
 
-    ### media object ###
+    """MEDIA OBJECT"""
+
     def create_media_object(
         self,
         dataset_id: str,
@@ -1375,7 +1379,8 @@ class HARIClient:
             success_response_item_model=models.Visualisation,
         )
 
-    ### metadata ###
+    """METADATA"""
+
     def trigger_thumbnails_creation_job(
         self,
         dataset_id: str,
@@ -1489,7 +1494,8 @@ class HARIClient:
             ],
         )
 
-    ### processing_jobs ###
+    """PROCESSING JOBS"""
+
     def get_processing_jobs(
         self,
         trace_id: str = None,
