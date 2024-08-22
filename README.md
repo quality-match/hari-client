@@ -14,14 +14,12 @@ python -m pip install "hari_client @ git+https://github.com/quality-match/hari-c
 
 ## Quickstart
 
-In the [quick start script](docs/example_code/quickstart.py) there is an example of how to use the HARI Client to create a dataset and upload data and annotations.
-You can find the referenced image here: `docs/example_code/busy_street.jpg`.
+You can use the [quick start script](docs/example_code/quickstart.py) as basis for your development.
+It's an example of how to use hari-client to create a dataset and upload images and annotations.
 Every run of this script creates a new dataset.
-Run the script from `docs/example_code` directory.
-
-### Other annotation geometries
-
-Have a look at the [geometries.py](docs/example_code/geometries.py) example script for examples on how to create other annotation geometries.
+You can find the referenced images here: `docs/example_code/images/`.
+Copy the `docs/example_code/.env_example` file to `docs/example_code/.env` and fill in your HARI credentials there.
+Run the script from the `docs/example_code` directory.
 
 ## Documentation
 
