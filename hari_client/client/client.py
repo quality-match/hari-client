@@ -1513,7 +1513,7 @@ class HARIClient:
 
         return self._request(
             "GET",
-            "/processingJobs/",
+            "/processingJobs",
             params=params,
             success_response_item_model=list[models.ProcessingJob],
         )

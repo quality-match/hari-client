@@ -83,10 +83,10 @@ uploader.add_media(media_1, media_2, media_3)
 upload_results = uploader.upload()
 
 # Inspect upload results
-print(f"media upload status: {upload_results.medias.status}")
+print(f"media upload status: {upload_results.medias.status.value}")
 print(f"media upload summary\n  {upload_results.medias.summary}")
 
-print(f"media_object upload status: {upload_results.media_objects.status}")
+print(f"media_object upload status: {upload_results.media_objects.status.value}")
 print(f"media object upload summary\n  {upload_results.media_objects.summary}")
 
 if (
@@ -121,20 +121,25 @@ hari.trigger_histograms_update_job(
 )
 
 # in order to trigger crops creation, thumbnails should be created first.
-# give jobs time to start
-time.sleep(5)
-# query all the jobs for the given trace_id
-jobs = hari.get_processing_jobs(trace_id=trace_id)
-# get the thumbnails creation job id
-thumbnails_job_id = next(
-    (
-        job.id
-        for job in jobs
-        if job.process_name
-        == models.ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
-    ),
-    "",
-)
+# give the thumbnails creation job time to start
+thumbnails_job_id = ""
+while thumbnails_job_id == "":
+    # query all the jobs for the given trace_id
+    jobs = hari.get_processing_jobs(trace_id=trace_id)
+    # try to get the thumbnails creation job id
+    thumbnails_job_id = next(
+        (
+            job.id
+            for job in jobs
+            if job.process_name
+            == models.ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
+        ),
+        "",
+    )
+
+    if thumbnails_job_id != "":
+        break
+    time.sleep(5)
 
 job_status = ""
 while job_status != models.ProcessingJobStatus.SUCCESS:
