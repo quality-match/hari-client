@@ -171,7 +171,7 @@ class HARIUploader:
             media_upload_bulk_response=media_upload_response
         )
 
-        # upload media_objects of this batch in batches
+        # upload media_objects of this batch of media in batches
         all_media_objects: list[HARIMediaObject] = []
         for media in medias_to_upload:
             all_media_objects.extend(media.media_objects)
