@@ -61,7 +61,6 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     )
 
     mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
-    # mocker.patch.object(mock_uploader, "_update_hari_media_object_media_ids")
     media_spy = mocker.spy(mock_uploader, "_upload_media_batch")
     media_object_spy = mocker.spy(mock_uploader, "_upload_media_object_batch")
 
@@ -114,7 +113,6 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
     )
 
     mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
-    # mocker.patch.object(mock_uploader, "_update_hari_media_object_media_ids")
     media_spy = mocker.spy(mock_uploader, "_upload_media_batch")
     media_object_spy = mocker.spy(mock_uploader, "_upload_media_object_batch")
 
@@ -219,6 +217,40 @@ def test_hari_uploader_receives_media_object_without_back_reference():
     "bulk_responses, expected_merged_response",
     [
         ([models.BulkResponse()], models.BulkResponse()),
+        (
+            [
+                models.BulkResponse(status=models.BulkOperationStatusEnum.SUCCESS),
+                models.BulkResponse(status=models.BulkOperationStatusEnum.SUCCESS),
+            ],
+            models.BulkResponse(status=models.BulkOperationStatusEnum.SUCCESS),
+        ),
+        (
+            [
+                models.BulkResponse(
+                    status=models.BulkOperationStatusEnum.PARTIAL_SUCCESS
+                ),
+                models.BulkResponse(
+                    status=models.BulkOperationStatusEnum.PARTIAL_SUCCESS
+                ),
+            ],
+            models.BulkResponse(status=models.BulkOperationStatusEnum.PARTIAL_SUCCESS),
+        ),
+        (
+            [
+                models.BulkResponse(status=models.BulkOperationStatusEnum.FAILURE),
+                models.BulkResponse(status=models.BulkOperationStatusEnum.FAILURE),
+            ],
+            models.BulkResponse(status=models.BulkOperationStatusEnum.FAILURE),
+        ),
+        (
+            [
+                models.BulkResponse(status=models.BulkOperationStatusEnum.FAILURE),
+                models.BulkResponse(
+                    status=models.BulkOperationStatusEnum.PARTIAL_SUCCESS
+                ),
+            ],
+            models.BulkResponse(status=models.BulkOperationStatusEnum.PARTIAL_SUCCESS),
+        ),
         (
             [
                 models.BulkResponse(status=models.BulkOperationStatusEnum.FAILURE),
