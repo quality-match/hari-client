@@ -1,3 +1,4 @@
+import sys
 import time
 import uuid
 
@@ -81,18 +82,25 @@ uploader.add_media(media_1, media_2, media_3)
 # 5. Trigger the upload process
 upload_results = uploader.upload()
 
-# 6. Inspect upload results
+# Inspect upload results
 print(f"media upload status: {upload_results.medias.status}")
 print(f"media upload summary\n  {upload_results.medias.summary}")
-if upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS:
-    print(upload_results.medias.results)
 
 print(f"media_object upload status: {upload_results.media_objects.status}")
 print(f"media object upload summary\n  {upload_results.media_objects.summary}")
-if upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS:
-    print(upload_results.media_objects.results)
 
-# 7. Create a subset
+if (
+    upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
+    or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
+):
+    print(
+        "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
+    )
+    print(f"media upload details: {upload_results.medias.results}")
+    print(f"media object upload details: {upload_results.media_objects.results}")
+    sys.exit(1)
+
+# 6. Create a subset
 new_subset_id = hari.create_subset(
     dataset_id=new_dataset.id,
     subset_type=models.SubsetType.MEDIA_OBJECT,
@@ -100,7 +108,7 @@ new_subset_id = hari.create_subset(
 )
 print(f"Created new subset with id {new_subset_id}")
 
-# 8. Trigger metadata updates
+# 7. Trigger metadata updates
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
 trace_id = str(uuid.uuid4())
@@ -113,11 +121,11 @@ hari.trigger_histograms_update_job(
 )
 
 # in order to trigger crops creation, thumbnails should be created first.
-time.sleep(5)  # give jobs time to start
-jobs = hari.get_processing_jobs(
-    trace_id=trace_id
-)  # query all the jobs for the given trace_id
-# get the thumbnails job id
+# give jobs time to start
+time.sleep(5)
+# query all the jobs for the given trace_id
+jobs = hari.get_processing_jobs(trace_id=trace_id)
+# get the thumbnails creation job id
 thumbnails_job_id = next(
     (
         job.id
