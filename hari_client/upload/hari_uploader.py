@@ -242,7 +242,10 @@ def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     if len(statuses) == 1:
         # if all statuses are the same, use that status
         final_response.status = statuses.pop()
-    elif models.BulkOperationStatusEnum.SUCCESS in statuses:
+    elif (
+        models.BulkOperationStatusEnum.SUCCESS
+        or models.BulkOperationStatusEnum.PARTIAL_SUCCESS in statuses
+    ):
         # if success appears at least once, it's a partial_success
         final_response.status = models.BulkOperationStatusEnum.PARTIAL_SUCCESS
     else:
