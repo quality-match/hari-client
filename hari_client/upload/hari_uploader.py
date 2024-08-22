@@ -1,5 +1,3 @@
-import uuid
-
 import pydantic
 import tqdm
 
@@ -17,15 +15,15 @@ class HARIMediaObject(models.MediaObjectCreate):
 
     def get_back_reference(self) -> str:
         """
-        Returns a back reference id with which you can clearly identify this media object after it has been uploaded to HARI.
+        Returns a back reference with which you can clearly identify this media object after it has been uploaded to HARI.
 
         Returns:
-            str: The back reference id
+            str: The back reference
 
         Raises:
             HARIMediaObjectMissingBackReferenceError: If the HARIMediaObject doesn't have a back_reference
         """
-        if self.back_reference == "" or self.back_reference is None:
+        if not self.back_reference:
             raise HARIMediaObjectMissingBackReferenceError(self)
         return self.back_reference
 
@@ -39,15 +37,15 @@ class HARIMedia(models.MediaCreate):
 
     def get_back_reference(self) -> str:
         """
-        Returns a back reference id with which you can clearly identify this media after it has been uploaded to HARI.
+        Returns a back reference with which you can clearly identify this media after it has been uploaded to HARI.
 
         Returns:
-            str: The back reference id
+            str: The back reference
 
         Raises:
             HARIMediaMissingBackReferenceError: If the HARIMedia object doesn't have a back_reference
         """
-        if self.back_reference == "" or self.back_reference is None:
+        if not self.back_reference:
             raise HARIMediaMissingBackReferenceError(self)
         return self.back_reference
 
@@ -66,7 +64,7 @@ class DuplicateHARIMediaObjectBackReferenceError(Exception):
 
 class HARIMediaMissingBackReferenceError(Exception):
     def __init__(self, media: HARIMedia):
-        super().__init__(f"HARIMedia object doesn't have a back_reference: {media=}")
+        super().__init__(f"HARIMedia doesn't have a back_reference: {media=}")
 
 
 class HARIMediaObjectMissingBackReferenceError(Exception):
@@ -82,9 +80,9 @@ class HARIUploadResults(pydantic.BaseModel):
 
 
 class HARIUploader:
-    def __init__(self, client: HARIClient, dataset_id: uuid.UUID) -> None:
-        self.client = client
-        self.dataset_id: uuid.UUID = dataset_id
+    def __init__(self, client: HARIClient, dataset_id: str) -> None:
+        self.client: HARIClient = client
+        self.dataset_id: str = dataset_id
         # key: HARIMedia.back_reference
         self._medias: dict[str, HARIMedia] = {}
         self._media_object_back_references: set[str] = set()
@@ -92,8 +90,7 @@ class HARIUploader:
     def add_media(self, *args: HARIMedia) -> None:
         """
         Add one or more HARIMedia objects to the uploader. Only use this method to add medias to the uploader.
-        The back_reference is used as a unique identifier.
-        Also verifies that the media object back_references are unique across all media objects
+        This method verifies that the media back reference and all media object back references are unique across all media objects
         known to the uploader.
 
         Args:
@@ -174,22 +171,29 @@ class HARIUploader:
             media_upload_bulk_response=media_upload_response
         )
 
-        # upload batches of media_objects
+        # upload media_objects of this batch in batches
         all_media_objects: list[HARIMediaObject] = []
-        media_object_upload_responses: list[models.BulkResponse] = []
         for media in medias_to_upload:
             all_media_objects.extend(media.media_objects)
+        media_object_upload_responses = self._upload_media_objects_in_batches(
+            all_media_objects
+        )
 
-        for idx in range(0, len(all_media_objects), HARIClient.BULK_UPLOAD_LIMIT):
-            media_objects_to_upload = all_media_objects[
+        return media_upload_response, media_object_upload_responses
+
+    def _upload_media_objects_in_batches(
+        self, media_objects: list[HARIMediaObject]
+    ) -> list[models.BulkResponse]:
+        media_object_upload_responses: list[models.BulkResponse] = []
+        for idx in range(0, len(media_objects), HARIClient.BULK_UPLOAD_LIMIT):
+            media_objects_to_upload = media_objects[
                 idx : idx + HARIClient.BULK_UPLOAD_LIMIT
             ]
             response = self._upload_media_object_batch(
                 media_objects_to_upload=media_objects_to_upload
             )
             media_object_upload_responses.append(response)
-
-        return media_upload_response, media_object_upload_responses
+        return media_object_upload_responses
 
     def _upload_media_object_batch(
         self, media_objects_to_upload: list[HARIMediaObject]
@@ -212,7 +216,7 @@ class HARIUploader:
 
 def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     """
-    Merges multiple BulkResponse objects into a new one.
+    Merges multiple BulkResponse objects into one.
     If only one BulkResponse object is provided, it will be returned as is.
 
     Args:
