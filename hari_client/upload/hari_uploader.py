@@ -29,7 +29,8 @@ class HARIMediaObject(models.MediaObjectCreate):
 
 
 class HARIMedia(models.MediaCreate):
-    # media_objects is not part of the hari api, but is used to store the reference to the media_objects
+    # the media_objects field is not part of the lower level MediaCreate model of the hari api,
+    # but we need it to add media_objects to a media before uploading the media.
     media_objects: list[HARIMediaObject] = pydantic.Field(default=[], exclude=True)
 
     def add_media_object(self, media_object: HARIMediaObject) -> None:
