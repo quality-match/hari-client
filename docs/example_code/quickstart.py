@@ -6,9 +6,8 @@ from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 
-# Replace by your own credentials! It's recommended to use a .env file to store the credentials.
-# The Config class will look for the .env file in your script's current working directory.
-# config = Config(hari_username="jane.doe@gmail.com", hari_password="SuperSecretPassword")
+# The Config class will look for a .env file in your script's current working directory.
+# Copy the .env_example file as .env for that and store your HARI credentials in there.
 config = Config()
 
 # 1. Initialize the HARI client
