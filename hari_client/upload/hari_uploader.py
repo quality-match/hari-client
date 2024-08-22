@@ -90,7 +90,7 @@ class HARIUploader:
     def add_media(self, *args: HARIMedia) -> None:
         """
         Add one or more HARIMedia objects to the uploader. Only use this method to add medias to the uploader.
-        This method verifies that the media back reference and all media object back references are unique across all media objects
+        This method verifies that the media back reference is unique across all media and all media object back references are unique across all media objects in the HARIUploader object.
         known to the uploader.
 
         Args:
