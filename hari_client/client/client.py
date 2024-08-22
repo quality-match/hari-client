@@ -1,6 +1,7 @@
 import datetime
 import pathlib
 import typing
+import uuid
 
 import pydantic
 import requests
@@ -17,7 +18,7 @@ log = logger.setup_logger(__name__)
 
 def _parse_response_model(
     response_data: typing.Any, response_model: typing.Type[T]
-) -> T:
+) -> T | list[typing.Any] | dict[typing.Any, typing.Any] | typing.Any:
     """
     Parses data of type typing.Any to a generic response_model type.
     Cases:
@@ -73,9 +74,7 @@ def _parse_response_model(
             item_type = typing.get_args(response_model)[0]
             if isinstance(response_data, list):
                 if typing.get_origin(item_type) is typing.Union:
-                    return [
-                        handle_union_parsing(item, item_type) for item in response_data
-                    ]
+                    return [(item, item_type) for item in response_data]
                 elif isinstance(item_type, type) and issubclass(
                     item_type, pydantic.BaseModel
                 ):
@@ -119,7 +118,7 @@ def handle_union_parsing(item, union_type):
                 return possible_type(**item)
             except Exception:
                 continue
-    raise errors.ParseResponseModelError(
+    raise errors.ParseResponseModehandle_union_parsinglError(
         response_data=item,
         response_model=union_type,
         message=f"Failed to parse item into one of the union types {union_type}. {item=}",
@@ -143,7 +142,7 @@ class HARIClient:
         url: str,
         success_response_item_model: typing.Type[T],
         **kwargs,
-    ) -> typing.Union[T, None]:
+    ) -> typing.Union[T, None] | typing.Any:
         """Make a request to the API.
 
         Args:
@@ -320,7 +319,7 @@ class HARIClient:
     def create_dataset(
         self,
         name: str,
-        mediatype: typing.Optional[models.MediaType] = "image",
+        mediatype: typing.Optional[models.MediaType] = models.MediaType.IMAGE,
         customer: typing.Optional[str] = None,
         creation_timestamp: typing.Optional[str] = None,
         reference_files: typing.Optional[list] = None,
@@ -1436,7 +1435,9 @@ class HARIClient:
         Returns:
             models.UpdateHistogramsResponse: updated histograms
         """
-        params = {"compute_for_all_subsets": compute_for_all_subsets}
+        params: dict[str, bool | str] = {
+            "compute_for_all_subsets": compute_for_all_subsets
+        }
 
         if trace_id is not None:
             params["trace_id"] = trace_id
@@ -1526,13 +1527,13 @@ class HARIClient:
 
     def get_processing_job(
         self,
-        processing_job_id: str,
+        processing_job_id: uuid.UUID,
     ) -> models.ProcessingJob:
         """
         Retrieves a specific processing job by its id.
 
         Args:
-            processing_job_id (str): The unique identifier of the processing job to retrieve.
+            processing_job_id (uuid): The unique identifier of the processing job to retrieve.
 
         Raises:
             APIException: If the request fails.

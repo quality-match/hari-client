@@ -14,7 +14,10 @@ setup(
         "pydantic-settings>=2.3",
         "tqdm~=4.66",
     ],
-    extras_require={"tests": ["pytest", "pytest-mock", "pre-commit"]},
+    extras_require={
+        "tests": ["pytest", "pytest-mock"],
+        "dev": ["pre-commit", "types-requests"],
+    },
     classifiers=[
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3.11",
