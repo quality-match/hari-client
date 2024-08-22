@@ -21,10 +21,6 @@ You can find the referenced images here: `docs/example_code/images/`.
 Copy the `docs/example_code/.env_example` file to `docs/example_code/.env` and fill in your HARI credentials there.
 Run the script from the `docs/example_code` directory.
 
-### Other annotation geometries
-
-Have a look at the [geometries.py](docs/example_code/geometries.py) example script for examples on how to create other annotation geometries.
-
 ## Documentation
 
 For more detailed documentation, including all available methods and their parameters, please refer to the official documentation https://docs.quality-match.com.
