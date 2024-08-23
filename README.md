@@ -9,7 +9,7 @@ Minimum python version: **3.11**
 To install the hari-client package, use pip with the following command:
 
 ```bash
-python -m pip install "hari_client @ git+https://github.com/quality-match/hari-client@v0.1.0"
+python -m pip install "hari_client @ git+https://github.com/quality-match/hari-client@v0.2.0"
 ```
 
 ## Quickstart
@@ -119,7 +119,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Contact
 
 Visit our website https://quality-match.com
-
-```
-
-```
