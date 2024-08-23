@@ -81,7 +81,7 @@ def test_parse_response_model_works_with_list_of_pydantic_models():
     ]
 
     response = _parse_response_model(
-        response_data=response_data, response_model=models.MediaUploadUrlInfo
+        response_data=response_data, response_model=list[models.MediaUploadUrlInfo]
     )
 
     assert isinstance(response, list)
