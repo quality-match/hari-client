@@ -25,7 +25,6 @@ def _parse_response_model(
             - None is returned
         - response_model is a pydantic model:
             - if response_data is a dict, response_data is parsed into an instance of the response_model.
-            - if response_data is a list, each item in the list is treated as a dict and parsed into an instance of the response_model.
         - response_model is a parametrized generic:
             - if response_data is a list and response_model is a list of unions:
                 - each item in the response_data list is checked against the possible types in the union.
@@ -64,8 +63,6 @@ def _parse_response_model(
         ):
             if isinstance(response_data, dict):
                 return response_model(**response_data)
-            elif isinstance(response_data, list):
-                return [response_model(**item) for item in response_data]
 
         # handle parametrized generics
         origin = typing.get_origin(response_model)
