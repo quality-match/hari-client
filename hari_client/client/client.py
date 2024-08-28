@@ -518,6 +518,8 @@ class HARIClient:
         dataset_id: str,
         subset_type: models.SubsetType,
         subset_name: str,
+        filter_options: models.QueryList | None = None,
+        secondary_filter_options: models.QueryList | None = None,
         object_category: typing.Optional[bool] = False,
         visualisation_config_id: typing.Optional[str] = None,
     ) -> str:
@@ -527,6 +529,8 @@ class HARIClient:
             dataset_id: Dataset Id
             subset_type: Type of the subset (media, media_object, instance, attribute)
             subset_name: The name of the subset
+            filter_options: Filter options defining subset
+            secondary_filter_options: In Media subsets these will filter down the media_objects
             object_category: True if the new subset shall be shown as a category for objects in HARI
             visualisation_config_id: Visualisation Config Id
 
