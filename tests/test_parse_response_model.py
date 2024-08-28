@@ -14,10 +14,20 @@ class SimpleModel1(pydantic.BaseModel):
     c: str
 
 
+class SimpleModel1WithRootField(pydantic.RootModel[list[SimpleModel1]]):
+    pass
+
+
 class SimpleModel2(pydantic.BaseModel):
     x: bool
     y: list
     z: dict
+
+
+class SimpleModelWithRootFieldForUnionOfTwoModels(
+    pydantic.RootModel[list[SimpleModel1 | SimpleModel2]]
+):
+    pass
 
 
 class ComplexModelWithNestedListOfUnions(pydantic.BaseModel):
@@ -81,10 +91,8 @@ def test_parse_response_model_works_with_list_of_pydantic_models():
     ]
 
     response = _parse_response_model(
-        response_data=response_data, response_model=models.MediaUploadUrlInfo
+        response_data=response_data, response_model=models.MediaUploadUrlInfoList
     )
-
-    assert isinstance(response, list)
 
     for idx, item in enumerate(response):
         assert isinstance(item, models.MediaUploadUrlInfo)
@@ -93,14 +101,38 @@ def test_parse_response_model_works_with_list_of_pydantic_models():
         assert item.media_url == response_data[idx]["media_url"]
 
 
+type_mismatch_error_match = ".Types do not match."
+
+
 @pytest.mark.parametrize(
-    "response_data, response_model",
+    "response_data, response_model, error, error_message",
     [
-        (2, float),
-        (2.45, int),
-        ("hello_world", None),
-        ([1, 2, 3, {"a": 7}], dict),
-        ({"a": 1, "b": 6, "c": {"d": 99}}, list),
+        (2, float, errors.ParseResponseModelError, type_mismatch_error_match),
+        (2.45, int, errors.ParseResponseModelError, type_mismatch_error_match),
+        (
+            "hello_world",
+            None,
+            errors.ParseResponseModelError,
+            type_mismatch_error_match,
+        ),
+        (
+            None,
+            "hello_world",
+            errors.ParseResponseModelError,
+            type_mismatch_error_match,
+        ),
+        (
+            [1, 2, 3, {"a": 7}],
+            dict,
+            errors.ParseResponseModelError,
+            type_mismatch_error_match,
+        ),
+        (
+            {"a": 1, "b": 6, "c": {"d": 99}},
+            list,
+            errors.ParseResponseModelError,
+            type_mismatch_error_match,
+        ),
         (
             {
                 "upload_url": "http://example.com/upload/1234",
@@ -108,95 +140,39 @@ def test_parse_response_model_works_with_list_of_pydantic_models():
                 "media_url": "http://example.com/media/1234",
             },
             models.VisualisationUploadUrlInfo,
+            pydantic.ValidationError,
+            "Failed to parse response_data into response_model.",
         ),
     ],
 )
 def test_parse_response_model_fails_for_response_data_not_matching_expected_response_model(
-    response_data, response_model
+    response_data, response_model, error, error_message
 ):
-    with pytest.raises(errors.ParseResponseModelError):
+    with pytest.raises(errors.ParseResponseModelError, match=error_message):
         _parse_response_model(
             response_data=response_data, response_model=response_model
         )
 
 
-@pytest.mark.parametrize(
-    "response_data, response_model, expected_type",
-    [
-        ([TestObject1], list[SimpleModel1], SimpleModel1),
-        ([1, 2, 3], list[int], int),
-    ],
-)
-def test_parse_response_model_works_with_list_of_parametrized_generics(
-    response_data, response_model, expected_type
-):
+def test_parse_response_model_works_with_pydantic_model_with_root_field_of_list():
     response = _parse_response_model(
-        response_data=response_data, response_model=response_model
+        response_data=[TestObject1], response_model=SimpleModel1WithRootField
     )
+    assert isinstance(response, SimpleModel1WithRootField)
+    assert response.root[0].a == 1
+    assert response.root[0].b == 6.78
+    assert response.root[0].c == "hello"
 
-    assert isinstance(response, list)
-    assert all(isinstance(item, expected_type) for item in response)
-
-    if expected_type == SimpleModel1:
-        assert response[0].a == 1
-        assert response[0].b == 6.78
-        assert response[0].c == "hello"
-
-
-@pytest.mark.parametrize(
-    "response_data, response_model, key_type, value_type",
-    [
-        (
-            {"item1": TestObject1},
-            dict[str, SimpleModel1],
-            str,
-            SimpleModel1,
-        ),
-        ({"key1": 1, "key2": 2}, dict[str, int], str, int),
-    ],
-)
-def test_parse_response_model_works_with_dict_of_parametrized_generics(
-    response_data, response_model, key_type, value_type
-):
     response = _parse_response_model(
-        response_data=response_data, response_model=response_model
+        response_data=[TestObject1, TestObject2],
+        response_model=SimpleModelWithRootFieldForUnionOfTwoModels,
     )
+    assert isinstance(response, SimpleModelWithRootFieldForUnionOfTwoModels)
+    assert response.root[0].a == 1
+    assert response.root[0].b == 6.78
+    assert response.root[0].c == "hello"
 
-    assert isinstance(response, dict)
-    assert all(
-        isinstance(k, key_type) and isinstance(v, value_type)
-        for k, v in response.items()
-    )
-
-    if value_type == SimpleModel1:
-        assert response["item1"].a == 1
-        assert response["item1"].b == 6.78
-        assert response["item1"].c == "hello"
-
-
-@pytest.mark.parametrize(
-    "response_data, response_model, expected_types",
-    [
-        (
-            [TestObject1, TestObject2],
-            list[typing.Union[SimpleModel1, SimpleModel2]],
-            [SimpleModel1, SimpleModel2],
-        ),
-        (
-            [TestObject1, {"i": 2, "k": [TestObject1, TestObject2]}],
-            list[typing.Union[SimpleModel1, ComplexModelWithNestedListOfUnions]],
-            [SimpleModel1, ComplexModelWithNestedListOfUnions],
-        ),
-    ],
-)
-def test_parse_response_model_works_with_list_of_unions(
-    response_data, response_model, expected_types
-):
-    response = _parse_response_model(
-        response_data=response_data, response_model=response_model
-    )
-
-    assert isinstance(response, list)
-    assert all(
-        isinstance(item, expected_types[idx]) for idx, item in enumerate(response)
-    )
+    assert isinstance(response, SimpleModelWithRootFieldForUnionOfTwoModels)
+    assert response.root[1].x is False
+    assert response.root[1].y == [1, 2]
+    assert response.root[1].z == {"m": 3}
