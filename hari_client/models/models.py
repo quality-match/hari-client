@@ -8,6 +8,10 @@ import uuid
 import pydantic
 
 
+class BaseResponse(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(extra="allow")
+
+
 class VideoParameters(str, enum.Enum):
     # Currently empty
     pass
@@ -264,7 +268,7 @@ class Dataset(pydantic.BaseModel):
     )
 
 
-class DatasetResponse(pydantic.BaseModel):
+class DatasetResponse(BaseResponse):
     id: str = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     parent_dataset: typing.Optional[str] = pydantic.Field(
@@ -528,7 +532,7 @@ class Media(pydantic.BaseModel):
     )
 
 
-class MediaResponse(pydantic.BaseModel):
+class MediaResponse(BaseResponse):
     id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
     dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -703,7 +707,7 @@ class MediaObject(pydantic.BaseModel):
     )
 
 
-class MediaObjectResponse(pydantic.BaseModel):
+class MediaObjectResponse(BaseResponse):
     id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
     dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -853,7 +857,7 @@ class ResponseStatesEnum(str, enum.Enum):
     BAD_DATA = "bad_data"
 
 
-class BaseBulkItemResponse(pydantic.BaseModel, arbitrary_types_allowed=True):
+class BaseBulkItemResponse(BaseResponse):
     item_id: typing.Optional[str] = None
     status: ResponseStatesEnum
     errors: typing.Optional[list[str]] = None
@@ -867,7 +871,7 @@ class AttributeCreateResponse(BaseBulkItemResponse):
     annotatable_id: str
 
 
-class BulkResponse(pydantic.BaseModel):
+class BulkResponse(BaseResponse):
     status: BulkOperationStatusEnum = BulkOperationStatusEnum.PROCESSING
     summary: BulkUploadSuccessSummary = pydantic.Field(
         default_factory=BulkUploadSuccessSummary
@@ -933,7 +937,7 @@ class ProcessingJobsForMetadataUpdate(str, enum.Enum):
     CROPS_CREATION = "create_crops"
 
 
-class ResponseBaseParameters(pydantic.BaseModel):
+class ResponseBaseParameters(BaseResponse):
     batch: bool = pydantic.Field(default=False, title="Batch")
     override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
         default=None, title="Override Processing Type"
