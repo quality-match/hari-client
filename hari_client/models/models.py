@@ -301,6 +301,14 @@ class DatasetResponse(BaseResponse):
     )
 
 
+class DatasetResponseList(pydantic.RootModel[list[DatasetResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class Pose3D(pydantic.BaseModel):
     position: Point3DTuple = pydantic.Field()
     heading: QuaternionTuple = pydantic.Field()
@@ -574,6 +582,14 @@ class MediaResponse(BaseResponse):
     )
 
 
+class MediaResponseList(pydantic.RootModel[list[MediaResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class FilterCount(pydantic.BaseModel):
     false_negative_percentage: typing.Optional[typing.Any] = pydantic.Field(
         default=None, title="False Negative Percentage"
@@ -753,6 +769,14 @@ class MediaObjectResponse(BaseResponse):
     )
 
 
+class MediaObjectResponseList(pydantic.RootModel[list[MediaObjectResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class ValidationError(pydantic.BaseModel):
     loc: list = pydantic.Field(title="Location")
     msg: str = pydantic.Field(title="Message")
@@ -802,16 +826,42 @@ class AttributeHistogram(pydantic.BaseModel):
     statistics: typing.Optional[AttributeHistogramStatistics] = None
 
 
+class AttributeHistogramList(pydantic.RootModel[list[AttributeHistogram]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class MediaUploadUrlInfo(pydantic.BaseModel):
     upload_url: str
     media_id: str
     media_url: str
 
 
+class MediaUploadUrlInfoList(pydantic.RootModel[list[MediaUploadUrlInfo]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class VisualisationUploadUrlInfo(pydantic.BaseModel):
     upload_url: str
     visualisation_id: str
     visualisation_url: str
+
+
+class VisualisationUploadUrlInfoList(
+    pydantic.RootModel[list[VisualisationUploadUrlInfo]]
+):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 VisualisationUnion = typing.Union[
@@ -980,6 +1030,14 @@ class CreateThumbnailsResponse(ResponseBaseParameters):
     parameters: CreateThumbnailsParameters = pydantic.Field(title="Parameters")
 
 
+class CreateThumbnailsResponseList(pydantic.RootModel[list[CreateThumbnailsResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class UpdateHistogramsParameters(pydantic.BaseModel):
     dataset_id: str = pydantic.Field(title="Dataset ID")
     subset_ids: typing.Optional[list[str]] = pydantic.Field(
@@ -1034,6 +1092,16 @@ class CreateCropsResponse(ResponseBaseParameters):
     parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
 
 
+class MetadataResponseList(
+    pydantic.RootModel[list[UpdateHistogramsResponse | CreateCropsResponse]]
+):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class ProcessingJob(pydantic.BaseModel):
     id: uuid.UUID = pydantic.Field(title="ID")
     status: str = pydantic.Field(title="Status")
@@ -1053,6 +1121,14 @@ class ProcessingJob(pydantic.BaseModel):
     trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
         default=None, title="Trace ID"
     )
+
+
+class ProcessingJobList(pydantic.RootModel[list[ProcessingJob]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 class ProcessingJobStatus(str, enum.Enum):
