@@ -40,9 +40,9 @@ def _parse_response_model(
         T: an instance of the passed response_model type
     """
     try:
-        if response_model is None or response_data is None:
-            if response_model is None and response_data is None:
-                return None
+        if response_model is None and response_data is None:
+            return None
+        elif response_model is None or response_data is None:
             raise errors.ParseResponseModelError(
                 response_data=response_data,
                 response_model=response_model,
