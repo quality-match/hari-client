@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 
 from hari_client import Config
@@ -120,34 +118,3 @@ def test_get_presigned_visualisation_upload_url_batch_size_range():
             visualisation_config_id="1234",
             batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
         )
-
-
-def test_extra_fields_allowed_in_responses():
-    # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
-
-    # patch the response to include an extra field
-    with patch.object(HARIClient, "_request") as mock_request:
-        mock_request.return_value = models.DatasetResponse(
-            id="1234",
-            name="my dataset",
-            parent_dataset="1234",
-            num_medias=0,
-            num_media_objects=0,
-            num_instances=0,
-            done_percentage=None,
-            creation_timestamp=None,
-            color="#FFFFFF",
-            subset_type=None,
-            mediatype=models.MediaType.IMAGE,
-            object_category=None,
-            is_anonymized=None,
-            export_id=None,
-            license=None,
-            visibility_status=models.VisibilityStatus.VISIBLE,
-            extra_field="extra field",
-        )
-
-        # Act + Assert
-        dataset = hari.get_dataset("1234")
-        assert dataset.extra_field == "extra field"

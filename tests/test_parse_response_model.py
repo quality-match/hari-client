@@ -176,3 +176,33 @@ def test_parse_response_model_works_with_pydantic_model_with_root_field_of_list(
     assert response.root[1].x is False
     assert response.root[1].y == [1, 2]
     assert response.root[1].z == {"m": 3}
+
+
+def test_extra_fields_allowed_for_models():
+    # Arrange
+    response_data = models.DatasetResponse(
+        id="1234",
+        name="my dataset",
+        parent_dataset="1234",
+        num_medias=0,
+        num_media_objects=0,
+        num_instances=0,
+        done_percentage=None,
+        creation_timestamp=None,
+        color="#FFFFFF",
+        subset_type=None,
+        mediatype=models.MediaType.IMAGE,
+        object_category=None,
+        is_anonymized=None,
+        export_id=None,
+        license=None,
+        visibility_status=models.VisibilityStatus.VISIBLE,
+        extra_field="extra field",
+    )
+
+    # Act + Assert
+    dataset_response = _parse_response_model(
+        response_data=response_data.model_dump(), response_model=models.DatasetResponse
+    )
+
+    assert dataset_response.extra_field == "extra field"
