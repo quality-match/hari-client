@@ -1385,7 +1385,7 @@ class HARIClient:
         dataset_id: str,
         trace_id: typing.Optional[str] = None,
         compute_for_all_subsets: typing.Optional[bool] = False,
-    ) -> models.UpdateHistogramsResponse:
+    ) -> models.UpdateHistogramsResponseList:
         """Triggers the update of the histograms for a given dataset.
 
         Args:
@@ -1410,7 +1410,7 @@ class HARIClient:
             "PUT",
             f"/datasets/{dataset_id}/histograms",
             params=params,
-            success_response_item_model=models.UpdateHistogramsResponse,
+            success_response_item_model=models.UpdateHistogramsResponseList,
         )
 
     def trigger_crops_creation_job(

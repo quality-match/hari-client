@@ -1064,6 +1064,14 @@ class UpdateHistogramsResponse(ResponseBaseParameters):
     parameters: UpdateHistogramsParameters = pydantic.Field(title="Parameters")
 
 
+class UpdateHistogramsResponseList(pydantic.RootModel[list[UpdateHistogramsResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class CreateCropsParameters(pydantic.BaseModel):
     dataset_id: str = pydantic.Field(title="Dataset ID")
     query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
