@@ -39,8 +39,7 @@ repos:
     hooks:
       - id: mypy
         args: [--no-strict-optional, --ignore-missing-imports]
-        files: templates/fast_api_application
-
+        additional_dependencies: [types-requests]
   ############################################
   #  Flake8 - style guide checker
   ############################################
