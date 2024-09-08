@@ -101,7 +101,11 @@ def test_parse_response_model_works_with_list_of_pydantic_models():
         assert item.media_url == response_data[idx]["media_url"]
 
 
-type_mismatch_error_match = ".Types do not match."
+type_mismatch_error_match = (
+    "The response_data or the response model are not of the expected type"
+)
+none_type_error_match = "Cannot parse None type into a non-None type"
+pydantic_validation_error_match = "Failed to parse response_data into response_model"
 
 
 @pytest.mark.parametrize(
@@ -113,13 +117,13 @@ type_mismatch_error_match = ".Types do not match."
             "hello_world",
             None,
             errors.ParseResponseModelError,
-            type_mismatch_error_match,
+            none_type_error_match,
         ),
         (
             None,
             "hello_world",
             errors.ParseResponseModelError,
-            type_mismatch_error_match,
+            none_type_error_match,
         ),
         (
             [1, 2, 3, {"a": 7}],
@@ -141,7 +145,7 @@ type_mismatch_error_match = ".Types do not match."
             },
             models.VisualisationUploadUrlInfo,
             pydantic.ValidationError,
-            "Failed to parse response_data into response_model.",
+            pydantic_validation_error_match,
         ),
     ],
 )

@@ -46,7 +46,7 @@ def _parse_response_model(
             raise errors.ParseResponseModelError(
                 response_data=response_data,
                 response_model=response_model,
-                message=f"Failed to parse response_data into response_model {response_model}. {response_data=}. Types do not match.",
+                message=f"Failed to parse response_data into response_model {response_model}. {response_data=}. Cannot parse None type into a non-None type.",
             )
         # handle pydantic models
         # order is important here, because the RootModel is a subclass of the BaseModel
@@ -74,14 +74,14 @@ def _parse_response_model(
         else:
             raise errors.ParseResponseModelError(
                 response_data=response_data,
+                message=f"Failed to parse response_data into response_model {response_model}. {response_data=}. The response_data or the response model are not of the expected type.",
                 response_model=response_model,
-                message=f"Failed to parse response_data into response_model {response_model}. {response_data=}. Types do not match.",
             )
     except pydantic.ValidationError as err:
         raise errors.ParseResponseModelError(
             response_data=response_data,
             response_model=response_model,
-            message=f"Failed to parse response_data into response_model {response_model}. {response_data=}",
+            message=f"Failed to parse response_data into response_model {response_model}. {response_data=}.",
         ) from err
 
 
