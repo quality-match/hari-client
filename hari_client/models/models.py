@@ -8,6 +8,10 @@ import uuid
 import pydantic
 
 
+class BaseResponse(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(extra="allow")
+
+
 class VideoParameters(str, enum.Enum):
     # Currently empty
     pass
@@ -264,7 +268,7 @@ class Dataset(pydantic.BaseModel):
     )
 
 
-class DatasetResponse(pydantic.BaseModel):
+class DatasetResponse(BaseResponse):
     id: str = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     parent_dataset: typing.Optional[str] = pydantic.Field(
@@ -295,6 +299,14 @@ class DatasetResponse(pydantic.BaseModel):
     visibility_status: typing.Optional[VisibilityStatus] = pydantic.Field(
         default="visible", title="VisibilityStatus"
     )
+
+
+class DatasetResponseList(pydantic.RootModel[list[DatasetResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 class Pose3D(pydantic.BaseModel):
@@ -528,7 +540,7 @@ class Media(pydantic.BaseModel):
     )
 
 
-class MediaResponse(pydantic.BaseModel):
+class MediaResponse(BaseResponse):
     id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
     dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -568,6 +580,14 @@ class MediaResponse(pydantic.BaseModel):
     back_reference_json: typing.Optional[str] = pydantic.Field(
         default=None, title="Back Reference Json"
     )
+
+
+class MediaResponseList(pydantic.RootModel[list[MediaResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 class FilterCount(pydantic.BaseModel):
@@ -703,7 +723,7 @@ class MediaObject(pydantic.BaseModel):
     )
 
 
-class MediaObjectResponse(pydantic.BaseModel):
+class MediaObjectResponse(BaseResponse):
     id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
     dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -747,6 +767,14 @@ class MediaObjectResponse(pydantic.BaseModel):
     media_object_type: typing.Optional[MediaObjectType] = pydantic.Field(
         default=None, title="Media Object Type"
     )
+
+
+class MediaObjectResponseList(pydantic.RootModel[list[MediaObjectResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 class ValidationError(pydantic.BaseModel):
@@ -798,16 +826,42 @@ class AttributeHistogram(pydantic.BaseModel):
     statistics: typing.Optional[AttributeHistogramStatistics] = None
 
 
+class AttributeHistogramList(pydantic.RootModel[list[AttributeHistogram]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class MediaUploadUrlInfo(pydantic.BaseModel):
     upload_url: str
     media_id: str
     media_url: str
 
 
+class MediaUploadUrlInfoList(pydantic.RootModel[list[MediaUploadUrlInfo]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class VisualisationUploadUrlInfo(pydantic.BaseModel):
     upload_url: str
     visualisation_id: str
     visualisation_url: str
+
+
+class VisualisationUploadUrlInfoList(
+    pydantic.RootModel[list[VisualisationUploadUrlInfo]]
+):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 VisualisationUnion = typing.Union[
@@ -853,7 +907,7 @@ class ResponseStatesEnum(str, enum.Enum):
     BAD_DATA = "bad_data"
 
 
-class BaseBulkItemResponse(pydantic.BaseModel, arbitrary_types_allowed=True):
+class BaseBulkItemResponse(BaseResponse):
     item_id: typing.Optional[str] = None
     status: ResponseStatesEnum
     errors: typing.Optional[list[str]] = None
@@ -867,7 +921,7 @@ class AttributeCreateResponse(BaseBulkItemResponse):
     annotatable_id: str
 
 
-class BulkResponse(pydantic.BaseModel):
+class BulkResponse(BaseResponse):
     status: BulkOperationStatusEnum = BulkOperationStatusEnum.PROCESSING
     summary: BulkUploadSuccessSummary = pydantic.Field(
         default_factory=BulkUploadSuccessSummary
@@ -933,7 +987,7 @@ class ProcessingJobsForMetadataUpdate(str, enum.Enum):
     CROPS_CREATION = "create_crops"
 
 
-class ResponseBaseParameters(pydantic.BaseModel):
+class ResponseBaseParameters(BaseResponse):
     batch: bool = pydantic.Field(default=False, title="Batch")
     override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
         default=None, title="Override Processing Type"
@@ -976,6 +1030,14 @@ class CreateThumbnailsResponse(ResponseBaseParameters):
     parameters: CreateThumbnailsParameters = pydantic.Field(title="Parameters")
 
 
+class CreateThumbnailsResponseList(pydantic.RootModel[list[CreateThumbnailsResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class UpdateHistogramsParameters(pydantic.BaseModel):
     dataset_id: str = pydantic.Field(title="Dataset ID")
     subset_ids: typing.Optional[list[str]] = pydantic.Field(
@@ -1000,6 +1062,14 @@ class UpdateHistogramsResponse(ResponseBaseParameters):
         default=ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE, title="Method Name"
     )
     parameters: UpdateHistogramsParameters = pydantic.Field(title="Parameters")
+
+
+class UpdateHistogramsResponseList(pydantic.RootModel[list[UpdateHistogramsResponse]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 class CreateCropsParameters(pydantic.BaseModel):
@@ -1030,6 +1100,16 @@ class CreateCropsResponse(ResponseBaseParameters):
     parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
 
 
+class MetadataResponseList(
+    pydantic.RootModel[list[UpdateHistogramsResponse | CreateCropsResponse]]
+):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
+
+
 class ProcessingJob(pydantic.BaseModel):
     id: uuid.UUID = pydantic.Field(title="ID")
     status: str = pydantic.Field(title="Status")
@@ -1049,6 +1129,14 @@ class ProcessingJob(pydantic.BaseModel):
     trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
         default=None, title="Trace ID"
     )
+
+
+class ProcessingJobList(pydantic.RootModel[list[ProcessingJob]]):
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, item):
+        return self.root[item]
 
 
 class ProcessingJobStatus(str, enum.Enum):
