@@ -1,6 +1,7 @@
 import datetime
 import pathlib
 import typing
+import uuid
 
 import pydantic
 import requests
@@ -54,10 +55,10 @@ def _parse_response_model(
             response_model, pydantic.RootModel
         ):
             root_field_type = typing.get_origin(
-                response_model.model_fields["root"].annotation
+                response_model.model_fields["root"].annotation  # type: ignore[attr-defined]
             )
-            if issubclass(root_field_type, list):
-                return response_model(response_data)
+            if root_field_type == list:
+                return response_model(response_data)  # type: ignore[call-arg]
             else:
                 raise errors.ParseResponseModelError(
                     response_data=response_data,
@@ -1485,7 +1486,7 @@ class HARIClient:
 
     def get_processing_job(
         self,
-        processing_job_id: str,
+        processing_job_id: uuid.UUID,
     ) -> models.ProcessingJob:
         """
         Retrieves a specific processing job by its id.

@@ -4,4 +4,4 @@ from hari_client.config.config import Config
 from hari_client.models import models
 from hari_client.upload import hari_uploader
 
-__all__ = [HARIClient, Config, errors, models, hari_uploader]
+__all__ = ["HARIClient", "Config", "errors", "models", "hari_uploader"]
