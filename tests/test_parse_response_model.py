@@ -200,3 +200,23 @@ def test_parse_response_model_works_with_list_of_unions(
     assert all(
         isinstance(item, expected_types[idx]) for idx, item in enumerate(response)
     )
+
+
+def test_extra_fields_allowed_for_models():
+    # Arrange
+    response_data = models.DatasetResponse(
+        id="1234",
+        name="my dataset",
+        num_medias=0,
+        num_media_objects=0,
+        num_instances=0,
+        mediatype=models.MediaType.IMAGE,
+        extra_field="extra field",
+    )
+
+    # Act + Assert
+    dataset_response = _parse_response_model(
+        response_data=response_data.model_dump(), response_model=models.DatasetResponse
+    )
+
+    assert dataset_response.extra_field == "extra field"

@@ -8,6 +8,10 @@ import uuid
 import pydantic
 
 
+class BaseModel(pydantic.BaseModel):
+    model_config = pydantic.ConfigDict(extra="allow")
+
+
 class VideoParameters(str, enum.Enum):
     # Currently empty
     pass
@@ -24,18 +28,18 @@ LogicOperator = typing.Literal["and", "or", "not"]
 QueryOperator = typing.Union[ComparisonOperator, SetOperator]
 
 
-class QueryParameter(pydantic.BaseModel):
+class QueryParameter(BaseModel):
     attribute: str
     query_operator: QueryOperator
     value: typing.Any = None
 
 
-class LogicParameter(pydantic.BaseModel):
+class LogicParameter(BaseModel):
     operator: LogicOperator
     queries: list[typing.Union[QueryParameter, LogicParameter]]
 
 
-class PaginationParameter(pydantic.BaseModel):
+class PaginationParameter(BaseModel):
     limit: typing.Optional[int] = None
     skip: typing.Optional[int] = None
 
@@ -44,7 +48,7 @@ QueryList = list[typing.Union[QueryParameter, LogicParameter]]
 SortingDirection = typing.Literal["asc", "desc"]
 
 
-class SortingParameter(pydantic.BaseModel):
+class SortingParameter(BaseModel):
     field: str
     order: SortingDirection
 
@@ -67,15 +71,15 @@ class Point3DTuple(typing.NamedTuple):
     z: float
 
 
-class Point3DAggregationMetrics(pydantic.BaseModel):
+class Point3DAggregationMetrics(BaseModel):
     dummy_metrics: str = pydantic.Field(title="Dummy Metrics")
 
 
-class Point2DAggregationMetrics(pydantic.BaseModel):
+class Point2DAggregationMetrics(BaseModel):
     dummy_metrics: str = pydantic.Field(title="Dummy Metrics")
 
 
-class BoundingBox2DAggregationMetrics(pydantic.BaseModel):
+class BoundingBox2DAggregationMetrics(BaseModel):
     iou_to_aggregated_box: typing.Optional[dict[str, typing.Any]] = pydantic.Field(
         default=None, title="Iou To Aggregated Box"
     )
@@ -89,7 +93,7 @@ class BoundingBox2DAggregationMetrics(pydantic.BaseModel):
     )
 
 
-class Point3DAggregation(pydantic.BaseModel):
+class Point3DAggregation(BaseModel):
     type: str = pydantic.Field(title="Type")
     x: typing.Any = pydantic.Field(title="X")
     y: typing.Any = pydantic.Field(title="Y")
@@ -99,7 +103,7 @@ class Point3DAggregation(pydantic.BaseModel):
     )
 
 
-class Point2DAggregation(pydantic.BaseModel):
+class Point2DAggregation(BaseModel):
     type: str = pydantic.Field(title="Type")
     x: typing.Any = pydantic.Field(title="X")
     y: typing.Any = pydantic.Field(title="Y")
@@ -108,7 +112,7 @@ class Point2DAggregation(pydantic.BaseModel):
     )
 
 
-class BoundingBox2DAggregation(pydantic.BaseModel):
+class BoundingBox2DAggregation(BaseModel):
     type: str = pydantic.Field(title="Type")
     x: typing.Any = pydantic.Field(title="X")
     y: typing.Any = pydantic.Field(title="Y")
@@ -119,7 +123,7 @@ class BoundingBox2DAggregation(pydantic.BaseModel):
     )
 
 
-class Point3DXYZ(pydantic.BaseModel):
+class Point3DXYZ(BaseModel):
     """x, y, z: point coordinates"""
 
     type: str = pydantic.Field(title="Type")
@@ -128,7 +132,7 @@ class Point3DXYZ(pydantic.BaseModel):
     z: typing.Any = pydantic.Field(title="Z")
 
 
-class CuboidCenterPoint(pydantic.BaseModel):
+class CuboidCenterPoint(BaseModel):
     """A 3D cuboid defined by its center point position, heading as quaternion and its dimensions along each axis."""
 
     type: str = pydantic.Field(title="Type")
@@ -137,13 +141,13 @@ class CuboidCenterPoint(pydantic.BaseModel):
     dimensions: Point3DTuple = pydantic.Field()
 
 
-class PolyLine2DFlatCoordinates(pydantic.BaseModel):
+class PolyLine2DFlatCoordinates(BaseModel):
     type: str = "polyline_2d_flat_coordinates"
     coordinates: list[float] = pydantic.Field(title="Coordinates")
     closed: bool = pydantic.Field(default=False, title="Closed")
 
 
-class Point2DXY(pydantic.BaseModel):
+class Point2DXY(BaseModel):
     """x, y: point coordinates with x along the horizontal axis and y
     along the vertical axis."""
 
@@ -159,7 +163,7 @@ class BBox2DType(str, enum.Enum):
     BBOX2D_TWO_POINTS = "bbox2d_two_points"
 
 
-class BBox2DCenterPoint(pydantic.BaseModel):
+class BBox2DCenterPoint(BaseModel):
     """2D center point Bounding Box representation.
 
     x, y: center point of the box, width, height: total width/height of the box.
@@ -230,7 +234,7 @@ class VisualisationType(str, enum.Enum):
     RENDERED = "Rendered"
 
 
-class Dataset(pydantic.BaseModel):
+class Dataset(BaseModel):
     id: str = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     data_root: str = pydantic.Field(title="Data Root")
@@ -264,7 +268,7 @@ class Dataset(pydantic.BaseModel):
     )
 
 
-class DatasetResponse(pydantic.BaseModel):
+class DatasetResponse(BaseModel):
     id: str = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     parent_dataset: typing.Optional[str] = pydantic.Field(
@@ -297,7 +301,7 @@ class DatasetResponse(pydantic.BaseModel):
     )
 
 
-class Pose3D(pydantic.BaseModel):
+class Pose3D(BaseModel):
     position: Point3DTuple = pydantic.Field()
     heading: QuaternionTuple = pydantic.Field()
 
@@ -307,7 +311,7 @@ class CameraModelType(str, enum.Enum):
     FISHEYE = "fisheye"
 
 
-class CameraDistortionCoefficients(pydantic.BaseModel):
+class CameraDistortionCoefficients(BaseModel):
     k1: typing.Optional[typing.Any] = pydantic.Field(default=None, title="K1")
     k2: typing.Optional[typing.Any] = pydantic.Field(default=None, title="K2")
     k3: typing.Optional[typing.Any] = pydantic.Field(default=None, title="K3")
@@ -316,7 +320,7 @@ class CameraDistortionCoefficients(pydantic.BaseModel):
     p2: typing.Optional[typing.Any] = pydantic.Field(default=None, title="P2")
 
 
-class CameraIntrinsics(pydantic.BaseModel):
+class CameraIntrinsics(BaseModel):
     camera_model: CameraModelType = pydantic.Field(title="CameraModelType")
     focal_length: Point2DTuple = pydantic.Field()
     principal_point: Point2DTuple = pydantic.Field()
@@ -327,12 +331,12 @@ class CameraIntrinsics(pydantic.BaseModel):
     ] = pydantic.Field(default=None, title="CameraDistortionCoefficients")
 
 
-class PointCloudMetadata(pydantic.BaseModel):
+class PointCloudMetadata(BaseModel):
     sensor_id: str = pydantic.Field(title="Sensor Id")
     lidar_sensor_pose: dict[str, typing.Any] = pydantic.Field(title="Lidar Sensor Pose")
 
 
-class ImageMetadata(pydantic.BaseModel):
+class ImageMetadata(BaseModel):
     width: typing.Optional[int] = pydantic.Field(default=None, title="Width")
     height: typing.Optional[int] = pydantic.Field(default=None, title="Height")
     camera_intrinsics: typing.Optional[CameraIntrinsics] = pydantic.Field(
@@ -343,7 +347,7 @@ class ImageMetadata(pydantic.BaseModel):
     )
 
 
-class TransformationParameters(pydantic.BaseModel):
+class TransformationParameters(BaseModel):
     """Parameters for image transformations.
 
     Attributes:
@@ -383,7 +387,7 @@ class TransformationParameters(pydantic.BaseModel):
     )
 
 
-class ImageTransformation(pydantic.BaseModel):
+class ImageTransformation(BaseModel):
     """An image transformation is a visualisation created by transforming an image file."""
 
     id: str = pydantic.Field(title="Id")
@@ -411,7 +415,7 @@ class ImageTransformation(pydantic.BaseModel):
     media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
 
 
-class Video(pydantic.BaseModel):
+class Video(BaseModel):
     id: str = pydantic.Field(title="Id")
     dataset_id: str = pydantic.Field(title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -437,7 +441,7 @@ class Video(pydantic.BaseModel):
     media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
 
 
-class Tile(pydantic.BaseModel):
+class Tile(BaseModel):
     """A special case of cropping, where the image is cropped into multiple tiles."""
 
     id: str = pydantic.Field(title="Id")
@@ -463,7 +467,7 @@ class Tile(pydantic.BaseModel):
     media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
 
 
-class RenderedVisualisation(pydantic.BaseModel):
+class RenderedVisualisation(BaseModel):
     id: str = pydantic.Field(title="Id")
     dataset_id: str = pydantic.Field(title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -489,7 +493,7 @@ class RenderedVisualisation(pydantic.BaseModel):
     media_url: str = pydantic.Field(title="Media Url")
 
 
-class Media(pydantic.BaseModel):
+class Media(BaseModel):
     id: str = pydantic.Field(title="Id")
     dataset_id: str = pydantic.Field(title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -528,7 +532,7 @@ class Media(pydantic.BaseModel):
     )
 
 
-class MediaResponse(pydantic.BaseModel):
+class MediaResponse(BaseModel):
     id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
     dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -570,7 +574,7 @@ class MediaResponse(pydantic.BaseModel):
     )
 
 
-class FilterCount(pydantic.BaseModel):
+class FilterCount(BaseModel):
     false_negative_percentage: typing.Optional[typing.Any] = pydantic.Field(
         default=None, title="False Negative Percentage"
     )
@@ -580,26 +584,26 @@ class FilterCount(pydantic.BaseModel):
     total_count: int = pydantic.Field(title="Total Count")
 
 
-class RenderedVisualisationConfigParameters(pydantic.BaseModel):
+class RenderedVisualisationConfigParameters(BaseModel):
     type: str = pydantic.Field(default="rendered", title="Type")
 
 
-class TileVisualisationConfigParameters(pydantic.BaseModel):
+class TileVisualisationConfigParameters(BaseModel):
     type: str = pydantic.Field(default="tile", title="Type")
     columns: int = pydantic.Field(title="Columns")
     rows: int = pydantic.Field(title="Rows")
     overlap_percent: typing.Any = pydantic.Field(title="Overlap Percent")
 
 
-class LidarVideoStackedVisualisationConfigParameters(pydantic.BaseModel):
+class LidarVideoStackedVisualisationConfigParameters(BaseModel):
     type: str = pydantic.Field(default="lidar_video_stacked", title="Type")
 
 
-class LidarVideoVisualisationConfigParameters(pydantic.BaseModel):
+class LidarVideoVisualisationConfigParameters(BaseModel):
     type: str = pydantic.Field(default="lidar_video", title="Type")
 
 
-class CropVisualisationConfigParameters(pydantic.BaseModel):
+class CropVisualisationConfigParameters(BaseModel):
     type: str = pydantic.Field(default="crop", title="Type")
     padding_percent: int = pydantic.Field(title="Padding Percent")
     padding_minimum: int = pydantic.Field(title="Padding Minimum")
@@ -609,7 +613,7 @@ class CropVisualisationConfigParameters(pydantic.BaseModel):
     )
 
 
-class VisualisationConfiguration(pydantic.BaseModel):
+class VisualisationConfiguration(BaseModel):
     id: str = pydantic.Field(title="Id")
     dataset_id: str = pydantic.Field(title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -626,7 +630,7 @@ class VisualisationConfiguration(pydantic.BaseModel):
     subset_ids: list = pydantic.Field(title="Subset Ids")
 
 
-class Visualisation(pydantic.BaseModel):
+class Visualisation(BaseModel):
     """A visualisation is a visual representation of an annotatable.
 
     Attributes:
@@ -663,7 +667,7 @@ class Visualisation(pydantic.BaseModel):
     media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
 
 
-class MediaObject(pydantic.BaseModel):
+class MediaObject(BaseModel):
     id: str = pydantic.Field(title="Id")
     dataset_id: str = pydantic.Field(title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -703,7 +707,7 @@ class MediaObject(pydantic.BaseModel):
     )
 
 
-class MediaObjectResponse(pydantic.BaseModel):
+class MediaObjectResponse(BaseModel):
     id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
     dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
     tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
@@ -749,7 +753,7 @@ class MediaObjectResponse(pydantic.BaseModel):
     )
 
 
-class ValidationError(pydantic.BaseModel):
+class ValidationError(BaseModel):
     loc: list = pydantic.Field(title="Location")
     msg: str = pydantic.Field(title="Message")
     type: str = pydantic.Field(title="Error Type")
@@ -770,7 +774,7 @@ class HistogramType(str, enum.Enum):
     subset = "SUBSET"
 
 
-class AttributeHistogramStatistics(pydantic.BaseModel):
+class AttributeHistogramStatistics(BaseModel):
     variance: float
     average: float
     quantiles_25: float
@@ -780,7 +784,7 @@ class AttributeHistogramStatistics(pydantic.BaseModel):
     shapiro_p_value: typing.Optional[float] = None
 
 
-class AttributeHistogram(pydantic.BaseModel):
+class AttributeHistogram(BaseModel):
     attribute_id: str
     attribute_name: str
     filter_name: str
@@ -798,13 +802,13 @@ class AttributeHistogram(pydantic.BaseModel):
     statistics: typing.Optional[AttributeHistogramStatistics] = None
 
 
-class MediaUploadUrlInfo(pydantic.BaseModel):
+class MediaUploadUrlInfo(BaseModel):
     upload_url: str
     media_id: str
     media_url: str
 
 
-class VisualisationUploadUrlInfo(pydantic.BaseModel):
+class VisualisationUploadUrlInfo(BaseModel):
     upload_url: str
     visualisation_id: str
     visualisation_url: str
@@ -832,7 +836,7 @@ class BulkOperationStatusEnum(str, enum.Enum):
     PROCESSING = "processing"
 
 
-class BulkUploadSuccessSummary(pydantic.BaseModel):
+class BulkUploadSuccessSummary(BaseModel):
     """Quantifies how many items were successfully uploaded and how many failed in a bulk request.
 
     Attributes:
@@ -853,7 +857,7 @@ class ResponseStatesEnum(str, enum.Enum):
     BAD_DATA = "bad_data"
 
 
-class BaseBulkItemResponse(pydantic.BaseModel, arbitrary_types_allowed=True):
+class BaseBulkItemResponse(BaseModel, arbitrary_types_allowed=True):
     item_id: typing.Optional[str] = None
     status: ResponseStatesEnum
     errors: typing.Optional[list[str]] = None
@@ -867,7 +871,7 @@ class AttributeCreateResponse(BaseBulkItemResponse):
     annotatable_id: str
 
 
-class BulkResponse(pydantic.BaseModel):
+class BulkResponse(BaseModel):
     status: BulkOperationStatusEnum = BulkOperationStatusEnum.PROCESSING
     summary: BulkUploadSuccessSummary = pydantic.Field(
         default_factory=BulkUploadSuccessSummary
@@ -879,7 +883,7 @@ class BulkResponse(pydantic.BaseModel):
     ] = pydantic.Field(default_factory=list)
 
 
-class MediaCreate(pydantic.BaseModel):
+class MediaCreate(BaseModel):
     # file_path is not part of the HARI API, but is used to define where to read the media file from
     file_path: typing.Optional[str] = pydantic.Field(default=None, exclude=True)
 
@@ -900,7 +904,7 @@ class MediaCreate(pydantic.BaseModel):
     back_reference_json: typing.Optional[str] = None
 
 
-class MediaObjectCreate(pydantic.BaseModel):
+class MediaObjectCreate(BaseModel):
     media_id: str
     source: DataSource
     back_reference: str
@@ -933,7 +937,7 @@ class ProcessingJobsForMetadataUpdate(str, enum.Enum):
     CROPS_CREATION = "create_crops"
 
 
-class ResponseBaseParameters(pydantic.BaseModel):
+class ResponseBaseParameters(BaseModel):
     batch: bool = pydantic.Field(default=False, title="Batch")
     override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
         default=None, title="Override Processing Type"
@@ -947,7 +951,7 @@ class ResponseBaseParameters(pydantic.BaseModel):
     user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
 
 
-class CreateThumbnailsParameters(pydantic.BaseModel):
+class CreateThumbnailsParameters(BaseModel):
     dataset_id: str = pydantic.Field(title="Dataset ID")
     query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
     pagination: typing.Optional[PaginationParameter] = pydantic.Field(
@@ -971,12 +975,13 @@ class CreateThumbnailsResponse(ResponseBaseParameters):
     method_name: typing.Literal[
         ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
     ] = pydantic.Field(
-        default=ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION, title="Method Name"
+        default=ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION,
+        title="Method Name",
     )
     parameters: CreateThumbnailsParameters = pydantic.Field(title="Parameters")
 
 
-class UpdateHistogramsParameters(pydantic.BaseModel):
+class UpdateHistogramsParameters(BaseModel):
     dataset_id: str = pydantic.Field(title="Dataset ID")
     subset_ids: typing.Optional[list[str]] = pydantic.Field(
         default=None, title="Subset IDs"
@@ -997,12 +1002,13 @@ class UpdateHistogramsResponse(ResponseBaseParameters):
     method_name: typing.Literal[
         ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE
     ] = pydantic.Field(
-        default=ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE, title="Method Name"
+        default=ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE,
+        title="Method Name",
     )
     parameters: UpdateHistogramsParameters = pydantic.Field(title="Parameters")
 
 
-class CreateCropsParameters(pydantic.BaseModel):
+class CreateCropsParameters(BaseModel):
     dataset_id: str = pydantic.Field(title="Dataset ID")
     query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
     pagination: typing.Optional[PaginationParameter] = pydantic.Field(
@@ -1030,7 +1036,7 @@ class CreateCropsResponse(ResponseBaseParameters):
     parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
 
 
-class ProcessingJob(pydantic.BaseModel):
+class ProcessingJob(BaseModel):
     id: uuid.UUID = pydantic.Field(title="ID")
     status: str = pydantic.Field(title="Status")
     owner: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Owner")
