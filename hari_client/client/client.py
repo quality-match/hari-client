@@ -520,8 +520,8 @@ class HARIClient:
         subset_name: str,
         filter_options: models.QueryList | None = None,
         secondary_filter_options: models.QueryList | None = None,
-        object_category: typing.Optional[bool] = False,
-        visualisation_config_id: typing.Optional[str] = None,
+        object_category: bool | None = False,
+        visualisation_config_id: str | None = None,
     ) -> str:
         """creates a new subset based on a filter and uploads it to the database
 
