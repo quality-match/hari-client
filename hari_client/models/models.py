@@ -853,7 +853,7 @@ class ResponseStatesEnum(str, enum.Enum):
     BAD_DATA = "bad_data"
 
 
-class BaseBulkItemResponse(pydantic.BaseModel, arbitrary_types_allowed=True):
+class BaseBulkItemResponse(pydantic.BaseModel):
     item_id: typing.Optional[str] = None
     status: ResponseStatesEnum
     errors: typing.Optional[list[str]] = None

@@ -1,6 +1,7 @@
 import datetime
 import pathlib
 import typing
+import uuid
 
 import pydantic
 import requests
@@ -17,7 +18,7 @@ log = logger.setup_logger(__name__)
 
 def _parse_response_model(
     response_data: typing.Any, response_model: typing.Type[T]
-) -> T:
+) -> T | list[typing.Any] | dict[typing.Any, typing.Any] | typing.Any:
     """
     Parses data of type typing.Any to a generic response_model type.
     Cases:
@@ -73,9 +74,7 @@ def _parse_response_model(
             item_type = typing.get_args(response_model)[0]
             if isinstance(response_data, list):
                 if typing.get_origin(item_type) is typing.Union:
-                    return [
-                        handle_union_parsing(item, item_type) for item in response_data
-                    ]
+                    return [(item, item_type) for item in response_data]
                 elif isinstance(item_type, type) and issubclass(
                     item_type, pydantic.BaseModel
                 ):
@@ -99,7 +98,7 @@ def _parse_response_model(
             response_data=response_data,
             response_model=response_model,
             message=f"Can't parse response_data into response_model {response_model},"
-            + f" because the combination of received data and expected response_model is unhandled."
+            + " because the combination of received data and expected response_model is unhandled."
             + f"{response_data=}.",
         )
     except Exception as err:
@@ -119,7 +118,7 @@ def handle_union_parsing(item, union_type):
                 return possible_type(**item)
             except Exception:
                 continue
-    raise errors.ParseResponseModelError(
+    raise errors.ParseResponseModehandle_union_parsinglError(
         response_data=item,
         response_model=union_type,
         message=f"Failed to parse item into one of the union types {union_type}. {item=}",
@@ -143,7 +142,7 @@ class HARIClient:
         url: str,
         success_response_item_model: typing.Type[T],
         **kwargs,
-    ) -> typing.Union[T, None]:
+    ) -> typing.Union[T, None] | typing.Any:
         """Make a request to the API.
 
         Args:
@@ -164,7 +163,7 @@ class HARIClient:
         if not response.ok:
             raise errors.APIError(response)
 
-        if not "application/json" in response.headers.get("Content-Type", ""):
+        if "application/json" not in response.headers.get("Content-Type", ""):
             raise ValueError(
                 "Expected application/json to be in Content-Type header, but couldn't find it."
             )
@@ -315,11 +314,12 @@ class HARIClient:
 
         return presign_response
 
-    ### dataset ###
+    """DATASET"""
+
     def create_dataset(
         self,
         name: str,
-        mediatype: typing.Optional[models.MediaType] = "image",
+        mediatype: typing.Optional[models.MediaType] = models.MediaType.IMAGE,
         customer: typing.Optional[str] = None,
         creation_timestamp: typing.Optional[str] = None,
         reference_files: typing.Optional[list] = None,
@@ -371,7 +371,7 @@ class HARIClient:
         """
         return self._request(
             "POST",
-            f"/datasets",
+            "/datasets",
             json=self._pack(locals(), not_none=["creation_timestamp", "id"]),
             success_response_item_model=models.Dataset,
         )
@@ -465,7 +465,7 @@ class HARIClient:
         """
         return self._request(
             "GET",
-            f"/datasets",
+            "/datasets",
             params=self._pack(locals()),
             success_response_item_model=list[models.DatasetResponse],
         )
@@ -512,7 +512,8 @@ class HARIClient:
             "DELETE", f"/datasets/{dataset_id}", success_response_item_model=str
         )
 
-    ### subset ###
+    """SUBSET"""
+
     def create_subset(
         self,
         dataset_id: str,
@@ -538,12 +539,13 @@ class HARIClient:
         """
         return self._request(
             "POST",
-            f"/subsets:createFiltered",
+            "/subsets:createFiltered",
             params=self._pack(locals()),
             success_response_item_model=str,
         )
 
-    ### media ###
+    """MEDIA"""
+
     def create_media(
         self,
         dataset_id: str,
@@ -1047,7 +1049,8 @@ class HARIClient:
             success_response_item_model=list[models.MediaUploadUrlInfo],
         )
 
-    ### media object ###
+    """MEDIA OBJECT"""
+
     def create_media_object(
         self,
         dataset_id: str,
@@ -1375,7 +1378,8 @@ class HARIClient:
             success_response_item_model=models.Visualisation,
         )
 
-    ### metadata ###
+    """METADATA"""
+
     def trigger_thumbnails_creation_job(
         self,
         dataset_id: str,
@@ -1431,7 +1435,9 @@ class HARIClient:
         Returns:
             models.UpdateHistogramsResponse: updated histograms
         """
-        params = {"compute_for_all_subsets": compute_for_all_subsets}
+        params: dict[str, bool | str] = {
+            "compute_for_all_subsets": compute_for_all_subsets
+        }
 
         if trace_id is not None:
             params["trace_id"] = trace_id
@@ -1489,7 +1495,8 @@ class HARIClient:
             ],
         )
 
-    ### processing_jobs ###
+    """PROCESSING JOBS"""
+
     def get_processing_jobs(
         self,
         trace_id: str = None,
@@ -1520,13 +1527,13 @@ class HARIClient:
 
     def get_processing_job(
         self,
-        processing_job_id: str,
+        processing_job_id: uuid.UUID,
     ) -> models.ProcessingJob:
         """
         Retrieves a specific processing job by its id.
 
         Args:
-            processing_job_id (str): The unique identifier of the processing job to retrieve.
+            processing_job_id (uuid): The unique identifier of the processing job to retrieve.
 
         Raises:
             APIException: If the request fails.

@@ -13,7 +13,7 @@ class APIError(Exception):
         message = ""
         try:
             message = response.json()
-        except:
+        except Exception:
             pass
         super().__init__(f"{http_response_status_code=}: {message=}")
 

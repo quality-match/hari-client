@@ -122,8 +122,9 @@ hari.trigger_histograms_update_job(
 
 # in order to trigger crops creation, thumbnails should be created first.
 # give the thumbnails creation job time to start
-thumbnails_job_id = ""
-while thumbnails_job_id == "":
+uuid_nil = uuid.UUID("00000000-0000-0000-0000-000000000000")
+thumbnails_job_id = uuid_nil
+while thumbnails_job_id == uuid_nil:
     # query all the jobs for the given trace_id
     jobs = hari.get_processing_jobs(trace_id=trace_id)
     # try to get the thumbnails creation job id
@@ -134,10 +135,10 @@ while thumbnails_job_id == "":
             if job.process_name
             == models.ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
         ),
-        "",
+        uuid_nil,
     )
 
-    if thumbnails_job_id != "":
+    if thumbnails_job_id != uuid_nil:
         break
     time.sleep(5)
 
