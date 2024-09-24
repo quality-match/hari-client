@@ -1418,7 +1418,9 @@ class HARIClient:
         dataset_id: str,
         trace_id: typing.Optional[str] = None,
         compute_for_all_subsets: typing.Optional[bool] = False,
-    ) -> models.UpdateHistogramsResponse:
+    ) -> list[
+        models.UpdateHistogramsResponse | models.CalculateSubAndDatasetCountsResponse
+    ]:
         """Triggers the update of the histograms for a given dataset.
 
         Args:
@@ -1441,7 +1443,10 @@ class HARIClient:
             "PUT",
             f"/datasets/{dataset_id}/histograms",
             params=params,
-            success_response_item_model=models.UpdateHistogramsResponse,
+            success_response_item_model=list[
+                models.UpdateHistogramsResponse
+                | models.CalculateSubAndDatasetCountsResponse
+            ],
         )
 
     def trigger_crops_creation_job(
@@ -1453,9 +1458,7 @@ class HARIClient:
         max_size: typing.Optional[tuple[int]] = None,
         padding_minimum: typing.Optional[int] = None,
         padding_percent: typing.Optional[int] = None,
-    ) -> list[
-        typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse],
-    ]:
+    ) -> list[models.UpdateHistogramsResponse | models.CreateCropsResponse]:
         """Creates the crops for a given dataset if the correct api key is provided in the
 
         Args:
@@ -1484,9 +1487,7 @@ class HARIClient:
             params=params,
             json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
             success_response_item_model=list[
-                typing.Union[
-                    models.UpdateHistogramsResponse, models.CreateCropsResponse
-                ],
+                models.UpdateHistogramsResponse | models.CreateCropsResponse
             ],
         )
 

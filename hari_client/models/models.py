@@ -1036,6 +1036,16 @@ class CreateCropsResponse(ProcessingJobResponseBaseParameters):
     parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
 
 
+class CalculateSubAndDatasetCountsParameters(BaseModel):
+    dataset_id: uuid.UUID
+
+
+class CalculateSubAndDatasetCountsResponse(ProcessingJobResponseBaseParameters):
+    method_name: typing.Literal[
+        "calculate_sub_and_dataset_counts"
+    ] = "calculate_sub_and_dataset_counts"
+
+
 class ProcessingJob(BaseModel):
     id: uuid.UUID = pydantic.Field(title="ID")
     status: str = pydantic.Field(title="Status")
