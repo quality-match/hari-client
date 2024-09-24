@@ -52,7 +52,6 @@ media_2.add_media_object(
     hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE,
         back_reference="motorcycle_wheel_1",
-        media_type=models.MediaType.IMAGE,
         reference_data=models.Point2DXY(x=975.0, y=2900.0),
     )
 )
@@ -67,7 +66,6 @@ media_3.add_media_object(
     hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE,
         back_reference="road marking",
-        media_type=models.MediaType.IMAGE,
         reference_data=models.PolyLine2DFlatCoordinates(
             coordinates=[1450, 1550, 1450, 1000],
             closed=False,
