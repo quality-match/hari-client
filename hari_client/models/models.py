@@ -297,7 +297,7 @@ class DatasetResponse(BaseModel):
     export_id: typing.Optional[str] = pydantic.Field(default=None, title="Export Id")
     license: typing.Optional[str] = pydantic.Field(default=None, title="License")
     visibility_status: typing.Optional[VisibilityStatus] = pydantic.Field(
-        default="visible", title="VisibilityStatus"
+        default=VisibilityStatus.VISIBLE, title="VisibilityStatus"
     )
 
 

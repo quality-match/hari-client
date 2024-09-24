@@ -11,7 +11,7 @@ def test_media_create_ignores_file_path_when_parsed_or_serialized():
     )
 
     # Act
-    media_create_dict = media_create.dict()
+    media_create_dict = media_create.model_dump()
     media_create_from_dict = models.MediaCreate(**media_create_dict)
 
     # Assert
