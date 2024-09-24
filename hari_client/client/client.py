@@ -25,7 +25,6 @@ def _parse_response_model(
             - None is returned
         - response_model is a pydantic model:
             - if response_data is a dict, response_data is parsed into an instance of the response_model.
-            - if response_data is a list, each item in the list is treated as a dict and parsed into an instance of the response_model.
         - response_model is a parametrized generic:
             - if response_data is a list and response_model is a list of unions:
                 - each item in the response_data list is checked against the possible types in the union.
@@ -64,8 +63,6 @@ def _parse_response_model(
         ):
             if isinstance(response_data, dict):
                 return response_model(**response_data)
-            elif isinstance(response_data, list):
-                return [response_model(**item) for item in response_data]
 
         # handle parametrized generics
         origin = typing.get_origin(response_model)
@@ -518,8 +515,10 @@ class HARIClient:
         dataset_id: str,
         subset_type: models.SubsetType,
         subset_name: str,
-        object_category: typing.Optional[bool] = False,
-        visualisation_config_id: typing.Optional[str] = None,
+        filter_options: models.QueryList | None = None,
+        secondary_filter_options: models.QueryList | None = None,
+        object_category: bool | None = False,
+        visualisation_config_id: str | None = None,
     ) -> str:
         """creates a new subset based on a filter and uploads it to the database
 
@@ -527,6 +526,8 @@ class HARIClient:
             dataset_id: Dataset Id
             subset_type: Type of the subset (media, media_object, instance, attribute)
             subset_name: The name of the subset
+            filter_options: Filter options defining subset
+            secondary_filter_options: In Media subsets these will filter down the media_objects
             object_category: True if the new subset shall be shown as a category for objects in HARI
             visualisation_config_id: Visualisation Config Id
 
