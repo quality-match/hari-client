@@ -240,7 +240,7 @@ class Dataset(BaseModel):
     data_root: str = pydantic.Field(title="Data Root")
     creation_timestamp: str = pydantic.Field(title="Creation Timestamp")
     mediatype: MediaType = pydantic.Field(title="MediaType")
-    customer: typing.Optional[str] = pydantic.Field(default=None, title="Customer")
+    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
     reference_files: typing.Optional[list] = pydantic.Field(
         default=None, title="Reference Files"
     )
@@ -274,6 +274,7 @@ class DatasetResponse(BaseModel):
     parent_dataset: typing.Optional[str] = pydantic.Field(
         default=None, title="Parent Dataset"
     )
+    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
     num_medias: int = pydantic.Field(title="Num Medias")
     num_media_objects: int = pydantic.Field(title="Num Media Objects")
     num_instances: int = pydantic.Field(title="Num Instances")
@@ -931,119 +932,10 @@ class ProcessingType(str, enum.Enum):
     REMOTE = "remote"
 
 
-class ProcessingJobsForMetadataUpdate(str, enum.Enum):
+class ProcessingJobMethods(str, enum.Enum):
     THUMBNAILS_CREATION = "create_thumbnails"
     HISTOGRAMS_UPDATE = "update_histograms"
     CROPS_CREATION = "create_crops"
-
-
-class ProcessingJobResponseBaseParameters(BaseModel):
-    batch: bool = pydantic.Field(default=False, title="Batch")
-    override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
-        default=None, title="Override Processing Type"
-    )
-    task_token: typing.Optional[str] = pydantic.Field(default=None, title="Task Token")
-    job_id: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Job ID")
-    trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
-        default=None, title="Trace ID"
-    )
-    user_id: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="User ID")
-    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
-
-
-class CreateThumbnailsParameters(BaseModel):
-    dataset_id: str = pydantic.Field(title="Dataset ID")
-    query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
-    pagination: typing.Optional[PaginationParameter] = pydantic.Field(
-        default=None, title="Pagination"
-    )
-    upload_folder_name: str = pydantic.Field(
-        default="thumbnails", title="Upload Folder Name"
-    )
-    s3_bucket: typing.Optional[str] = pydantic.Field(default=None, title="S3 Bucket")
-    s3_folder: typing.Optional[str] = pydantic.Field(default=None, title="S3 Folder")
-    max_size: typing.Optional[tuple[int, int]] = pydantic.Field(
-        default=None, title="Max Size"
-    )
-    aspect_ratio: tuple[int, int] = pydantic.Field(title="Aspect Ratio")
-    calc_and_write_image_info: bool = pydantic.Field(
-        default=True, title="Calculate and Write Image Info"
-    )
-
-
-class CreateThumbnailsResponse(ProcessingJobResponseBaseParameters):
-    method_name: typing.Literal[
-        ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
-    ] = pydantic.Field(
-        default=ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION,
-        title="Method Name",
-    )
-    parameters: CreateThumbnailsParameters = pydantic.Field(title="Parameters")
-
-
-class UpdateHistogramsParameters(BaseModel):
-    dataset_id: str = pydantic.Field(title="Dataset ID")
-    subset_ids: typing.Optional[list[str]] = pydantic.Field(
-        default=None, title="Subset IDs"
-    )
-    attribute_ids: typing.Optional[list[str]] = pydantic.Field(
-        default=None, title="Attribute IDs"
-    )
-    num_buckets: int = pydantic.Field(default=360, title="Number of Buckets")
-    ignore_complete_dataset_histogram: bool = pydantic.Field(
-        default=False, title="Ignore Complete Dataset Histogram"
-    )
-    compute_for_all_subsets: bool = pydantic.Field(
-        default=False, title="Compute for All Subsets"
-    )
-
-
-class UpdateHistogramsResponse(ProcessingJobResponseBaseParameters):
-    method_name: typing.Literal[
-        ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE
-    ] = pydantic.Field(
-        default=ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE,
-        title="Method Name",
-    )
-    parameters: UpdateHistogramsParameters = pydantic.Field(title="Parameters")
-
-
-class CreateCropsParameters(BaseModel):
-    dataset_id: str = pydantic.Field(title="Dataset ID")
-    query: typing.Optional[QueryList] = pydantic.Field(default=None, title="Query")
-    pagination: typing.Optional[PaginationParameter] = pydantic.Field(
-        default=None, title="Pagination"
-    )
-    upload_folder_name: str = pydantic.Field(
-        default="cropped_image", title="Upload Folder Name"
-    )
-    s3_bucket: typing.Optional[str] = pydantic.Field(default=None, title="S3 Bucket")
-    s3_folder: typing.Optional[str] = pydantic.Field(default=None, title="S3 Folder")
-    aspect_ratio: tuple[int, int] = pydantic.Field(title="Aspect Ratio")
-    padding_percent: int = pydantic.Field(title="Padding Percent")
-    padding_minimum: int = pydantic.Field(title="Padding Minimum")
-    max_size: typing.Optional[tuple[int, int]] = pydantic.Field(
-        default=None, title="Max Size"
-    )
-
-
-class CreateCropsResponse(ProcessingJobResponseBaseParameters):
-    method_name: typing.Literal[
-        ProcessingJobsForMetadataUpdate.CROPS_CREATION
-    ] = pydantic.Field(
-        default=ProcessingJobsForMetadataUpdate.CROPS_CREATION, title="Method Name"
-    )
-    parameters: CreateCropsParameters = pydantic.Field(title="Parameters")
-
-
-class CalculateSubAndDatasetCountsParameters(BaseModel):
-    dataset_id: uuid.UUID
-
-
-class CalculateSubAndDatasetCountsResponse(ProcessingJobResponseBaseParameters):
-    method_name: typing.Literal[
-        "calculate_sub_and_dataset_counts"
-    ] = "calculate_sub_and_dataset_counts"
 
 
 class ProcessingJob(BaseModel):
@@ -1072,3 +964,20 @@ class ProcessingJobStatus(str, enum.Enum):
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
+
+
+class BaseProcessingJobParameters(BaseModel):
+    # this is intentionally left empty to allow for arbitrary parameters
+    pass
+
+
+class BaseProcessingJobMethod(BaseModel):
+    method_name: str
+    batch: bool = False
+    override_processing_type: ProcessingType | None = None
+    task_token: str | None = None
+    job_id: uuid.UUID | None = None
+    trace_id: uuid.UUID | None = None
+    user_id: uuid.UUID | None = None
+    user_group: str | None = None
+    parameters: BaseProcessingJobParameters

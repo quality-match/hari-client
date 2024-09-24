@@ -16,8 +16,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with you own user group!
-user_group = "CHANGEME"
-new_dataset = hari.create_dataset(name="My first dataset", customer=user_group)
+new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
 print("Dataset created with id:", new_dataset.id)
 
 # 3. Setup your medias and all of their media objects.
@@ -129,8 +128,7 @@ while thumbnails_job_id == "":
         (
             job.id
             for job in jobs
-            if job.process_name
-            == models.ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
+            if job.process_name == models.ProcessingJobMethods.THUMBNAILS_CREATION
         ),
         "",
     )
