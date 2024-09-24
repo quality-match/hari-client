@@ -1,5 +1,6 @@
 import datetime
 import pathlib
+import types
 import typing
 
 import pydantic
@@ -69,7 +70,8 @@ def _parse_response_model(
         if origin is list:
             item_type = typing.get_args(response_model)[0]
             if isinstance(response_data, list):
-                if typing.get_origin(item_type) is typing.Union:
+                origin = typing.get_origin(item_type)
+                if origin in [typing.Union, types.UnionType]:
                     return [
                         handle_union_parsing(item, item_type) for item in response_data
                     ]
