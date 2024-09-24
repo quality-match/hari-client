@@ -937,7 +937,7 @@ class ProcessingJobsForMetadataUpdate(str, enum.Enum):
     CROPS_CREATION = "create_crops"
 
 
-class ResponseBaseParameters(BaseModel):
+class ProcessingJobResponseBaseParameters(BaseModel):
     batch: bool = pydantic.Field(default=False, title="Batch")
     override_processing_type: typing.Optional[ProcessingType] = pydantic.Field(
         default=None, title="Override Processing Type"
@@ -971,7 +971,7 @@ class CreateThumbnailsParameters(BaseModel):
     )
 
 
-class CreateThumbnailsResponse(ResponseBaseParameters):
+class CreateThumbnailsResponse(ProcessingJobResponseBaseParameters):
     method_name: typing.Literal[
         ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
     ] = pydantic.Field(
@@ -998,7 +998,7 @@ class UpdateHistogramsParameters(BaseModel):
     )
 
 
-class UpdateHistogramsResponse(ResponseBaseParameters):
+class UpdateHistogramsResponse(ProcessingJobResponseBaseParameters):
     method_name: typing.Literal[
         ProcessingJobsForMetadataUpdate.HISTOGRAMS_UPDATE
     ] = pydantic.Field(
@@ -1027,7 +1027,7 @@ class CreateCropsParameters(BaseModel):
     )
 
 
-class CreateCropsResponse(ResponseBaseParameters):
+class CreateCropsResponse(ProcessingJobResponseBaseParameters):
     method_name: typing.Literal[
         ProcessingJobsForMetadataUpdate.CROPS_CREATION
     ] = pydantic.Field(
