@@ -98,6 +98,7 @@ if (
     sys.exit(1)
 
 # 6. Create a subset
+print("Creating new subset...")
 new_subset_id = hari.create_subset(
     dataset_id=new_dataset.id,
     subset_type=models.SubsetType.MEDIA_OBJECT,
@@ -110,22 +111,27 @@ print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
 trace_id = str(uuid.uuid4())
 print(f"metadata_rebuild jobs trace_id: {trace_id}")
-metadata_rebuild_jobs = hari.trigger_metadata_rebuild_job(
-    dataset_ids=[new_dataset.id], trace_id=trace_id
+metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
+    dataset_id=new_dataset.id, trace_id=trace_id
 )
 
 # track the status of all metadata rebuild jobs and wait for them to finish
 job_ids = [job.job_id for job in metadata_rebuild_jobs]
 job_statuses = []
-while job_statuses == [] or any(
-    [
-        status[1]
-        in [models.ProcessingJobStatus.CREATED, models.ProcessingJobStatus.RUNNING]
-        for status in job_statuses
-    ]
-):
+jobs_are_still_running = True
+while jobs_are_still_running:
     jobs = [hari.get_processing_job(processing_job_id=job_id) for job_id in job_ids]
     job_statuses = [(job.id, job.status) for job in jobs]
-    print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
-    time.sleep(10)
+
+    jobs_are_still_running = any(
+        [
+            status[1]
+            in [models.ProcessingJobStatus.CREATED, models.ProcessingJobStatus.RUNNING]
+            for status in job_statuses
+        ]
+    )
+    if jobs_are_still_running:
+        print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
+        time.sleep(10)
+
 print(f"metadata_rebuild jobs finished with status {job_statuses=}")
