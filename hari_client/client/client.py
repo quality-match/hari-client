@@ -1529,12 +1529,16 @@ class HARIClient:
         Returns:
             The methods being executed
         """
+        params = {}
+        if subset_id:
+            params["subset_id"] = subset_id
+        if trace_id:
+            params["trace_id"] = trace_id
+
         return self._request(
             "PUT",
             f"/datasets/{dataset_id}/metadata",
-            params={"subset_id": subset_id},
-            # note: the backend expects the trace_id as body, not a json object
-            json=trace_id,
+            params=params,
             success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
