@@ -60,14 +60,27 @@ class BulkUploadSizeRangeError(Exception):
         )
 
 
-class ParameterRangeError(Exception):
+class ParameterNumberRangeError(Exception):
+    def __init__(
+        self,
+        param_name: str,
+        minimum: int | float,
+        maximum: int | float,
+        value: int | float,
+    ):
+        super().__init__(
+            f"The valid range for the {param_name} parameter is: {minimum=}, {maximum=}, but actual value is {value=}"
+        )
+
+
+class ParameterListLengthError(Exception):
     def __init__(
         self,
         param_name: str,
         minimum: int,
         maximum: int,
-        value: int,
+        length: int,
     ):
         super().__init__(
-            f"The valid range for the {param_name} parameter is: {minimum=}, {maximum=}, but found {value} items"
+            f"The valid length for the {param_name} parameter is: {minimum=}, {maximum=}, but actual length is {length=}"
         )

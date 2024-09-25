@@ -109,41 +109,23 @@ print(f"Created new subset with id {new_subset_id}")
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
 trace_id = str(uuid.uuid4())
-
-hari.trigger_thumbnails_creation_job(
-    dataset_id=new_dataset.id, subset_id=new_subset_id, trace_id=trace_id
-)
-hari.trigger_histograms_update_job(
-    new_dataset.id, compute_for_all_subsets=True, trace_id=trace_id
+print(f"metadata_rebuild jobs trace_id: {trace_id}")
+metadata_rebuild_jobs = hari.trigger_metadata_rebuild_job(
+    dataset_ids=[new_dataset.id], trace_id=trace_id
 )
 
-# in order to trigger crops creation, thumbnails should be created first.
-# give the thumbnails creation job time to start
-thumbnails_job_id = ""
-while thumbnails_job_id == "":
-    # query all the jobs for the given trace_id
-    jobs = hari.get_processing_jobs(trace_id=trace_id)
-    # try to get the thumbnails creation job id
-    thumbnails_job_id = next(
-        (
-            job.id
-            for job in jobs
-            if job.process_name == models.ProcessingJobMethods.THUMBNAILS_CREATION
-        ),
-        "",
-    )
-
-    if thumbnails_job_id != "":
-        break
-    time.sleep(5)
-
-job_status = ""
-while job_status != models.ProcessingJobStatus.SUCCESS:
-    status = hari.get_processing_job(processing_job_id=thumbnails_job_id)
-    job_status = status.status
-    print(f"waiting for thumbnails to be created, status={job_status}")
+# track the status of all metadata rebuild jobs and wait for them to finish
+job_ids = [job.job_id for job in metadata_rebuild_jobs]
+job_statuses = []
+while job_statuses == [] or any(
+    [
+        status[1]
+        in [models.ProcessingJobStatus.CREATED, models.ProcessingJobStatus.RUNNING]
+        for status in job_statuses
+    ]
+):
+    jobs = [hari.get_processing_job(processing_job_id=job_id) for job_id in job_ids]
+    job_statuses = [(job.id, job.status) for job in jobs]
+    print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
     time.sleep(10)
-
-hari.trigger_crops_creation_job(
-    dataset_id=new_dataset.id, subset_id=new_subset_id, trace_id=trace_id
-)
+print(f"metadata_rebuild jobs finished with status {job_statuses=}")

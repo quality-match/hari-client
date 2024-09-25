@@ -83,14 +83,17 @@ def test_get_presigned_media_upload_url_batch_size_range():
     hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
 
     # Act + Assert
-    with pytest.raises(errors.ParameterRangeError):
+    with pytest.raises(errors.ParameterNumberRangeError, match="value=0"):
         hari.get_presigned_media_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             batch_size=0,
         )
 
-    with pytest.raises(errors.ParameterRangeError):
+    with pytest.raises(
+        errors.ParameterNumberRangeError,
+        match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
+    ):
         hari.get_presigned_media_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
@@ -103,7 +106,7 @@ def test_get_presigned_visualisation_upload_url_batch_size_range():
     hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
 
     # Act + Assert
-    with pytest.raises(errors.ParameterRangeError):
+    with pytest.raises(errors.ParameterNumberRangeError, match="value=0"):
         hari.get_presigned_visualisation_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
@@ -111,10 +114,29 @@ def test_get_presigned_visualisation_upload_url_batch_size_range():
             batch_size=0,
         )
 
-    with pytest.raises(errors.ParameterRangeError):
+    with pytest.raises(
+        errors.ParameterNumberRangeError,
+        match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
+    ):
         hari.get_presigned_visualisation_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             visualisation_config_id="1234",
             batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
+        )
+
+
+def test_trigger_metadata_rebuild_validation_for_dataset_ids_list():
+    # Arrange
+    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+
+    # Act + Assert
+    with pytest.raises(errors.ParameterListLengthError, match="length=0"):
+        hari.trigger_metadata_rebuild_job(
+            dataset_ids=[],
+        )
+
+    with pytest.raises(errors.ParameterListLengthError, match="length=11"):
+        hari.trigger_metadata_rebuild_job(
+            dataset_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
         )

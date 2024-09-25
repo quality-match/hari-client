@@ -936,11 +936,19 @@ class ProcessingJobMethods(str, enum.Enum):
     THUMBNAILS_CREATION = "create_thumbnails"
     HISTOGRAMS_UPDATE = "update_histograms"
     CROPS_CREATION = "create_crops"
+    METADATA_REBUILD = "metadata_rebuild"
+
+
+class ProcessingJobStatus(str, enum.Enum):
+    CREATED = "created"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
 
 
 class ProcessingJob(BaseModel):
     id: uuid.UUID = pydantic.Field(title="ID")
-    status: str = pydantic.Field(title="Status")
+    status: ProcessingJobStatus = pydantic.Field(title="Status")
     owner: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Owner")
     user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
     created_at: typing.Optional[datetime.datetime] = pydantic.Field(
@@ -957,13 +965,6 @@ class ProcessingJob(BaseModel):
     trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
         default=None, title="Trace ID"
     )
-
-
-class ProcessingJobStatus(str, enum.Enum):
-    CREATED = "created"
-    RUNNING = "running"
-    SUCCESS = "success"
-    FAILED = "failed"
 
 
 class BaseProcessingJobParameters(BaseModel):

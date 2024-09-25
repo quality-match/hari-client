@@ -822,7 +822,7 @@ class HARIClient:
             ParameterRangeError: If the batch_size is out of range.
         """
         if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
-            raise errors.ParameterRangeError(
+            raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
                 maximum=HARIClient.BULK_UPLOAD_LIMIT,
@@ -1038,7 +1038,7 @@ class HARIClient:
             ParameterRangeError: If the validating input args fails.
         """
         if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
-            raise errors.ParameterRangeError(
+            raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
                 maximum=HARIClient.BULK_UPLOAD_LIMIT,
@@ -1484,6 +1484,57 @@ class HARIClient:
             f"/datasets/{dataset_id}/crops",
             params=params,
             json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
+            success_response_item_model=list[models.BaseProcessingJobMethod],
+        )
+
+    def trigger_metadata_rebuild_job(
+        self, dataset_ids: list[uuid.UUID], trace_id: uuid.UUID | None = None
+    ) -> list[models.BaseProcessingJobMethod]:
+        """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
+
+        Args:
+            dataset_ids: dataset_ids to rebuild metadata for max 10.
+            trace_id: An id to trace the processing job
+
+        Returns:
+            The methods being executed
+        """
+        if len(dataset_ids) < 1 or len(dataset_ids) > 10:
+            raise errors.ParameterListLengthError(
+                param_name="dataset_ids",
+                minimum=1,
+                maximum=10,
+                length=len(dataset_ids),
+            )
+        return self._request(
+            "POST",
+            f"/metadata:rebuild",
+            json=self._pack(locals()),
+            success_response_item_model=list[models.BaseProcessingJobMethod],
+        )
+
+    def trigger_dataset_metadata_rebuild_job(
+        self,
+        dataset_id: uuid.UUID,
+        subset_id: uuid.UUID | None = None,
+        trace_id: uuid.UUID | None = None,
+    ) -> list[models.BaseProcessingJobMethod]:
+        """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
+
+        Args:
+            dataset_id: dataset_id to rebuild metadata for
+            subset_id: subset_id to rebuild metadata for
+            trace_id: An id to trace the processing job
+
+        Returns:
+            The methods being executed
+        """
+        return self._request(
+            "PUT",
+            f"/datasets/{dataset_id}/metadata",
+            params={"subset_id": subset_id},
+            # note: the backend expects the trace_id as body, not a json object
+            json=trace_id,
             success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
