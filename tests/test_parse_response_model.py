@@ -187,6 +187,11 @@ def test_parse_response_model_works_with_dict_of_parametrized_generics(
             list[typing.Union[SimpleModel1, ComplexModelWithNestedListOfUnions]],
             [SimpleModel1, ComplexModelWithNestedListOfUnions],
         ),
+        (
+            [TestObject1, {"i": 2, "k": [TestObject1, TestObject2]}],
+            list[SimpleModel1 | ComplexModelWithNestedListOfUnions],
+            [SimpleModel1, ComplexModelWithNestedListOfUnions],
+        ),
     ],
 )
 def test_parse_response_model_works_with_list_of_unions(

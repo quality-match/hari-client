@@ -16,8 +16,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with you own user group!
-user_group = "CHANGEME"
-new_dataset = hari.create_dataset(name="My first dataset", customer=user_group)
+new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
 print("Dataset created with id:", new_dataset.id)
 
 # 3. Setup your medias and all of their media objects.
@@ -52,7 +51,6 @@ media_2.add_media_object(
     hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE,
         back_reference="motorcycle_wheel_1",
-        media_type=models.MediaType.IMAGE,
         reference_data=models.Point2DXY(x=975.0, y=2900.0),
     )
 )
@@ -67,7 +65,6 @@ media_3.add_media_object(
     hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE,
         back_reference="road marking",
-        media_type=models.MediaType.IMAGE,
         reference_data=models.PolyLine2DFlatCoordinates(
             coordinates=[1450, 1550, 1450, 1000],
             closed=False,
@@ -101,6 +98,7 @@ if (
     sys.exit(1)
 
 # 6. Create a subset
+print("Creating new subset...")
 new_subset_id = hari.create_subset(
     dataset_id=new_dataset.id,
     subset_type=models.SubsetType.MEDIA_OBJECT,
@@ -112,42 +110,28 @@ print(f"Created new subset with id {new_subset_id}")
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
 trace_id = str(uuid.uuid4())
-
-hari.trigger_thumbnails_creation_job(
-    dataset_id=new_dataset.id, subset_id=new_subset_id, trace_id=trace_id
-)
-hari.trigger_histograms_update_job(
-    new_dataset.id, compute_for_all_subsets=True, trace_id=trace_id
+print(f"metadata_rebuild jobs trace_id: {trace_id}")
+metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
+    dataset_id=new_dataset.id, trace_id=trace_id
 )
 
-# in order to trigger crops creation, thumbnails should be created first.
-# give the thumbnails creation job time to start
-thumbnails_job_id = ""
-while thumbnails_job_id == "":
-    # query all the jobs for the given trace_id
-    jobs = hari.get_processing_jobs(trace_id=trace_id)
-    # try to get the thumbnails creation job id
-    thumbnails_job_id = next(
-        (
-            job.id
-            for job in jobs
-            if job.process_name
-            == models.ProcessingJobsForMetadataUpdate.THUMBNAILS_CREATION
-        ),
-        "",
+# track the status of all metadata rebuild jobs and wait for them to finish
+job_ids = [job.job_id for job in metadata_rebuild_jobs]
+job_statuses = []
+jobs_are_still_running = True
+while jobs_are_still_running:
+    jobs = [hari.get_processing_job(processing_job_id=job_id) for job_id in job_ids]
+    job_statuses = [(job.id, job.status) for job in jobs]
+
+    jobs_are_still_running = any(
+        [
+            status[1]
+            in [models.ProcessingJobStatus.CREATED, models.ProcessingJobStatus.RUNNING]
+            for status in job_statuses
+        ]
     )
+    if jobs_are_still_running:
+        print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
+        time.sleep(10)
 
-    if thumbnails_job_id != "":
-        break
-    time.sleep(5)
-
-job_status = ""
-while job_status != models.ProcessingJobStatus.SUCCESS:
-    status = hari.get_processing_job(processing_job_id=thumbnails_job_id)
-    job_status = status.status
-    print(f"waiting for thumbnails to be created, status={job_status}")
-    time.sleep(10)
-
-hari.trigger_crops_creation_job(
-    dataset_id=new_dataset.id, subset_id=new_subset_id, trace_id=trace_id
-)
+print(f"metadata_rebuild jobs finished with status {job_statuses=}")

@@ -1,16 +1,20 @@
 ## [major.minor.patch] - YYYY-MM-DD
 
+## [1.0.0] - YYYY-MM-DD
+
 ### New Features
 
 - added support for media and media object bulk creation endpoints [PR#2](https://github.com/quality-match/hari-client/pull/2)
 - added support for processingJobs endpoints [PR#3](https://github.com/quality-match/hari-client/pull/3)
 - added new hari_uploader interface to simplify the usage of the media and media object creation endpoints [PR#7](https://github.com/quality-match/hari-client/pull/7)
+- added support for new metadata rebuild endpoints. One method is enough to trigger all necessary metadata update prcessing jobs [PR#15](https://github.com/quality-match/hari-client/pull/15)
 
 ### Updates
 
 - update create_subset method: added args `filter_options` and `secondary_filter_options` [PR#14](https://github.com/quality-match/hari-client/pull/14)
 - updated all API models to keep extra fields in the parsed models by using [pydantic model config setting `extra="allow"`](https://docs.pydantic.dev/latest/api/config/#pydantic.config.ConfigDict.extra) [PR#14](https://github.com/quality-match/hari-client/pull/14)
   - this means that if the backend responds with new fields, the response parser doesn't break and the fields that are unknown to the hari-client will still be accessible
+- updated the quickstart example code to use the new hari_uploader interface and the new metadata rebuild endpoint [PR#15](https://github.com/quality-match/hari-client/pull/15)
 
 ### Breaking Changes
 
@@ -18,11 +22,13 @@
   - create_thumbnails --> trigger_thumbnails_creation_job
   - update_histograms --> trigger_histograms_update_job
   - create_crops --> trigger_crops_creation_job
+- Renamed field `customer` of Dataset model and create_dataset endpoint to `user_group` [PR#15](https://github.com/quality-match/hari-client/pull/15)
 
 ### Internal
 
 - updated response parser logic to behave more consistently. If you expect a list from the endpoint, you have to specify the response type as a list as well: `list[MyModel]` [PR#14](https://github.com/quality-match/hari-client/pull/14)
   - previously specifying `MyModel` as response type could've still resulted in parsing the response data to `list[MyModel]` even though this wasn't specified as the expected response type.
+- added new error classes: `ParameterNumberRangeError` and `ParameterListLengthError` [PR#15](https://github.com/quality-match/hari-client/pull/15)
 
 ## [0.2.0] - 2024-08-23
 

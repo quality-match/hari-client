@@ -1,6 +1,8 @@
 import datetime
 import pathlib
+import types
 import typing
+import uuid
 
 import pydantic
 import requests
@@ -69,7 +71,8 @@ def _parse_response_model(
         if origin is list:
             item_type = typing.get_args(response_model)[0]
             if isinstance(response_data, list):
-                if typing.get_origin(item_type) is typing.Union:
+                origin = typing.get_origin(item_type)
+                if origin in [typing.Union, types.UnionType]:
                     return [
                         handle_union_parsing(item, item_type) for item in response_data
                     ]
@@ -317,7 +320,7 @@ class HARIClient:
         self,
         name: str,
         mediatype: typing.Optional[models.MediaType] = "image",
-        customer: typing.Optional[str] = None,
+        user_group: typing.Optional[str] = None,
         creation_timestamp: typing.Optional[str] = None,
         reference_files: typing.Optional[list] = None,
         num_medias: typing.Optional[int] = 0,
@@ -342,7 +345,7 @@ class HARIClient:
         Args:
             name: Name of the dataset
             mediatype: MediaType of the dataset
-            customer: User group the new dataset shall be avaialble to
+            user_group: The user group the new dataset shall be available to
             creation_timestamp: Creation timestamp
             reference_files: Reference files
             num_medias: Number of medias
@@ -512,7 +515,7 @@ class HARIClient:
     ### subset ###
     def create_subset(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         subset_type: models.SubsetType,
         subset_name: str,
         filter_options: models.QueryList | None = None,
@@ -819,7 +822,7 @@ class HARIClient:
             ParameterRangeError: If the batch_size is out of range.
         """
         if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
-            raise errors.ParameterRangeError(
+            raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
                 maximum=HARIClient.BULK_UPLOAD_LIMIT,
@@ -1035,7 +1038,7 @@ class HARIClient:
             ParameterRangeError: If the validating input args fails.
         """
         if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
-            raise errors.ParameterRangeError(
+            raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
                 maximum=HARIClient.BULK_UPLOAD_LIMIT,
@@ -1379,12 +1382,12 @@ class HARIClient:
     ### metadata ###
     def trigger_thumbnails_creation_job(
         self,
-        dataset_id: str,
-        subset_id: str,
-        trace_id: typing.Optional[str] = None,
-        max_size: typing.Optional[tuple[int]] = None,
-        aspect_ratio: typing.Optional[tuple[int]] = None,
-    ) -> list[models.CreateThumbnailsResponse]:
+        dataset_id: uuid.UUID,
+        subset_id: uuid.UUID | None = None,
+        trace_id: uuid.UUID | None = None,
+        max_size: tuple[int, int] | None = None,
+        aspect_ratio: tuple[int, int] | None = None,
+    ) -> list[models.BaseProcessingJobMethod]:
         """Triggers the creation of thumbnails for a given dataset.
 
         Args:
@@ -1398,7 +1401,7 @@ class HARIClient:
             APIException: If the request fails.
 
         Returns:
-            list[models.CreateThumbnailsResponse]: list of the created thumbnails
+            list[models.BaseProcessingJobMethod]: the methods being executed
         """
         params = {"subset_id": subset_id}
 
@@ -1410,15 +1413,15 @@ class HARIClient:
             f"/datasets/{dataset_id}/thumbnails",
             params=params,
             json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[models.CreateThumbnailsResponse],
+            success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
     def trigger_histograms_update_job(
         self,
-        dataset_id: str,
-        trace_id: typing.Optional[str] = None,
-        compute_for_all_subsets: typing.Optional[bool] = False,
-    ) -> models.UpdateHistogramsResponse:
+        dataset_id: uuid.UUID,
+        trace_id: uuid.UUID | None = None,
+        compute_for_all_subsets: bool = False,
+    ) -> list[models.BaseProcessingJobMethod]:
         """Triggers the update of the histograms for a given dataset.
 
         Args:
@@ -1430,7 +1433,7 @@ class HARIClient:
             APIException: If the request fails.
 
         Returns:
-            models.UpdateHistogramsResponse: updated histograms
+            list[models.BaseProcessingJobMethod]: the methods being executed
         """
         params = {"compute_for_all_subsets": compute_for_all_subsets}
 
@@ -1441,37 +1444,35 @@ class HARIClient:
             "PUT",
             f"/datasets/{dataset_id}/histograms",
             params=params,
-            success_response_item_model=models.UpdateHistogramsResponse,
+            success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
     def trigger_crops_creation_job(
         self,
-        dataset_id: str,
-        subset_id: str,
-        trace_id: typing.Optional[str] = None,
-        aspect_ratio: typing.Optional[tuple[int]] = None,
-        max_size: typing.Optional[tuple[int]] = None,
-        padding_minimum: typing.Optional[int] = None,
-        padding_percent: typing.Optional[int] = None,
-    ) -> list[
-        typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse],
-    ]:
+        dataset_id: uuid.UUID,
+        subset_id: uuid.UUID | None = None,
+        trace_id: uuid.UUID | None = None,
+        padding_percent: int | None = None,
+        padding_minimum: int | None = None,
+        max_size: tuple[int, int] | None = None,
+        aspect_ratio: tuple[int, int] | None = None,
+    ) -> list[models.BaseProcessingJobMethod]:
         """Creates the crops for a given dataset if the correct api key is provided in the
 
         Args:
             dataset_id: The dataset id
             subset_id: The subset id
             trace_id: An id to trace the processing job(s). Is created by the user
-            aspect_ratio: The aspect ratio of the crops
-            max_size: The max size of the crops
-            padding_minimum: The minimum padding to add to the crops
             padding_percent: The padding (in percent) to add to the crops
+            padding_minimum: The minimum padding to add to the crops
+            max_size: The max size of the crops
+            aspect_ratio: The aspect ratio of the crops
 
         Raises:
             APIException: If the request fails.
 
         Returns:
-            list[typing.Union[models.UpdateHistogramsResponse, models.CreateCropsResponse]]: list of updated histograms and created crops
+            list[models.BaseProcessingJobMethod]: The methods being executed
         """
         params = {"subset_id": subset_id}
 
@@ -1483,11 +1484,62 @@ class HARIClient:
             f"/datasets/{dataset_id}/crops",
             params=params,
             json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[
-                typing.Union[
-                    models.UpdateHistogramsResponse, models.CreateCropsResponse
-                ],
-            ],
+            success_response_item_model=list[models.BaseProcessingJobMethod],
+        )
+
+    def trigger_metadata_rebuild_job(
+        self, dataset_ids: list[uuid.UUID], trace_id: uuid.UUID | None = None
+    ) -> list[models.BaseProcessingJobMethod]:
+        """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
+
+        Args:
+            dataset_ids: dataset_ids to rebuild metadata for max 10.
+            trace_id: An id to trace the processing job
+
+        Returns:
+            The methods being executed
+        """
+        if len(dataset_ids) < 1 or len(dataset_ids) > 10:
+            raise errors.ParameterListLengthError(
+                param_name="dataset_ids",
+                minimum=1,
+                maximum=10,
+                length=len(dataset_ids),
+            )
+        return self._request(
+            "POST",
+            f"/metadata:rebuild",
+            json=self._pack(locals()),
+            success_response_item_model=list[models.BaseProcessingJobMethod],
+        )
+
+    def trigger_dataset_metadata_rebuild_job(
+        self,
+        dataset_id: uuid.UUID,
+        subset_id: uuid.UUID | None = None,
+        trace_id: uuid.UUID | None = None,
+    ) -> list[models.BaseProcessingJobMethod]:
+        """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
+
+        Args:
+            dataset_id: dataset_id to rebuild metadata for
+            subset_id: subset_id to rebuild metadata for
+            trace_id: An id to trace the processing job
+
+        Returns:
+            The methods being executed
+        """
+        params = {}
+        if subset_id:
+            params["subset_id"] = subset_id
+        if trace_id:
+            params["trace_id"] = trace_id
+
+        return self._request(
+            "PUT",
+            f"/datasets/{dataset_id}/metadata",
+            params=params,
+            success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
     ### processing_jobs ###
