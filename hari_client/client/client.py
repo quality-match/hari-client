@@ -540,10 +540,19 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        body = {}
+        if filter_options:
+            body["filter_options"] = filter_options
+        if secondary_filter_options:
+            body["secondary_filter_options"] = secondary_filter_options
+
         return self._request(
             "POST",
             f"/subsets:createFiltered",
-            params=self._pack(locals()),
+            params=self._pack(
+                locals(), ignore=["filter_options", "secondary_filter_options"]
+            ),
+            json=body,
             success_response_item_model=str,
         )
 
