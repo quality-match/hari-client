@@ -209,8 +209,71 @@ def test_hari_uploader_receives_media_object_without_back_reference():
             source=models.DataSource.REFERENCE, back_reference=""
         )
     )
+
+    # Act + Assert
     with pytest.raises(hari_uploader.HARIMediaObjectMissingBackReferenceError):
         uploader.add_media(media)
+
+
+def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_medias(
+    mocker,
+):
+    # Arrange
+    # setup mock_client and mock_uploader that allow for testing the full upload method
+    mock_client = HARIClient(config=None)
+    mocker.patch.object(
+        mock_client,
+        "create_medias",
+        return_value=models.BulkResponse(
+            results=[
+                models.AnnotatableCreateResponse(
+                    status=models.ResponseStatesEnum.SUCCESS,
+                    item_id="server_side_media_id",
+                    bulk_operation_annotatable_id="bulk_id",
+                )
+            ]
+        ),
+    )
+    mocker.patch.object(
+        mock_client, "create_media_objects", return_value=models.BulkResponse()
+    )
+
+    mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
+
+    def id_setter_mock(item: hari_uploader.HARIMedia | hari_uploader.HARIMediaObject):
+        item.bulk_operation_annotatable_id = "bulk_id"
+
+    mocker.patch.object(
+        mock_uploader, "_set_bulk_operation_annotatable_id", side_effect=id_setter_mock
+    )
+    id_setter_spy = mocker.spy(mock_uploader, "_set_bulk_operation_annotatable_id")
+
+    # 1 media with 1 media_object
+    media = hari_uploader.HARIMedia(
+        name="my image",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img",
+    )
+    media.add_media_object(
+        hari_uploader.HARIMediaObject(
+            source=models.DataSource.REFERENCE,
+            back_reference="img_obj",
+        )
+    )
+    mock_uploader.add_media(media)
+
+    # Act
+    mock_uploader.upload()
+
+    # Assert
+    # the bulk_operation_annotatable_id must be set on the media and media_object
+    assert id_setter_spy.call_count == 2
+    assert media.bulk_operation_annotatable_id == "bulk_id"
+    # it's ok that media and media object have the same bulk_id, because they're uploaded in separate batch operations
+    assert media.media_objects[0].bulk_operation_annotatable_id == "bulk_id"
+
+    # the media_id of the media_object must match the one provided by the create_medias
+    assert media.media_objects[0].media_id == "server_side_media_id"
 
 
 @pytest.mark.parametrize(
