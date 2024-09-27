@@ -611,7 +611,7 @@ class HARIClient:
         )
 
     def create_medias(
-        self, dataset_id: str, medias: list[models.MediaCreate]
+        self, dataset_id: str, medias: list[models.BulkMediaCreate]
     ) -> models.BulkResponse:
         """Accepts multiple files, uploads them, and creates the medias in the db.
         The limit is 500 per call.
@@ -1111,7 +1111,7 @@ class HARIClient:
     def create_media_objects(
         self,
         dataset_id: str,
-        media_objects: list[models.MediaObjectCreate],
+        media_objects: list[models.BulkMediaObjectCreate],
     ) -> models.BulkResponse:
         """Creates new media_objects in the database. The limit is 500 per call.
 
