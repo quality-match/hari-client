@@ -16,12 +16,12 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     media_id: str = ""
     # overwrites the bulk_operation_annotatable_id field to not be required,
     # because it's set internally by the HARIUploader
-    bulk_operation_annotatable_id: str = ""
+    bulk_operation_annotatable_id: str | None = None
 
     @pydantic.field_validator("media_id", "bulk_operation_annotatable_id")
     @classmethod
     def field_must_not_be_set(cls, v: str) -> str:
-        if "" != v:
+        if v:
             raise ValueError(
                 "The field must not be set on object instantiation. It's used and set by HARIUploader internals."
             )
@@ -47,7 +47,7 @@ class HARIMedia(models.BulkMediaCreate):
     media_objects: list[HARIMediaObject] = pydantic.Field(default=[], exclude=True)
     # overwrites the bulk_operation_annotatable_id field to not be required,
     # because it's set internally by the HARIUploader
-    bulk_operation_annotatable_id: str = ""
+    bulk_operation_annotatable_id: str | None = ""
 
     def add_media_object(self, *args: HARIMediaObject) -> None:
         for media_object in args:
@@ -56,7 +56,7 @@ class HARIMedia(models.BulkMediaCreate):
     @pydantic.field_validator("bulk_operation_annotatable_id")
     @classmethod
     def field_must_not_be_set(cls, v: str) -> str:
-        if "" != v:
+        if v:
             raise ValueError(
                 "The field must not be set on object instantiation. It's used and set by HARIUploader internals."
             )
@@ -161,7 +161,6 @@ class HARIUploader:
     def _upload_media_batch(
         self, medias_to_upload: list[HARIMedia]
     ) -> tuple[models.BulkResponse, list[models.BulkResponse]]:
-        # set bulk_operation_annotatable_id for all medias_to_upload
         for media in medias_to_upload:
             self._set_bulk_operation_annotatable_id(item=media)
 
@@ -202,7 +201,6 @@ class HARIUploader:
     def _upload_media_object_batch(
         self, media_objects_to_upload: list[HARIMediaObject]
     ) -> models.BulkResponse:
-        # set bulk_operation_annotatable_id for all media_objects_to_upload
         for media_object in media_objects_to_upload:
             self._set_bulk_operation_annotatable_id(item=media_object)
         response = self.client.create_media_objects(
