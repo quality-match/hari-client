@@ -18,19 +18,14 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     # because it's set internally by the HARIUploader
     bulk_operation_annotatable_id: str = ""
 
-    def get_back_reference(self) -> str:
-        """
-        Returns a back reference with which you can clearly identify this media object after it has been uploaded to HARI.
-
-        Returns:
-            str: The back reference
-
-        Raises:
-            HARIMediaObjectMissingBackReferenceError: If the HARIMediaObject doesn't have a back_reference
-        """
-        if not self.back_reference:
-            raise HARIMediaObjectMissingBackReferenceError(self)
-        return self.back_reference
+    @pydantic.field_validator("media_id", "bulk_operation_annotatable_id")
+    @classmethod
+    def field_must_not_be_set(cls, v: str) -> str:
+        if "" != v:
+            raise ValueError(
+                "The field must not be set on object instantiation. It's used and set by HARIUploader internals."
+            )
+        return v
 
 
 class HARIMedia(models.BulkMediaCreate):
@@ -43,47 +38,16 @@ class HARIMedia(models.BulkMediaCreate):
 
     def add_media_object(self, *args: HARIMediaObject) -> None:
         for media_object in args:
-            local_media_object_id = str(uuid.uuid4())
-            media_object.bulk_operation_annotatable_id = local_media_object_id
             self.media_objects.append(media_object)
 
-    def get_back_reference(self) -> str:
-        """
-        Returns a back reference with which you can clearly identify this media after it has been uploaded to HARI.
-
-        Returns:
-            str: The back reference
-
-        Raises:
-            HARIMediaMissingBackReferenceError: If the HARIMedia object doesn't have a back_reference
-        """
-        if not self.back_reference:
-            raise HARIMediaMissingBackReferenceError(self)
-        return self.back_reference
-
-
-class DuplicateHARIMediaBackReferenceError(Exception):
-    def __init__(self, back_reference: str):
-        super().__init__(f"Duplicate media back_reference found: {back_reference=}")
-
-
-class DuplicateHARIMediaObjectBackReferenceError(Exception):
-    def __init__(self, back_reference: str):
-        super().__init__(
-            f"Duplicate media object back_reference found: {back_reference=}"
-        )
-
-
-class HARIMediaMissingBackReferenceError(Exception):
-    def __init__(self, media: HARIMedia):
-        super().__init__(f"HARIMedia doesn't have a back_reference: {media=}")
-
-
-class HARIMediaObjectMissingBackReferenceError(Exception):
-    def __init__(self, media_object: HARIMediaObject):
-        super().__init__(
-            f"HARIMediaObject doesn't have a back_reference: {media_object=}"
-        )
+    @pydantic.field_validator("bulk_operation_annotatable_id")
+    @classmethod
+    def field_must_not_be_set(cls, v: str) -> str:
+        if "" != v:
+            raise ValueError(
+                "The field must not be set on object instantiation. It's used and set by HARIUploader internals."
+            )
+        return v
 
 
 class HARIUploadResults(pydantic.BaseModel):
@@ -95,8 +59,8 @@ class HARIUploader:
     def __init__(self, client: HARIClient, dataset_id: str) -> None:
         self.client: HARIClient = client
         self.dataset_id: str = dataset_id
-        # the key is a local_media_id chosen randomly by the HARIUploader. It has to be unique within every upload batch
-        self._medias: dict[str, HARIMedia] = {}
+        self._medias: list[HARIMedia] = []
+        self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
 
     def add_media(self, *args: HARIMedia) -> None:
@@ -113,25 +77,22 @@ class HARIUploader:
             DuplicateHARIMediaObjectBackReferenceError: If a provided media object back_reference is already known to the uploader
         """
         for media in args:
-            # check and remember media by its back_reference
-            media_back_reference = media.get_back_reference()
-            if media_back_reference in self._medias:
-                raise DuplicateHARIMediaBackReferenceError(
-                    back_reference=media_back_reference
-                )
+            # check and remember media back_references
+            if media.back_reference in self._media_back_references:
+                # TODO: issue warning
+                pass
+            else:
+                self._media_back_references.add(media.back_reference)
 
-            local_media_id = str(uuid.uuid4())
-            self._medias[local_media_id] = media
-            media.bulk_operation_annotatable_id = local_media_id
+            self._medias.append(media)
 
             # check and remember media object back_references
             for media_object in media.media_objects:
-                media_object_back_reference = media_object.get_back_reference()
-                if media_object_back_reference in self._media_object_back_references:
-                    raise DuplicateHARIMediaObjectBackReferenceError(
-                        back_reference=media_object_back_reference
-                    )
-                self._media_object_back_references.add(media_object_back_reference)
+                if media_object.back_reference in self._media_object_back_references:
+                    # TODO: issue warning
+                    pass
+                else:
+                    self._media_object_back_references.add(media_object.back_reference)
 
     def upload(
         self,
@@ -150,19 +111,16 @@ class HARIUploader:
             )
             return None
 
-        # TODO: validate bulk_operation_annotatable_ids before uploading
-
         # upload batches of medias
         log.info(
             f"Starting upload of {len(self._medias)} medias with {len(self._media_object_back_references)} media_objects to HARI."
         )
         media_upload_responses: list[models.BulkResponse] = []
         media_object_upload_responses: list[models.BulkResponse] = []
-        medias_list = list(self._medias.values())
         progressbar = tqdm.tqdm(desc="HARI Media Upload", total=len(self._medias))
 
-        for idx in range(0, len(medias_list), HARIClient.BULK_UPLOAD_LIMIT):
-            medias_to_upload = medias_list[idx : idx + HARIClient.BULK_UPLOAD_LIMIT]
+        for idx in range(0, len(self._medias), HARIClient.BULK_UPLOAD_LIMIT):
+            medias_to_upload = self._medias[idx : idx + HARIClient.BULK_UPLOAD_LIMIT]
             media_response, media_object_responses = self._upload_media_batch(
                 medias_to_upload=medias_to_upload
             )
@@ -180,12 +138,18 @@ class HARIUploader:
     def _upload_media_batch(
         self, medias_to_upload: list[HARIMedia]
     ) -> tuple[models.BulkResponse, list[models.BulkResponse]]:
+        # set bulk_operation_annotatable_id for all medias_to_upload
+        for media in medias_to_upload:
+            self._set_bulk_operation_annotatable_id(item=media)
+
         # upload media batch
         media_upload_response = self.client.create_medias(
             dataset_id=str(self.dataset_id), medias=medias_to_upload
         )
+        # TODO: what if upload failures occur in the media upload above?
         self._update_hari_media_object_media_ids(
-            media_upload_bulk_response=media_upload_response
+            medias_to_upload=medias_to_upload,
+            media_upload_bulk_response=media_upload_response,
         )
 
         # upload media_objects of this batch of media in batches
@@ -215,20 +179,35 @@ class HARIUploader:
     def _upload_media_object_batch(
         self, media_objects_to_upload: list[HARIMediaObject]
     ) -> models.BulkResponse:
+        # set bulk_operation_annotatable_id for all media_objects_to_upload
+        for media_object in media_objects_to_upload:
+            self._set_bulk_operation_annotatable_id(item=media_object)
         response = self.client.create_media_objects(
             dataset_id=str(self.dataset_id), media_objects=media_objects_to_upload
         )
         return response
 
     def _update_hari_media_object_media_ids(
-        self, media_upload_bulk_response: models.BulkResponse
+        self,
+        medias_to_upload: list[HARIMedia],
+        media_upload_bulk_response: models.BulkResponse,
     ) -> None:
-        for item_response in media_upload_bulk_response.results:
-            # from the endpoints we used, we know that the item_response is a models.AnnotatableCreateResponse,
-            # which contains the bulk_operation_annotatable_id which we use as local_media_id
-            media = self._medias[item_response.bulk_operation_annotatable_id]
+        for media in medias_to_upload:
+            # from the endpoints we used, we know that the results items are of type models.AnnotatableCreateResponse,
+            # which contains the bulk_operation_annotatable_id.
+            media_upload_response: models.AnnotatableCreateResponse = list(
+                filter(
+                    lambda x: x.bulk_operation_annotatable_id
+                    == media.bulk_operation_annotatable_id,
+                    media_upload_bulk_response.results,
+                )
+            )[0]
             for media_object in media.media_objects:
-                media_object.media_id = item_response.item_id
+                media_object.media_id = media_upload_response.item_id
+
+    def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):
+        if not item.bulk_operation_annotatable_id:
+            item.bulk_operation_annotatable_id = str(uuid.uuid4())
 
 
 def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
