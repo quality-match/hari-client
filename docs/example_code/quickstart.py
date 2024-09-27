@@ -109,18 +109,17 @@ print(f"Created new subset with id {new_subset_id}")
 # 7. Trigger metadata updates
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
-trace_id = str(uuid.uuid4())
-print(f"metadata_rebuild jobs trace_id: {trace_id}")
+metadata_rebuild_trace_id = str(uuid.uuid4())
+print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
 metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
-    dataset_id=new_dataset.id, trace_id=trace_id
+    dataset_id=new_dataset.id, trace_id=metadata_rebuild_trace_id
 )
 
 # track the status of all metadata rebuild jobs and wait for them to finish
-job_ids = [job.job_id for job in metadata_rebuild_jobs]
 job_statuses = []
 jobs_are_still_running = True
 while jobs_are_still_running:
-    jobs = [hari.get_processing_job(processing_job_id=job_id) for job_id in job_ids]
+    jobs = hari.get_processing_jobs(trace_id=metadata_rebuild_trace_id)
     job_statuses = [(job.id, job.status) for job in jobs]
 
     jobs_are_still_running = any(
