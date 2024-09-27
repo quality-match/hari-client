@@ -27,6 +27,19 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
             )
         return v
 
+    @pydantic.field_validator("back_reference")
+    @classmethod
+    def empty_back_reference(cls, v: str) -> str:
+        if not v:
+            log.warning(
+                "Detected empty back_reference in HARIMediaObject. It's encouraged that you use a back_reference so that you can match HARI objects to your own."
+            )
+        return v
+
+
+class HARIMediaUploadError(Exception):
+    pass
+
 
 class HARIMedia(models.BulkMediaCreate):
     # the media_objects field is not part of the lower level MediaCreate model of the hari api,
@@ -49,6 +62,15 @@ class HARIMedia(models.BulkMediaCreate):
             )
         return v
 
+    @pydantic.field_validator("back_reference")
+    @classmethod
+    def empty_back_reference(cls, v: str) -> str:
+        if not v:
+            log.warning(
+                "Detected empty back_reference in HARIMedia. It's encouraged that you use a back_reference so that you can match HARI objects to your own."
+            )
+        return v
+
 
 class HARIUploadResults(pydantic.BaseModel):
     medias: models.BulkResponse
@@ -62,25 +84,24 @@ class HARIUploader:
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
+        self._media_object_cnt: int = 0
 
     def add_media(self, *args: HARIMedia) -> None:
         """
         Add one or more HARIMedia objects to the uploader. Only use this method to add medias to the uploader.
-        This method verifies that the media back reference is unique across all media and all media object back references are unique across all media objects in the HARIUploader object.
-        known to the uploader.
 
         Args:
             *args (HARIMedia): Multiple HARIMedia objects
 
         Raises:
-            DuplicateHARIMediaBackReferenceError: If the provided media back_reference is already known to the uploader
-            DuplicateHARIMediaObjectBackReferenceError: If a provided media object back_reference is already known to the uploader
+            HARIMediaUploadError: If an unrecoverable problem with the media upload was detected
         """
         for media in args:
             # check and remember media back_references
             if media.back_reference in self._media_back_references:
-                # TODO: issue warning
-                pass
+                log.warning(
+                    f"Found duplicate media back_reference: {media.back_reference}. If you want to be able to match HARI objects 1:1 to your own, consider using unique back_references."
+                )
             else:
                 self._media_back_references.add(media.back_reference)
 
@@ -89,10 +110,12 @@ class HARIUploader:
             # check and remember media object back_references
             for media_object in media.media_objects:
                 if media_object.back_reference in self._media_object_back_references:
-                    # TODO: issue warning
-                    pass
+                    log.warning(
+                        f"Found duplicate media_object back_reference: {media.back_reference}. If you want to be able to match HARI objects 1:1 to your own, consider using unique back_references."
+                    )
                 else:
                     self._media_object_back_references.add(media_object.back_reference)
+                self._media_object_cnt += 1
 
     def upload(
         self,
@@ -113,7 +136,7 @@ class HARIUploader:
 
         # upload batches of medias
         log.info(
-            f"Starting upload of {len(self._medias)} medias with {len(self._media_object_back_references)} media_objects to HARI."
+            f"Starting upload of {len(self._medias)} medias with {self._media_object_cnt} media_objects to HARI."
         )
         media_upload_responses: list[models.BulkResponse] = []
         media_object_upload_responses: list[models.BulkResponse] = []
@@ -195,13 +218,24 @@ class HARIUploader:
         for media in medias_to_upload:
             # from the endpoints we used, we know that the results items are of type models.AnnotatableCreateResponse,
             # which contains the bulk_operation_annotatable_id.
-            media_upload_response: models.AnnotatableCreateResponse = list(
+            filtered_upload_response = list(
                 filter(
                     lambda x: x.bulk_operation_annotatable_id
                     == media.bulk_operation_annotatable_id,
                     media_upload_bulk_response.results,
                 )
-            )[0]
+            )
+            if len(filtered_upload_response) == 0:
+                raise HARIMediaUploadError(
+                    f"Media upload response doesn't match expectation. Couldn't find {media.bulk_operation_annotatable_id=} in the upload response."
+                )
+            elif (len(filtered_upload_response)) > 1:
+                raise HARIMediaUploadError(
+                    f"Media upload response contains multiple items for {media.bulk_operation_annotatable_id=}."
+                )
+            media_upload_response: models.AnnotatableCreateResponse = (
+                filtered_upload_response[0]
+            )
             for media_object in media.media_objects:
                 media_object.media_id = media_upload_response.item_id
 

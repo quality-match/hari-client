@@ -9,8 +9,11 @@ def test_update_hari_media_object_media_ids():
     # Arrange
     uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
     )
+    media_1.bulk_operation_annotatable_id = "bulk_id_1"
     media_1.add_media_object(
         hari_uploader.HARIMediaObject(
             source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
@@ -18,8 +21,11 @@ def test_update_hari_media_object_media_ids():
     )
     uploader.add_media(media_1)
     media_2 = hari_uploader.HARIMedia(
-        name="my image 2", media_type=models.MediaType.IMAGE, back_reference="img_2"
+        name="my image 2",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_2",
     )
+    media_2.bulk_operation_annotatable_id = "bulk_id_2"
     media_2.add_media_object(
         hari_uploader.HARIMediaObject(
             source=models.DataSource.REFERENCE, back_reference="img_2_obj_1"
@@ -31,22 +37,27 @@ def test_update_hari_media_object_media_ids():
             models.AnnotatableCreateResponse(
                 item_id="new_media_id_1",
                 back_reference="img_1",
+                bulk_operation_annotatable_id="bulk_id_1",
                 status=models.ResponseStatesEnum.SUCCESS,
             ),
             models.AnnotatableCreateResponse(
                 item_id="new_media_id_2",
                 back_reference="img_2",
+                bulk_operation_annotatable_id="bulk_id_2",
                 status=models.ResponseStatesEnum.SUCCESS,
             ),
         ]
     )
 
     # Act
-    uploader._update_hari_media_object_media_ids(media_upload_bulk_response)
+    uploader._update_hari_media_object_media_ids(
+        medias_to_upload=[media_1, media_2],
+        media_upload_bulk_response=media_upload_bulk_response,
+    )
 
     # Assert
-    assert uploader._medias["img_1"].media_objects[0].media_id == "new_media_id_1"
-    assert uploader._medias["img_2"].media_objects[0].media_id == "new_media_id_2"
+    assert uploader._medias[0].media_objects[0].media_id == "new_media_id_1"
+    assert uploader._medias[1].media_objects[0].media_id == "new_media_id_2"
 
 
 def test_hari_uploader_creates_batches_correctly(mocker):
@@ -54,13 +65,45 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     # setup mock_client and mock_uploader that allow for testing the full upload method
     mock_client = HARIClient(config=None)
     mocker.patch.object(
-        mock_client, "create_medias", return_value=models.BulkResponse()
+        mock_client,
+        "create_medias",
+        return_value=models.BulkResponse(
+            results=[
+                models.AnnotatableCreateResponse(
+                    status=models.ResponseStatesEnum.SUCCESS,
+                    bulk_operation_annotatable_id=f"bulk_id_{i}",
+                )
+                for i in range(1100)
+            ]
+        ),
     )
     mocker.patch.object(
         mock_client, "create_media_objects", return_value=models.BulkResponse()
     )
 
+    # there are multiple batches of medias and media objects, but the bulk_ids for the medias are expected to be continuous
+    # as implemented in the create_medias mock above.
+    global running_media_bulk_id
+    running_media_bulk_id = 0
+    global running_media_object_bulk_id
+    running_media_object_bulk_id = 0
+
+    def id_setter_mock(item: hari_uploader.HARIMedia | hari_uploader.HARIMediaObject):
+        global running_media_bulk_id
+        global running_media_object_bulk_id
+        if isinstance(item, hari_uploader.HARIMedia):
+            item.bulk_operation_annotatable_id = f"bulk_id_{running_media_bulk_id}"
+            running_media_bulk_id += 1
+        elif isinstance(item, hari_uploader.HARIMediaObject):
+            item.bulk_operation_annotatable_id = (
+                f"bulk_id_{running_media_object_bulk_id}"
+            )
+            running_media_object_bulk_id += 1
+
     mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
+    mocker.patch.object(
+        mock_uploader, "_set_bulk_operation_annotatable_id", side_effect=id_setter_mock
+    )
     media_spy = mocker.spy(mock_uploader, "_upload_media_batch")
     media_object_spy = mocker.spy(mock_uploader, "_upload_media_object_batch")
 
@@ -106,13 +149,35 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
     # setup mock_client and mock_uploader that allow for testing the full upload method
     mock_client = HARIClient(config=None)
     mocker.patch.object(
-        mock_client, "create_medias", return_value=models.BulkResponse()
+        mock_client,
+        "create_medias",
+        return_value=models.BulkResponse(
+            results=[
+                models.AnnotatableCreateResponse(
+                    status=models.ResponseStatesEnum.SUCCESS,
+                    bulk_operation_annotatable_id=f"bulk_id_{i}",
+                )
+                for i in range(5)
+            ]
+        ),
     )
     mocker.patch.object(
         mock_client, "create_media_objects", return_value=models.BulkResponse()
     )
 
     mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
+
+    global running_bulk_id
+    running_bulk_id = 0
+
+    def id_setter_mock(item: hari_uploader.HARIMedia | hari_uploader.HARIMediaObject):
+        global running_bulk_id
+        item.bulk_operation_annotatable_id = f"bulk_id_{running_bulk_id}"
+        running_bulk_id += 1
+
+    mocker.patch.object(
+        mock_uploader, "_set_bulk_operation_annotatable_id", side_effect=id_setter_mock
+    )
     media_spy = mocker.spy(mock_uploader, "_upload_media_batch")
     media_object_spy = mocker.spy(mock_uploader, "_upload_media_object_batch")
 
@@ -147,8 +212,9 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
     assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 10
 
 
-def test_hari_uploader_receives_duplicate_media_back_reference():
+def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(mocker):
     # Arrange
+    log_spy = mocker.spy(hari_uploader.log, "warning")
     uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
     uploader.add_media(
         hari_uploader.HARIMedia(
@@ -157,18 +223,25 @@ def test_hari_uploader_receives_duplicate_media_back_reference():
             back_reference="img_1",
         )
     )
-    with pytest.raises(hari_uploader.DuplicateHARIMediaBackReferenceError):
-        uploader.add_media(
-            hari_uploader.HARIMedia(
-                name="my image 2",
-                media_type=models.MediaType.IMAGE,
-                back_reference="img_1",
-            )
+
+    # Act
+    uploader.add_media(
+        hari_uploader.HARIMedia(
+            name="my image 2",
+            media_type=models.MediaType.IMAGE,
+            back_reference="img_1",
         )
+    )
+
+    # Assert
+    assert log_spy.call_count == 1
 
 
-def test_hari_uploader_receives_duplicate_media_object_back_reference():
+def test_warning_for_hari_uploader_receives_duplicate_media_object_back_reference(
+    mocker,
+):
     # Arrange
+    log_spy = mocker.spy(hari_uploader.log, "warning")
     uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
     media = hari_uploader.HARIMedia(
         name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
@@ -183,36 +256,36 @@ def test_hari_uploader_receives_duplicate_media_object_back_reference():
             source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
         )
     )
-    with pytest.raises(hari_uploader.DuplicateHARIMediaObjectBackReferenceError):
-        uploader.add_media(media)
+
+    # Act
+    uploader.add_media(media)
+
+    # Assert
+    assert log_spy.call_count == 1
 
 
-def test_hari_uploader_receives_media_without_back_reference():
+def test_warning_for_media_without_back_reference(mocker):
     # Arrange
-    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
-    with pytest.raises(hari_uploader.HARIMediaMissingBackReferenceError):
-        uploader.add_media(
-            hari_uploader.HARIMedia(
-                name="my image 1", media_type=models.MediaType.IMAGE, back_reference=""
-            )
-        )
+    log_spy = mocker.spy(hari_uploader.log, "warning")
 
-
-def test_hari_uploader_receives_media_object_without_back_reference():
-    # Arrange
-    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
-    media = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
-    )
-    media.add_media_object(
-        hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE, back_reference=""
-        )
+    # Act
+    hari_uploader.HARIMedia(
+        name="my image 1", media_type=models.MediaType.IMAGE, back_reference=""
     )
 
-    # Act + Assert
-    with pytest.raises(hari_uploader.HARIMediaObjectMissingBackReferenceError):
-        uploader.add_media(media)
+    # Assert
+    assert log_spy.call_count == 1
+
+
+def test_warning_for_media_object_without_back_reference(mocker):
+    # Arrange
+    log_spy = mocker.spy(hari_uploader.log, "warning")
+
+    # Act
+    hari_uploader.HARIMediaObject(source=models.DataSource.REFERENCE, back_reference="")
+
+    # Assert
+    assert log_spy.call_count == 1
 
 
 def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_medias(
@@ -351,11 +424,13 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
                             item_id="1",
                             status=models.ResponseStatesEnum.SUCCESS,
                             back_reference="back_ref_1",
+                            bulk_operation_annotatable_id="bulk_id_1",
                         ),
                         models.AnnotatableCreateResponse(
                             item_id="2",
                             status=models.ResponseStatesEnum.SUCCESS,
                             back_reference="back_ref_2",
+                            bulk_operation_annotatable_id="bulk_id_2",
                         ),
                     ]
                 ),
@@ -365,11 +440,13 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
                             item_id="3",
                             status=models.ResponseStatesEnum.SUCCESS,
                             back_reference="back_ref_3",
+                            bulk_operation_annotatable_id="bulk_id_3",
                         ),
                         models.AnnotatableCreateResponse(
                             item_id="4",
                             status=models.ResponseStatesEnum.SUCCESS,
                             back_reference="back_ref_4",
+                            bulk_operation_annotatable_id="bulk_id_4",
                         ),
                     ]
                 ),
@@ -380,21 +457,25 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
                         item_id="1",
                         status=models.ResponseStatesEnum.SUCCESS,
                         back_reference="back_ref_1",
+                        bulk_operation_annotatable_id="bulk_id_1",
                     ),
                     models.AnnotatableCreateResponse(
                         item_id="2",
                         status=models.ResponseStatesEnum.SUCCESS,
                         back_reference="back_ref_2",
+                        bulk_operation_annotatable_id="bulk_id_2",
                     ),
                     models.AnnotatableCreateResponse(
                         item_id="3",
                         status=models.ResponseStatesEnum.SUCCESS,
                         back_reference="back_ref_3",
+                        bulk_operation_annotatable_id="bulk_id_3",
                     ),
                     models.AnnotatableCreateResponse(
                         item_id="4",
                         status=models.ResponseStatesEnum.SUCCESS,
                         back_reference="back_ref_4",
+                        bulk_operation_annotatable_id="bulk_id_4",
                     ),
                 ]
             ),
