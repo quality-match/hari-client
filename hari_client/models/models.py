@@ -865,7 +865,7 @@ class BaseBulkItemResponse(BaseModel, arbitrary_types_allowed=True):
 
 
 class AnnotatableCreateResponse(BaseBulkItemResponse):
-    back_reference: str
+    bulk_operation_annotatable_id: str
 
 
 class AttributeCreateResponse(BaseBulkItemResponse):
@@ -879,7 +879,7 @@ class BulkResponse(BaseModel):
     )
     results: list[
         typing.Union[
-            BaseBulkItemResponse, AnnotatableCreateResponse, AttributeCreateResponse
+            AnnotatableCreateResponse, AttributeCreateResponse, BaseBulkItemResponse
         ]
     ] = pydantic.Field(default_factory=list)
 
@@ -905,6 +905,10 @@ class MediaCreate(BaseModel):
     back_reference_json: typing.Optional[str] = None
 
 
+class BulkMediaCreate(MediaCreate):
+    bulk_operation_annotatable_id: str
+
+
 class MediaObjectCreate(BaseModel):
     media_id: str
     source: DataSource
@@ -925,6 +929,10 @@ class MediaObjectCreate(BaseModel):
     reference_data: typing.Optional[GeometryUnion] = None
     frame_idx: typing.Optional[int] = None
     media_object_type: typing.Optional[GeometryUnion] = None
+
+
+class BulkMediaObjectCreate(MediaObjectCreate):
+    bulk_operation_annotatable_id: str
 
 
 class ProcessingType(str, enum.Enum):
