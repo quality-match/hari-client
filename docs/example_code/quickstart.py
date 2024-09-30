@@ -19,41 +19,57 @@ hari = HARIClient(config=config)
 new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
 print("Dataset created with id:", new_dataset.id)
 
-# 3. Setup your medias and all of their media objects.
+# 3. Set up your medias and all of their media objects.
 # In this example we use 3 images with 1 media object each.
 media_1 = hari_uploader.HARIMedia(
     file_path="images/image_1.jpg",
     name="A busy street 1",
-    back_reference="image_1",
+    back_reference="image 1",
     media_type=models.MediaType.IMAGE,
 )
-media_1.add_media_object(
-    hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
-        back_reference="pedestrian_1",
-        reference_data=models.BBox2DCenterPoint(
-            type=models.BBox2DType.BBOX2D_CENTER_POINT,
-            x=1400.0,
-            y=1806.0,
-            width=344.0,
-            height=732.0,
-        ),
-    )
+media_object_1 = hari_uploader.HARIMediaObject(
+    source=models.DataSource.REFERENCE,
+    back_reference="pedestrian_1",
+    reference_data=models.BBox2DCenterPoint(
+        type=models.BBox2DType.BBOX2D_CENTER_POINT,
+        x=1400.0,
+        y=1806.0,
+        width=344.0,
+        height=732.0,
+    ),
 )
+attribute_object_1_id = str(uuid.uuid4())
+attribute_object_1 = hari_uploader.HARIAttribute(
+    id=attribute_object_1_id,
+    name="Is human?",
+    attribute_type=models.AttributeType.Categorical,
+    value="yes",
+    attribute_group=models.AttributeGroup.InitialAttribute,
+)
+media_object_1.add_attribute(attribute_object_1)
+media_1.add_media_object(media_object_1)
+attribute_1_media_1_id = str(uuid.uuid4())
+attribute_1_media_1 = hari_uploader.HARIAttribute(
+    id=attribute_1_media_1_id,
+    name="area",
+    attribute_type=models.AttributeType.Categorical,
+    value=6912,
+    attribute_group=models.AttributeGroup.InitialAttribute,
+)
+media_1.add_attribute(attribute_1_media_1)
 
+media_object_2 = hari_uploader.HARIMediaObject(
+    source=models.DataSource.REFERENCE,
+    back_reference="motorcycle_wheel_1",
+    reference_data=models.Point2DXY(x=975.0, y=2900.0),
+)
 media_2 = hari_uploader.HARIMedia(
     file_path="images/image_2.jpg",
     name="A busy street 2",
     back_reference="image 2",
     media_type=models.MediaType.IMAGE,
 )
-media_2.add_media_object(
-    hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
-        back_reference="motorcycle_wheel_1",
-        reference_data=models.Point2DXY(x=975.0, y=2900.0),
-    )
-)
+media_2.add_media_object(media_object_2)
 
 media_3 = hari_uploader.HARIMedia(
     file_path="images/image_3.jpg",
@@ -72,7 +88,7 @@ media_3.add_media_object(
     )
 )
 
-# 4. Setup the uploader and add the medias to it
+# 4. Set up the uploader and add the medias to it
 uploader = hari_uploader.HARIUploader(client=hari, dataset_id=new_dataset.id)
 uploader.add_media(media_1, media_2, media_3)
 
@@ -100,7 +116,7 @@ if (
 # 6. Create a subset
 print("Creating new subset...")
 new_subset_id = hari.create_subset(
-    dataset_id=new_dataset.id,
+    dataset_id=uuid.UUID(new_dataset.id),
     subset_type=models.SubsetType.MEDIA_OBJECT,
     subset_name="All media objects",
 )
@@ -112,7 +128,7 @@ print("Triggering metadata updates...")
 metadata_rebuild_trace_id = str(uuid.uuid4())
 print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
 metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
-    dataset_id=new_dataset.id, trace_id=metadata_rebuild_trace_id
+    dataset_id=uuid.UUID(new_dataset.id), trace_id=uuid.UUID(metadata_rebuild_trace_id)
 )
 
 # track the status of all metadata rebuild jobs and wait for them to finish

@@ -99,8 +99,8 @@ def _parse_response_model(
             response_data=response_data,
             response_model=response_model,
             message=f"Can't parse response_data into response_model {response_model},"
-            + f" because the combination of received data and expected response_model is unhandled."
-            + f"{response_data=}.",
+            + f" because the combination of received data and expected response_model "
+            f"is unhandled.{response_data=}.",
         )
     except Exception as err:
         raise errors.ParseResponseModelError(
@@ -371,7 +371,7 @@ class HARIClient:
         """
         return self._request(
             "POST",
-            f"/datasets",
+            "/datasets",
             json=self._pack(locals(), not_none=["creation_timestamp", "id"]),
             success_response_item_model=models.Dataset,
         )
@@ -465,7 +465,7 @@ class HARIClient:
         """
         return self._request(
             "GET",
-            f"/datasets",
+            "/datasets",
             params=self._pack(locals()),
             success_response_item_model=list[models.DatasetResponse],
         )
@@ -548,7 +548,7 @@ class HARIClient:
 
         return self._request(
             "POST",
-            f"/subsets:createFiltered",
+            "/subsets:createFiltered",
             params=self._pack(
                 locals(), ignore=["filter_options", "secondary_filter_options"]
             ),
@@ -658,7 +658,7 @@ class HARIClient:
         # 2. parse medias to dicts and set their media_urls
         media_dicts = []
         for idx, media in enumerate(medias):
-            media_dicts.append(media.dict())
+            media_dicts.append(media.model_dump())
             media_dicts[idx]["media_url"] = media_upload_responses[idx].media_url
 
         # 3. create the medias in HARI
@@ -734,8 +734,8 @@ class HARIClient:
             media_id: The media id
             presign_media: Whether to presign media
             archived: Return archived media
-            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+            projection: The fields to be returned (dictionary keys with value True are
+                returned, keys with value False are not returned)
 
         Returns:
             The media object matching the provided id
@@ -902,7 +902,8 @@ class HARIClient:
             archived: Whether to consider archived medias (default: False)
 
         Returns:
-            Dictionary, where the key is the number of medias in the dataset having value number of media objects
+            Dictionary, where the key is the number of medias in the dataset having
+            value number of media objects
 
         Raises:
             APIException: If the request fails.
@@ -970,7 +971,7 @@ class HARIClient:
                 "name": name,
                 # Convert to dict to avoid the following type of errors:
                 # Object of type CropVisualisationConfigParameters is not JSON serializable
-                "parameters": parameters.dict(exclude_unset=True),
+                "parameters": parameters.model_dump(exclude_unset=True),
             },
             success_response_item_model=models.VisualisationConfiguration,
         )
@@ -1109,7 +1110,7 @@ class HARIClient:
             if isinstance(qm_data, list)
             else None
         )
-        reference_data = reference_data.dict() if reference_data else None
+        reference_data = reference_data.model_dump() if reference_data else None
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/mediaObjects",
@@ -1142,7 +1143,9 @@ class HARIClient:
             )
 
         # 1. parse media_objects to dicts before upload
-        media_object_dicts = [media_object.dict() for media_object in media_objects]
+        media_object_dicts = [
+            media_object.model_dump() for media_object in media_objects
+        ]
 
         # 2. send media_objects to HARI
         return self._request(
@@ -1517,7 +1520,7 @@ class HARIClient:
             )
         return self._request(
             "POST",
-            f"/metadata:rebuild",
+            "/metadata:rebuild",
             json=self._pack(locals()),
             success_response_item_model=list[models.BaseProcessingJobMethod],
         )
@@ -1560,14 +1563,15 @@ class HARIClient:
         Retrieves the list of processing jobs that the user has access to.
 
         Args:
-            trace_id (str, optional): Helps to identify related processing jobs. Use the trace_id that was specified when triggering a processing job
+            trace_id: Helps to identify related processing jobs. Use the trace_id that
+                was specified when triggering a processing job
 
         Raises:
             APIException: If the request fails.
 
         Returns:
-            list[models.ProcessingJob]: A list of processing jobs for the user
-            or [] if there are no jobs of trace_id is not found.
+            A list of processing jobs for the user or [] if there are no jobs of
+            trace_id is not found.
         """
         params = {}
         if trace_id:
@@ -1588,17 +1592,53 @@ class HARIClient:
         Retrieves a specific processing job by its id.
 
         Args:
-            processing_job_id (str): The unique identifier of the processing job to retrieve.
+            processing_job_id: The unique identifier of the processing job to retrieve.
 
         Raises:
             APIException: If the request fails.
 
         Returns:
-            models.ProcessingJob: The ProcessingJob model retrieved from the API.
+            The ProcessingJob model retrieved from the API.
         """
 
         return self._request(
             "GET",
             f"/processingJobs/{processing_job_id}",
             success_response_item_model=models.ProcessingJob,
+        )
+
+    ### attributes ###
+    def create_attributes(
+        self,
+        dataset_id: str,
+        attributes: list[models.BulkAttributeCreate],
+    ) -> models.BulkResponse:
+        """Creates new attributes in the database. The limit is 500 per call.
+
+        Args:
+            dataset_id: The dataset id
+            attributes: A list of AttributeCreate objects. Each object contains the file_path as a field.
+
+        Returns:
+            A BulkResponse with information on upload successes and failures.
+
+        Raises:
+            APIException: If the request fails.
+            BulkUploadSizeRangeError: if the number of attributes exceeds the per call upload limit.
+        """
+
+        if len(attributes) > HARIClient.BULK_UPLOAD_LIMIT:
+            raise errors.BulkUploadSizeRangeError(
+                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(attributes)
+            )
+
+        # 1. parse attributes to dicts before upload
+        attribute_dicts = [attribute.dict() for attribute in attributes]
+
+        # 2. send attributes to HARI
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/attributes:bulk",
+            json=attribute_dicts,
+            success_response_item_model=models.BulkResponse,
         )

@@ -60,6 +60,161 @@ def test_update_hari_media_object_media_ids():
     assert uploader._medias[1].media_objects[0].media_id == "new_media_id_2"
 
 
+def test_update_hari_attribute_media_ids():
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+    )
+    media_1.bulk_operation_annotatable_id = "bulk_id_1"
+    media_1.add_attribute(
+        hari_uploader.HARIAttribute(
+            id="attr_1",
+            name="my attribute 1",
+            attribute_type=models.AttributeType.Categorical,
+            value="value 1",
+            attribute_group=models.AttributeGroup.InitialAttribute,
+        )
+    )
+    uploader.add_media(media_1)
+    media_2 = hari_uploader.HARIMedia(
+        name="my image 2",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_2",
+    )
+    media_2.bulk_operation_annotatable_id = "bulk_id_2"
+    media_2.add_attribute(
+        hari_uploader.HARIAttribute(
+            id="attr_1",
+            name="my attribute 2",
+            attribute_type=models.AttributeType.Categorical,
+            value="value 2",
+            attribute_group=models.AttributeGroup.InitialAttribute,
+        )
+    )
+    uploader.add_media(media_2)
+
+    # Act
+    uploader._update_hari_attribute_media_ids(
+        medias_to_upload=[media_1, media_2],
+        media_upload_bulk_response=models.BulkResponse(
+            results=[
+                models.AnnotatableCreateResponse(
+                    item_id="new_media_id_1",
+                    back_reference="img_1",
+                    bulk_operation_annotatable_id="bulk_id_1",
+                    status=models.ResponseStatesEnum.SUCCESS,
+                ),
+                models.AnnotatableCreateResponse(
+                    item_id="new_media_id_2",
+                    back_reference="img_2",
+                    bulk_operation_annotatable_id="bulk_id_2",
+                    status=models.ResponseStatesEnum.SUCCESS,
+                ),
+            ]
+        ),
+    )
+
+    # Assert
+    assert media_1.attributes[0].annotatable_id == "new_media_id_1"
+    assert media_1.attributes[0].annotatable_type == models.DataBaseObjectType.MEDIA
+    assert media_2.attributes[0].annotatable_id == "new_media_id_2"
+    assert media_2.attributes[0].annotatable_type == models.DataBaseObjectType.MEDIA
+
+
+def test_update_hari_attribute_media_object_ids():
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+    )
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference="img_1_obj_1",
+        reference_data=models.BBox2DCenterPoint(
+            type=models.BBox2DType.BBOX2D_CENTER_POINT,
+            x=1400.0,
+            y=1806.0,
+            width=344.0,
+            height=732.0,
+        ),
+    )
+    media_object_1.bulk_operation_annotatable_id = "bulk_id_1"
+    attribute_object_1 = hari_uploader.HARIAttribute(
+        id="attr_1",
+        name="Is human?",
+        attribute_type=models.AttributeType.Categorical,
+        value="yes",
+        attribute_group=models.AttributeGroup.InitialAttribute,
+    )
+    media_object_1.add_attribute(attribute_object_1)
+    media_1.add_media_object(media_object_1)
+
+    media_2 = hari_uploader.HARIMedia(
+        name="my image 2",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_2",
+    )
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference="img_2_obj_1",
+        reference_data=models.BBox2DCenterPoint(
+            type=models.BBox2DType.BBOX2D_CENTER_POINT,
+            x=1400.0,
+            y=1806.0,
+            width=344.0,
+            height=732.0,
+        ),
+    )
+    media_object_2.bulk_operation_annotatable_id = "bulk_id_2"
+    attribute_object_2 = hari_uploader.HARIAttribute(
+        id="attr_1",
+        name="Is human?",
+        attribute_type=models.AttributeType.Categorical,
+        value="yes",
+        attribute_group=models.AttributeGroup.InitialAttribute,
+    )
+    media_object_2.add_attribute(attribute_object_2)
+    media_2.add_media_object(media_object_2)
+
+    # Act
+    uploader._update_hari_attribute_media_object_ids(
+        media_objects_to_upload=[media_object_1, media_object_2],
+        media_upload_bulk_response=models.BulkResponse(
+            results=[
+                models.AnnotatableCreateResponse(
+                    item_id="new_media_object_id_1",
+                    back_reference="img_1_obj_1",
+                    bulk_operation_annotatable_id="bulk_id_1",
+                    status=models.ResponseStatesEnum.SUCCESS,
+                ),
+                models.AnnotatableCreateResponse(
+                    item_id="new_media_object_id_2",
+                    back_reference="img_2_obj_1",
+                    bulk_operation_annotatable_id="bulk_id_2",
+                    status=models.ResponseStatesEnum.SUCCESS,
+                ),
+            ]
+        ),
+    )
+
+    # Assert
+    assert media_object_1.attributes[0].annotatable_id == "new_media_object_id_1"
+    assert (
+        media_object_1.attributes[0].annotatable_type
+        == models.DataBaseObjectType.MEDIAOBJECT
+    )
+    assert media_object_2.attributes[0].annotatable_id == "new_media_object_id_2"
+    assert (
+        media_object_2.attributes[0].annotatable_type
+        == models.DataBaseObjectType.MEDIAOBJECT
+    )
+
+
 def test_hari_uploader_creates_batches_correctly(mocker):
     # Arrange
     # setup mock_client and mock_uploader that allow for testing the full upload method

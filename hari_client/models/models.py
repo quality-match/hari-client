@@ -7,6 +7,8 @@ import uuid
 
 import pydantic
 
+typeT = typing.TypeVar("typeT", bound=typing.Any)
+
 
 class BaseModel(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(extra="allow")
@@ -133,7 +135,8 @@ class Point3DXYZ(BaseModel):
 
 
 class CuboidCenterPoint(BaseModel):
-    """A 3D cuboid defined by its center point position, heading as quaternion and its dimensions along each axis."""
+    """A 3D cuboid defined by its center point position, heading as quaternion and its
+    dimensions along each axis."""
 
     type: str = pydantic.Field(title="Type")
     position: Point3DTuple = pydantic.Field()
@@ -183,7 +186,8 @@ class DataSource(str, enum.Enum):
 
 
 class MediaType(str, enum.Enum):
-    """Describes the mediatype of annotatables in a dataset. Only available on datasets, not annotatables."""
+    """Describes the mediatype of annotatables in a dataset. Only available on datasets,
+    not annotatables."""
 
     IMAGE = "image"
     VIDEO = "video"
@@ -768,6 +772,15 @@ class AttributeGroup(str, enum.Enum):
     InheritedAnnotationAttribute = "inherited_annotation_attribute"
 
 
+class AttributeType(str, enum.Enum):
+    Binary = "BINARY"
+    Categorical = "CATEGORICAL"
+    Slider = "SLIDER"
+    BBox2D = "BBOX2D"
+    Point2D = "POINT2D"
+    Point3D = "POINT3D"
+
+
 class HistogramType(str, enum.Enum):
     boolean = "BOOLEAN"
     categorical = "CATEGORICAL"
@@ -885,24 +898,25 @@ class BulkResponse(BaseModel):
 
 
 class MediaCreate(BaseModel):
-    # file_path is not part of the HARI API, but is used to define where to read the media file from
+    # file_path is not part of the HARI API, but is used to define where to read the
+    # media file from
     file_path: typing.Optional[str] = pydantic.Field(default=None, exclude=True)
 
     name: str
     media_type: MediaType
     back_reference: str
-    media_url: typing.Optional[str] = None
+    media_url: str | None = None
 
     archived: bool = False
-    scene_id: typing.Optional[str] = None
-    realWorldObject_id: typing.Optional[str] = None
-    visualisations: typing.Optional[list[VisualisationUnion]] = None
-    subset_ids: typing.Union[set[str], list[str], None] = None
+    scene_id: str | None = None
+    realWorldObject_id: str | None = None
+    visualisations: list[VisualisationUnion] | None = None
+    subset_ids: set[str] | list[str] | None = None
 
-    metadata: typing.Union[ImageMetadata, PointCloudMetadata, None] = None
-    frame_idx: typing.Optional[int] = None
-    frame_timestamp: typing.Optional[datetime.datetime] = None
-    back_reference_json: typing.Optional[str] = None
+    metadata: ImageMetadata | PointCloudMetadata | None = None
+    frame_idx: int | None = None
+    frame_timestamp: datetime.datetime | None = None
+    back_reference_json: str | None = None
 
 
 class BulkMediaCreate(MediaCreate):
@@ -933,6 +947,49 @@ class MediaObjectCreate(BaseModel):
 
 class BulkMediaObjectCreate(MediaObjectCreate):
     bulk_operation_annotatable_id: str
+
+
+class AttributeCreate(BaseModel):
+    id: str = pydantic.Field(title="ID")
+    name: str
+    annotatable_id: str
+    annotatable_type: DataBaseObjectType
+    attribute_type: AttributeType | None = None
+    attribute_group: AttributeGroup
+    value: typeT
+    min: typeT | None = None
+    max: typeT | None = None
+    sum: typeT | None = None
+    cant_solves: int | None = None
+    solvability: float | None = None
+    aggregate: typeT | None = None
+    modal: typeT | None = None
+    credibility: float | None = None
+    convergence: float | None = None
+    ambiguity: float | None = None
+    median: typeT | None = None
+    variance: float | None = None
+    standard_deviation: float | None = None
+    range: typing.Any | None = None
+    average_absolute_deviation: float | None = None
+    cumulated_frequency: typing.Any | None = None
+    frequency: dict[str, int] | None = None
+    question: str | None = None
+    model_config = pydantic.ConfigDict(validate_assignment=True, extra="forbid")
+
+    @pydantic.model_validator(mode="before")
+    @classmethod
+    def populate_derived_field(cls, values):
+        derived_fields = {
+            "question": values.get("question", values.get("name")),
+        }
+        values.update(derived_fields)
+
+        return values
+
+
+class BulkAttributeCreate(AttributeCreate):
+    pass
 
 
 class ProcessingType(str, enum.Enum):
