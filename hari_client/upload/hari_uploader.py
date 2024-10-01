@@ -91,7 +91,7 @@ class HARIUploader:
         Add one or more HARIMedia objects to the uploader. Only use this method to add medias to the uploader.
 
         Args:
-            *args (HARIMedia): Multiple HARIMedia objects
+            *args: Multiple HARIMedia objects
 
         Raises:
             HARIMediaUploadError: If an unrecoverable problem with the media upload was detected
@@ -248,7 +248,7 @@ def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     If only one BulkResponse object is provided, it will be returned as is.
 
     Args:
-        *args (models.BulkResponse): Multiple BulkResponse objects
+        *args: Multiple BulkResponse objects
 
     Returns:
         models.BulkResponse: The merged BulkResponse object

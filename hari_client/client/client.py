@@ -38,8 +38,8 @@ def _parse_response_model(
             - The response_data is returned as is.
 
     Args:
-        response_data (typing.Any): the input data
-        response_model (typing.Type[T]): the generic response_model type
+        response_data: the input data
+        response_model: the generic response_model type
 
     Raises:
         errors.ParseResponseModelError: When parsing fails for any reason
@@ -147,11 +147,11 @@ class HARIClient:
         """Make a request to the API.
 
         Args:
-            method (str): The HTTP method to use.
-            url (str): The URL to request.
-            success_response_item_model (typing.Type[T]): The response model class to parse the response
+            method: The HTTP method to use.
+            url: The URL to request.
+            success_response_item_model: The response model class to parse the response
                 json body into when the request status is a success code.
-            error_response_item_model (typing.Type[U]): The response model class to parse the response
+            error_response_item_model: The response model class to parse the response
                 json body into when the response status is an error code.
             **kwargs: Additional keyword arguments to pass to the underlying request method.
         """
@@ -817,10 +817,10 @@ class HARIClient:
         Creates a presigned upload URL for a file to be uploaded to S3 and used for visualisations.
 
         Args:
-            dataset_id (str): id of the dataset to which the visualisation will belong
-            file_extension (str): the file extension of the file to be uploaded. For example: ".jpg", ".png"
-            visualisation_config_id (str): id of the visualisation configuration of the visualisation
-            batch_size (int): number of upload links and ids to generate. Valid range: 1 <= batch_size <= 500.
+            dataset_id: id of the dataset to which the visualisation will belong
+            file_extension: the file extension of the file to be uploaded. For example: ".jpg", ".png"
+            visualisation_config_id: id of the visualisation configuration of the visualisation
+            batch_size: number of upload links and ids to generate. Valid range: 1 <= batch_size <= 500.
 
         Returns:
             list[models.VisualisationUploadUrlInfo]: A list with UploadUrlInfo objects containing the presigned
@@ -1034,9 +1034,9 @@ class HARIClient:
         Creates a presigned upload URL for a file to be uploaded to S3 and used for medias.
 
         Args:
-            dataset_id (str): id of the dataset to which the media will belong
-            file_extension (str): the file extension of the file to be uploaded. For example: ".jpg", ".png"
-            batch_size (int): number of upload links and ids to generate. Valid range: 1 <= batch_size <= 500.
+            dataset_id: id of the dataset to which the media will belong
+            file_extension: the file extension of the file to be uploaded. For example: ".jpg", ".png"
+            batch_size: number of upload links and ids to generate. Valid range: 1 <= batch_size <= 500.
 
         Returns:
             list[models.MediaUploadUrlInfo]: A list with MediaUploadUrlInfo objects containing the presigned
@@ -1560,7 +1560,7 @@ class HARIClient:
         Retrieves the list of processing jobs that the user has access to.
 
         Args:
-            trace_id (str, optional): Helps to identify related processing jobs. Use the trace_id that was specified when triggering a processing job
+            trace_id: Helps to identify related processing jobs. Use the trace_id that was specified when triggering a processing job
 
         Raises:
             APIException: If the request fails.
@@ -1588,7 +1588,7 @@ class HARIClient:
         Retrieves a specific processing job by its id.
 
         Args:
-            processing_job_id (str): The unique identifier of the processing job to retrieve.
+            processing_job_id: The unique identifier of the processing job to retrieve.
 
         Raises:
             APIException: If the request fails.
