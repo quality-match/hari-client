@@ -27,7 +27,7 @@ class ParseResponseModelError(Exception):
         self,
         response_data: typing.Any,
         response_model: T,
-        message: typing.Optional[str] = "",
+        message: str | None = "",
     ):
         self.response_data = response_data
         self.response_model = response_model
