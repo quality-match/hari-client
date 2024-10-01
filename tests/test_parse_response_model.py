@@ -1,4 +1,5 @@
 import typing
+import uuid
 
 import pydantic
 import pytest
@@ -210,7 +211,7 @@ def test_parse_response_model_works_with_list_of_unions(
 def test_extra_fields_allowed_for_models():
     # Arrange
     response_data = models.DatasetResponse(
-        id="1234",
+        id=uuid.uuid4(),
         name="my dataset",
         num_medias=0,
         num_media_objects=0,
