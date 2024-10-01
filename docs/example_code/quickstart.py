@@ -122,7 +122,7 @@ job_statuses = []
 jobs_are_still_running = True
 while jobs_are_still_running:
     jobs = hari.get_processing_jobs(trace_id=metadata_rebuild_trace_id)
-    job_statuses = [(job.id, job.status) for job in jobs]
+    job_statuses = [(job.id, job.status.value, job.process_name) for job in jobs]
 
     jobs_are_still_running = any(
         [

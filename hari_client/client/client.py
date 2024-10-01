@@ -1543,7 +1543,7 @@ class HARIClient:
     ### processing_jobs ###
     def get_processing_jobs(
         self,
-        trace_id: str = None,
+        trace_id: uuid.UUID = None,
     ) -> list[models.ProcessingJob]:
         """
         Retrieves the list of processing jobs that the user has access to.
@@ -1571,7 +1571,7 @@ class HARIClient:
 
     def get_processing_job(
         self,
-        processing_job_id: str,
+        processing_job_id: uuid.UUID,
     ) -> models.ProcessingJob:
         """
         Retrieves a specific processing job by its id.
