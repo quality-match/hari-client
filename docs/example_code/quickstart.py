@@ -15,11 +15,13 @@ config = Config()
 hari = HARIClient(config=config)
 
 # 2. Create a dataset
-# Replace "CHANGEME" with you own user group!
+# Replace "CHANGEME" with your own user group!
 new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
 print("Dataset created with id:", new_dataset.id)
 
-# 3. Setup your medias and all of their media objects.
+dataset_id = new_dataset.id
+
+# 3. Set up your medias and all of their media objects.
 # In this example we use 3 images with 1 media object each.
 media_1 = hari_uploader.HARIMedia(
     file_path="images/image_1.jpg",
@@ -72,8 +74,8 @@ media_3.add_media_object(
     )
 )
 
-# 4. Setup the uploader and add the medias to it
-uploader = hari_uploader.HARIUploader(client=hari, dataset_id=new_dataset.id)
+# 4. Set up the uploader and add the medias to it
+uploader = hari_uploader.HARIUploader(client=hari, dataset_id=dataset_id)
 uploader.add_media(media_1, media_2, media_3)
 
 # 5. Trigger the upload process
@@ -100,7 +102,7 @@ if (
 # 6. Create a subset
 print("Creating new subset...")
 new_subset_id = hari.create_subset(
-    dataset_id=new_dataset.id,
+    dataset_id=dataset_id,
     subset_type=models.SubsetType.MEDIA_OBJECT,
     subset_name="All media objects",
 )
@@ -109,10 +111,10 @@ print(f"Created new subset with id {new_subset_id}")
 # 7. Trigger metadata updates
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
-metadata_rebuild_trace_id = str(uuid.uuid4())
+metadata_rebuild_trace_id = uuid.uuid4()
 print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
 metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
-    dataset_id=new_dataset.id, trace_id=metadata_rebuild_trace_id
+    dataset_id=dataset_id, trace_id=metadata_rebuild_trace_id
 )
 
 # track the status of all metadata rebuild jobs and wait for them to finish
