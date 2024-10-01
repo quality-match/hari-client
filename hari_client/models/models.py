@@ -235,7 +235,7 @@ class VisualisationType(str, enum.Enum):
 
 
 class Dataset(BaseModel):
-    id: str = pydantic.Field(title="Id")
+    id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     data_root: str = pydantic.Field(title="Data Root")
     creation_timestamp: str = pydantic.Field(title="Creation Timestamp")
@@ -261,7 +261,7 @@ class Dataset(BaseModel):
 
 
 class DatasetResponse(BaseModel):
-    id: str = pydantic.Field(title="Id")
+    id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     parent_dataset: str | None = pydantic.Field(default=None, title="Parent Dataset")
     user_group: str | None = pydantic.Field(default=None, title="User Group")
@@ -370,7 +370,7 @@ class ImageTransformation(BaseModel):
     """An image transformation is a visualisation created by transforming an image file."""
 
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
@@ -394,7 +394,7 @@ class ImageTransformation(BaseModel):
 
 class Video(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
@@ -420,7 +420,7 @@ class Tile(BaseModel):
     """A special case of cropping, where the image is cropped into multiple tiles."""
 
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
@@ -442,7 +442,7 @@ class Tile(BaseModel):
 
 class RenderedVisualisation(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
@@ -466,7 +466,7 @@ class RenderedVisualisation(BaseModel):
 
 class Media(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default=None,
@@ -501,7 +501,7 @@ class Media(BaseModel):
 
 class MediaResponse(BaseModel):
     id: str | None = pydantic.Field(default=None, title="Id")
-    dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
+    dataset_id: uuid.UUID | None = pydantic.Field(default=None, title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
@@ -572,7 +572,7 @@ class CropVisualisationConfigParameters(BaseModel):
 
 class VisualisationConfiguration(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=False, title="Archived")
@@ -597,7 +597,7 @@ class Visualisation(BaseModel):
     """
 
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default=None,
@@ -620,7 +620,7 @@ class Visualisation(BaseModel):
 
 class MediaObject(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=False, title="Archived")
@@ -656,7 +656,7 @@ class MediaObject(BaseModel):
 
 class MediaObjectResponse(BaseModel):
     id: str | None = pydantic.Field(default=None, title="Id")
-    dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
+    dataset_id: uuid.UUID | None = pydantic.Field(default=None, title="Dataset Id")
     tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
@@ -729,7 +729,7 @@ class AttributeHistogram(BaseModel):
     filter_name: str
     type: HistogramType
     attribute_group: AttributeGroup
-    dataset_id: str
+    dataset_id: uuid.UUID
     subset_id: str | None = None
     num_buckets: int | None = None
     lower: float | None = None

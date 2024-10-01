@@ -248,7 +248,7 @@ class HARIClient:
             response.raise_for_status()
 
     def _upload_visualisation_file_with_presigned_url(
-        self, dataset_id: str, visualisation_config_id: str, file_path: str
+        self, dataset_id: uuid.UUID, visualisation_config_id: str, file_path: str
     ) -> models.VisualisationUploadUrlInfo:
         """Creates a presigned S3 upload url for the media visualisation located in file_path and uploads it.
 
@@ -277,7 +277,7 @@ class HARIClient:
 
     def _upload_media_files_with_presigned_urls(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         file_paths: list[str],
     ) -> list[models.MediaUploadUrlInfo]:
         """Creates a presigned S3 upload url for every media file and uploads them.
@@ -377,7 +377,7 @@ class HARIClient:
 
     def update_dataset(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         id: str | None = None,
         name: str | None = None,
         mediatype: models.MediaType | None = None,
@@ -425,7 +425,7 @@ class HARIClient:
             success_response_item_model=models.DatasetResponse,
         )
 
-    def get_dataset(self, dataset_id: str) -> models.DatasetResponse:
+    def get_dataset(self, dataset_id: uuid.UUID) -> models.DatasetResponse:
         """Returns a dataset with a given dataset_id.
 
         Args:
@@ -469,7 +469,7 @@ class HARIClient:
 
     def get_subsets_for_dataset(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
     ) -> list[models.DatasetResponse]:
         """Returns all subsets belonging to a specific dataset
@@ -492,7 +492,7 @@ class HARIClient:
             success_response_item_model=list[models.DatasetResponse],
         )
 
-    def archive_dataset(self, dataset_id: str) -> str:
+    def archive_dataset(self, dataset_id: uuid.UUID) -> str:
         """Archives a dataset and all its subsets.
 
         Args:
@@ -554,7 +554,7 @@ class HARIClient:
     ### media ###
     def create_media(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         file_path: str,
         name: str,
         media_type: models.MediaType,
@@ -613,7 +613,7 @@ class HARIClient:
         )
 
     def create_medias(
-        self, dataset_id: str, medias: list[models.BulkMediaCreate]
+        self, dataset_id: uuid.UUID, medias: list[models.BulkMediaCreate]
     ) -> models.BulkResponse:
         """Accepts multiple files, uploads them, and creates the medias in the db.
         The limit is 500 per call.
@@ -664,7 +664,7 @@ class HARIClient:
 
     def update_media(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_id: str,
         back_reference: str | None = None,
         archived: bool | None = None,
@@ -712,7 +712,7 @@ class HARIClient:
 
     def get_media(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_id: str,
         presign_media: bool | None = True,
         archived: bool | None = False,
@@ -743,7 +743,7 @@ class HARIClient:
 
     def get_medias(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         archived: bool | None = False,
         presign_medias: bool | None = True,
         limit: int | None = None,
@@ -778,7 +778,7 @@ class HARIClient:
             success_response_item_model=list[models.MediaResponse],
         )
 
-    def archive_media(self, dataset_id: str, media_id: str) -> str:
+    def archive_media(self, dataset_id: uuid.UUID, media_id: str) -> str:
         """Archive the media
 
         Args:
@@ -799,7 +799,7 @@ class HARIClient:
 
     def get_presigned_visualisation_upload_url(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         file_extension: str,
         visualisation_config_id: str,
         batch_size: int,
@@ -836,7 +836,7 @@ class HARIClient:
         )
 
     def get_media_histograms(
-        self, dataset_id: str, subset_id: str | None = None
+        self, dataset_id: uuid.UUID, subset_id: str | None = None
     ) -> list[models.AttributeHistogram]:
         """Get the histogram data
 
@@ -858,7 +858,7 @@ class HARIClient:
         )
 
     def get_instance_histograms(
-        self, dataset_id: str, subset_id: str | None = None
+        self, dataset_id: uuid.UUID, subset_id: str | None = None
     ) -> list[models.AttributeHistogram]:
         """Get the histogram data
 
@@ -881,7 +881,7 @@ class HARIClient:
 
     def get_media_object_count_statistics(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         subset_id: str | None = None,
         archived: bool | None = False,
     ) -> dict[str, typing.Any]:
@@ -907,7 +907,7 @@ class HARIClient:
 
     def get_media_count(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         archived: bool | None = False,
         query: models.QueryList | None = None,
     ) -> models.FilterCount:
@@ -933,7 +933,7 @@ class HARIClient:
 
     def create_visualisation_config(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         name: str,
         parameters: models.CropVisualisationConfigParameters
         | models.TileVisualisationConfigParameters
@@ -966,7 +966,7 @@ class HARIClient:
 
     def add_visualisation_to_media(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_id: str,
         file_path: str,
         visualisation_configuration_id: str,
@@ -1017,7 +1017,7 @@ class HARIClient:
         )
 
     def get_presigned_media_upload_url(
-        self, dataset_id: str, file_extension: str, batch_size: int
+        self, dataset_id: uuid.UUID, file_extension: str, batch_size: int
     ) -> list[models.MediaUploadUrlInfo]:
         """
         Creates a presigned upload URL for a file to be uploaded to S3 and used for medias.
@@ -1052,7 +1052,7 @@ class HARIClient:
     ### media object ###
     def create_media_object(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_id: str,
         back_reference: str,
         source: models.DataSource,
@@ -1108,7 +1108,7 @@ class HARIClient:
 
     def create_media_objects(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_objects: list[models.BulkMediaObjectCreate],
     ) -> models.BulkResponse:
         """Creates new media_objects in the database. The limit is 500 per call.
@@ -1143,7 +1143,7 @@ class HARIClient:
 
     def update_media_object(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_object_id: str,
         back_reference: str | None = None,
         archived: bool | None = None,
@@ -1195,7 +1195,7 @@ class HARIClient:
 
     def get_media_object(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_object_id: str,
         archived: bool | None = False,
         presign_media: bool | None = True,
@@ -1226,7 +1226,7 @@ class HARIClient:
 
     def get_media_objects(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         archived: bool | None = False,
         presign_medias: bool | None = True,
         limit: int | None = None,
@@ -1258,7 +1258,7 @@ class HARIClient:
             success_response_item_model=list[models.MediaObjectResponse],
         )
 
-    def archive_media_object(self, dataset_id: str, media_object_id: str) -> str:
+    def archive_media_object(self, dataset_id: uuid.UUID, media_object_id: str) -> str:
         """Delete (archive) a media object from the db.
 
         Args:
@@ -1278,7 +1278,7 @@ class HARIClient:
         )
 
     def get_media_object_histograms(
-        self, dataset_id: str, subset_id: str | None = None
+        self, dataset_id: uuid.UUID, subset_id: str | None = None
     ) -> list[models.AttributeHistogram]:
         """Get the histogram data
 
@@ -1301,7 +1301,7 @@ class HARIClient:
 
     def get_media_object_count(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         archived: bool | None = False,
         query: models.QueryList | None = None,
     ) -> models.FilterCount:
@@ -1327,7 +1327,7 @@ class HARIClient:
 
     def add_visualisation_to_media_object(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         media_object_id: str,
         file_path: str,
         visualisation_configuration_id: str,
