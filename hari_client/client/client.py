@@ -143,7 +143,7 @@ class HARIClient:
         url: str,
         success_response_item_model: typing.Type[T],
         **kwargs,
-    ) -> typing.Union[T, None]:
+    ) -> T | None:
         """Make a request to the API.
 
         Args:
@@ -566,9 +566,8 @@ class HARIClient:
         frame_timestamp: str | None = None,
         back_reference_json: str | None = None,
         visualisations: list[models.VisualisationUnion] | None = None,
-        subset_ids: typing.Union[set[str], None] = None,
-        metadata: typing.Union[models.ImageMetadata, models.PointCloudMetadata]
-        | None = None,
+        subset_ids: set[str] | None = None,
+        metadata: models.ImageMetadata | models.PointCloudMetadata | None = None,
     ) -> models.Media:
         """Accepts a single file, uploads it, and creates the media in the db.
 
@@ -674,8 +673,7 @@ class HARIClient:
         visualisations: list[models.VisualisationUnion] | None = None,
         subset_ids: list | None = None,
         name: str | None = None,
-        metadata: typing.Union[models.ImageMetadata, models.PointCloudMetadata]
-        | None = None,
+        metadata: models.ImageMetadata | models.PointCloudMetadata | None = None,
         frame_idx: int | None = None,
         media_type: models.MediaType | None = None,
         frame_timestamp: str | None = None,
@@ -937,11 +935,9 @@ class HARIClient:
         self,
         dataset_id: str,
         name: str,
-        parameters: typing.Union[
-            models.CropVisualisationConfigParameters,
-            models.TileVisualisationConfigParameters,
-            models.RenderedVisualisationConfigParameters,
-        ],
+        parameters: models.CropVisualisationConfigParameters
+        | models.TileVisualisationConfigParameters
+        | models.RenderedVisualisationConfigParameters,
     ) -> models.VisualisationConfiguration:
         """Creates a new visualisation_config based on the provided parameters.
 

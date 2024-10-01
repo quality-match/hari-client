@@ -25,7 +25,7 @@ class VisualisationParameters(str, enum.Enum):
 ComparisonOperator = typing.Literal["<", "<=", ">", ">=", "==", "!="]
 SetOperator = typing.Literal["in", "not in", "all"]
 LogicOperator = typing.Literal["and", "or", "not"]
-QueryOperator = typing.Union[ComparisonOperator, SetOperator]
+QueryOperator = ComparisonOperator | SetOperator
 
 
 class QueryParameter(BaseModel):
@@ -36,7 +36,7 @@ class QueryParameter(BaseModel):
 
 class LogicParameter(BaseModel):
     operator: LogicOperator
-    queries: list[typing.Union[QueryParameter, LogicParameter]]
+    queries: list[QueryParameter | LogicParameter]
 
 
 class PaginationParameter(BaseModel):
@@ -44,7 +44,7 @@ class PaginationParameter(BaseModel):
     skip: int | None = None
 
 
-QueryList = list[typing.Union[QueryParameter, LogicParameter]]
+QueryList = list[QueryParameter | LogicParameter]
 SortingDirection = typing.Literal["asc", "desc"]
 
 
@@ -350,9 +350,7 @@ class TransformationParameters(BaseModel):
     resize: list | None = pydantic.Field(default=None, title="Resize")
     crop: list | None = pydantic.Field(default=None, title="Crop")
     quality: int | None = pydantic.Field(default=None, title="Quality")
-    format: typing.Union[
-        str, str, str, str, str, str, str, str, str
-    ] | None = pydantic.Field(default=None, title="Format")
+    format: str | None = pydantic.Field(default=None, title="Format")
     rotate: int | None = pydantic.Field(default=None, title="Rotate")
     upscale: bool | None = pydantic.Field(default=None, title="Upscale")
     proportion: typing.Any | None = pydantic.Field(default=None, title="Proportion")
@@ -490,7 +488,7 @@ class Media(BaseModel):
     media_url: str = pydantic.Field(title="Media Url")
     pii_media_url: str = pydantic.Field(title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
-    metadata: typing.Union[ImageMetadata, PointCloudMetadata] | None = pydantic.Field(
+    metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
         default=None, title="ImageMetadata"
     )
     frame_idx: int | None = pydantic.Field(default=None, title="Frame Idx")
@@ -524,7 +522,7 @@ class MediaResponse(BaseModel):
     media_url: str | None = pydantic.Field(default=None, title="Media Url")
     pii_media_url: str | None = pydantic.Field(default=None, title="Pii Media Url")
     name: str | None = pydantic.Field(default=None, title="Name")
-    metadata: typing.Union[ImageMetadata, PointCloudMetadata] | None = pydantic.Field(
+    metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
         default=None, title="ImageMetadata"
     )
     frame_idx: int | None = pydantic.Field(default=None, title="Frame Idx")
@@ -579,13 +577,9 @@ class VisualisationConfiguration(BaseModel):
     timestamp: str = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=False, title="Archived")
     name: str = pydantic.Field(title="Name")
-    parameters: typing.Union[
-        CropVisualisationConfigParameters,
-        LidarVideoVisualisationConfigParameters,
-        LidarVideoStackedVisualisationConfigParameters,
-        TileVisualisationConfigParameters,
-        RenderedVisualisationConfigParameters,
-    ] = pydantic.Field(title="CropVisualisationConfigParameters")
+    parameters: CropVisualisationConfigParameters | LidarVideoVisualisationConfigParameters | LidarVideoStackedVisualisationConfigParameters | TileVisualisationConfigParameters | RenderedVisualisationConfigParameters = pydantic.Field(
+        title="CropVisualisationConfigParameters"
+    )
     subset_ids: list = pydantic.Field(title="Subset Ids")
 
 
@@ -741,7 +735,7 @@ class AttributeHistogram(BaseModel):
     lower: float | None = None
     upper: float | None = None
     interval: float | None = None
-    buckets: list[tuple[typing.Union[int, float, str], int]]
+    buckets: list[tuple[int | float | str, int]]
     cant_solves: int = 0
     corrupt_data: int = 0
     statistics: AttributeHistogramStatistics | None = None
@@ -759,19 +753,17 @@ class VisualisationUploadUrlInfo(BaseModel):
     visualisation_url: str
 
 
-VisualisationUnion = typing.Union[
-    ImageTransformation, Video, Tile, RenderedVisualisation
-]
-GeometryUnion = typing.Union[
-    BBox2DCenterPoint,
-    Point2DXY,
-    PolyLine2DFlatCoordinates,
-    CuboidCenterPoint,
-    Point3DXYZ,
-    BoundingBox2DAggregation,
-    Point2DAggregation,
-    Point3DAggregation,
-]
+VisualisationUnion = ImageTransformation | Video | Tile | RenderedVisualisation
+GeometryUnion = (
+    BBox2DCenterPoint
+    | Point2DXY
+    | PolyLine2DFlatCoordinates
+    | CuboidCenterPoint
+    | Point3DXYZ
+    | BoundingBox2DAggregation
+    | Point2DAggregation
+    | Point3DAggregation
+)
 
 
 class BulkOperationStatusEnum(str, enum.Enum):
@@ -822,9 +814,7 @@ class BulkResponse(BaseModel):
         default_factory=BulkUploadSuccessSummary
     )
     results: list[
-        typing.Union[
-            AnnotatableCreateResponse, AttributeCreateResponse, BaseBulkItemResponse
-        ]
+        AnnotatableCreateResponse | AttributeCreateResponse | BaseBulkItemResponse
     ] = pydantic.Field(default_factory=list)
 
 
@@ -841,9 +831,9 @@ class MediaCreate(BaseModel):
     scene_id: str | None = None
     realWorldObject_id: str | None = None
     visualisations: list[VisualisationUnion] | None = None
-    subset_ids: typing.Union[set[str], list[str], None] = None
+    subset_ids: set[str] | list[str] | None = None
 
-    metadata: typing.Union[ImageMetadata, PointCloudMetadata, None] = None
+    metadata: ImageMetadata | PointCloudMetadata | None = None
     frame_idx: int | None = None
     frame_timestamp: datetime.datetime | None = None
     back_reference_json: str | None = None
@@ -862,7 +852,7 @@ class MediaObjectCreate(BaseModel):
     scene_id: str | None = None
     realWorldObject_id: str | None = None
     visualisations: list[VisualisationUnion] | None = None
-    subset_ids: typing.Union[set[str], list[str], None] = None
+    subset_ids: set[str] | list[str] | None = None
 
     instance_id: str | None = None
     object_category: str | None = None
