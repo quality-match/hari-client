@@ -164,7 +164,7 @@ class HARIClient:
         if not response.ok:
             raise errors.APIError(response)
 
-        if not "application/json" in response.headers.get("Content-Type", ""):
+        if "application/json" not in response.headers.get("Content-Type", ""):
             raise ValueError(
                 "Expected application/json to be in Content-Type header, but couldn't find it."
             )
@@ -1606,14 +1606,16 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            attributes: A list of AttributeCreate objects. Each object contains the file_path as a field.
+            attributes: A list of AttributeCreate objects. Each object contains the
+                file_path as a field.
 
         Returns:
             A BulkResponse with information on upload successes and failures.
 
         Raises:
             APIException: If the request fails.
-            BulkUploadSizeRangeError: if the number of attributes exceeds the per call upload limit.
+            BulkUploadSizeRangeError: if the number of attributes exceeds the per call
+                upload limit.
         """
 
         if len(attributes) > HARIClient.BULK_UPLOAD_LIMIT:
@@ -1622,7 +1624,7 @@ class HARIClient:
             )
 
         # 1. parse attributes to dicts before upload
-        attribute_dicts = [attribute.dict() for attribute in attributes]
+        attribute_dicts = [attribute.model_dump() for attribute in attributes]
 
         # 2. send attributes to HARI
         return self._request(
@@ -1630,4 +1632,154 @@ class HARIClient:
             f"/datasets/{dataset_id}/attributes:bulk",
             json=attribute_dicts,
             success_response_item_model=models.BulkResponse,
+        )
+
+    def get_attributes(
+        self,
+        dataset_id: str,
+        archived: bool | None = False,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.AttributeResponse]:
+        """Returns all attributes of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            archived: True if archived attributes should be returned
+            limit: The maximum number of attributes to return
+            skip: The number of attributes to skip
+            query: A query to filter attributes
+            sort: A order by which to sort attributes
+            projection: A dictionary of fields to return
+
+        Returns:
+            A list of attributes
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributes",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AttributeResponse],
+        )
+
+    def get_attribute(
+        self, dataset_id: str, attribute_id: str, annotatable_id: str
+    ) -> models.Attribute:
+        """Returns an attribute with a given attribute_id.
+
+        Args:
+            dataset_id: The dataset id
+            attribute_id: The attribute id
+            annotatable_id: The id of the annotatable the attribute belongs to
+
+        Returns:
+            The attribute with the given attribute_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributes/{attribute_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=models.Attribute,
+        )
+
+    def update_attribute(
+        self,
+        dataset_id: str,
+        attribute_id: uuid.UUID,
+        name: str | None = None,
+        annotatable_id: str | None = None,
+        annotatable_type: models.DataBaseObjectType | None = None,
+        attribute_group: models.AttributeGroup | None = None,
+        value: models.typeT | None = None,
+        min: models.typeT | None = None,
+        max: models.typeT | None = None,
+        sum: models.typeT | None = None,
+        cant_solves: int | None = None,
+        solvability: float | None = None,
+        aggregate: typing.Any | None = None,
+        modal: typing.Any | None = None,
+        credibility: float | None = None,
+        convergence: float | None = None,
+        ambiguity: float | None = None,
+        median: typing.Any | None = None,
+        variance: typing.Any | None = None,
+        standard_deviation: typing.Any | None = None,
+        range: typing.Any | None = None,
+        average_absolute_deviation: typing.Any | None = None,
+        cumulated_frequency: typing.Any | None = None,
+        frequency: dict[str, int] | None = None,
+        question: str | None = None,
+        archived: bool | None = None,
+    ) -> models.Attribute:
+        """Updates the attribute with the given id.
+
+        Args:
+            dataset_id: The dataset id
+            attribute_id: The attribute id
+            name: The name of the attribute
+            value: The value of the attribute
+            annotatable_id: The annotatable id
+            annotatable_type: The annotatable type
+            attribute_group: The attribute group
+            min: The min value
+            max: The max value
+            sum: The sum value
+            cant_solves: The cant solves value
+            solvability: The solvability value
+            aggregate: The aggregate value
+            modal: The modal value
+            credibility: The credibility value
+            convergence: The convergence value
+            ambiguity: The ambiguity value
+            median: The median value
+            variance: The variance value
+            standard_deviation: The standard deviation value
+            range: The range value
+            average_absolute_deviation: The average absolute deviation value
+            cumulated_frequency: The cumulated frequency value
+            frequency: The frequency value
+            question: The question value
+            archived: The archived value
+            range: The range value
+
+        Returns:
+            The updated attribute
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "PATCH",
+            f"/datasets/{dataset_id}/attributes/{attribute_id}",
+            params={"annotatable_id": annotatable_id},
+            json=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=models.Attribute,
+        )
+
+    def delete_attribute(self, dataset_id: str, attribute_id: str) -> models.Attribute:
+        """Delete an attribute from a dataset.
+
+        Args:
+            dataset_id (str): The ID of the dataset.
+            attribute_id (str): The ID of the attribute.
+
+        Returns:
+            The deleted attribute
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/datasets/{dataset_id}/attributes/{attribute_id}",
+            success_response_item_model=models.Attribute,
         )
