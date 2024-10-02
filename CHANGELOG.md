@@ -2,11 +2,11 @@
 
 ### Fixes
 
-- fixed merge_bulk_responses for the case when no responses are given [PR#20](https://github.com/quality-match/hari-client/pull/20)
+- fixed merge_bulk_responses for the case when no responses are given, therefore uploading media without media_objects isn't identified as an unsuccessful upload anymore [PR#20](https://github.com/quality-match/hari-client/pull/20)
 
 ### Internal
 
-- updated old type-hinting conventions for is 3.11 [PR#19](https://github.com/quality-match/hari-client/pull/19)
+- updated occurrences of old type-hinting conventions (e.g. using pipe (`|`) instead of `typing.Optional` and `typing.Union`) [PR#19](https://github.com/quality-match/hari-client/pull/19)
 - fixed some str/uuid inconsistencies for models [PR#19](https://github.com/quality-match/hari-client/pull/19)
 
 ## [1.0.0] - 27.09.2024
