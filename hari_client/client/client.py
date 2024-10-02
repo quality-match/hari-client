@@ -1634,6 +1634,76 @@ class HARIClient:
             success_response_item_model=models.BulkResponse,
         )
 
+    def create_attribute(
+        self,
+        id: str,
+        dataset_id: str,
+        name: str,
+        annotatable_id: str,
+        value: models.typeT,
+        attribute_group: models.AttributeGroup,
+        annotatable_type: models.DataBaseObjectType,
+        attribute_type: models.AttributeType | None = None,
+        min: models.typeT | None = None,
+        max: models.typeT | None = None,
+        sum: models.typeT | None = None,
+        cant_solves: int | None = None,
+        solvability: float | None = None,
+        aggregate: typing.Any | None = None,
+        modal: typing.Any | None = None,
+        credibility: float | None = None,
+        convergence: float | None = None,
+        ambiguity: float | None = None,
+        median: typing.Any | None = None,
+        variance: typing.Any | None = None,
+        standard_deviation: typing.Any | None = None,
+        range: typing.Any | None = None,
+        average_absolute_deviation: typing.Any | None = None,
+        cumulated_frequency: typing.Any | None = None,
+        frequency: dict[str, int] | None = None,
+        question: str | None = None,
+    ) -> models.Attribute:
+        """Create an attribute for a dataset.
+
+        Args:
+            dataset_id: The dataset id
+            id: The attribute id
+            name: The name of the attribute
+            value: The value of the attribute
+            annotatable_id: The annotatable id
+            annotatable_type: The annotatable type
+            attribute_group: The attribute group
+            min: The min value
+            max: The max value
+            sum: The sum value
+            cant_solves: The cant solves value
+            solvability: The solvability value
+            aggregate: The aggregate value
+            modal: The modal value
+            credibility: The credibility value
+            convergence: The convergence value
+            ambiguity: The ambiguity value
+            median: The median value
+            variance: The variance value
+            standard_deviation: The standard deviation value
+            range: The range value
+            average_absolute_deviation: The average absolute deviation value
+            cumulated_frequency: The cumulated frequency value
+            frequency: The frequency value
+            question: The question value
+            archived: The archived value
+            range: The range value
+
+        Returns:
+            The created attribute.
+        """
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/attributes",
+            json=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=models.Attribute,
+        )
+
     def get_attributes(
         self,
         dataset_id: str,
@@ -1670,7 +1740,7 @@ class HARIClient:
 
     def get_attribute(
         self, dataset_id: str, attribute_id: str, annotatable_id: str
-    ) -> models.Attribute:
+    ) -> models.AttributeResponse:
         """Returns an attribute with a given attribute_id.
 
         Args:
@@ -1694,7 +1764,7 @@ class HARIClient:
     def update_attribute(
         self,
         dataset_id: str,
-        attribute_id: uuid.UUID,
+        attribute_id: str,
         name: str | None = None,
         annotatable_id: str | None = None,
         annotatable_type: models.DataBaseObjectType | None = None,
@@ -1719,6 +1789,8 @@ class HARIClient:
         frequency: dict[str, int] | None = None,
         question: str | None = None,
         archived: bool | None = None,
+        ml_predidictions: dict[str, float] | None = None,
+        ml_probability_distributions: dict[str, float] | None = None,
     ) -> models.Attribute:
         """Updates the attribute with the given id.
 
@@ -1750,6 +1822,8 @@ class HARIClient:
             question: The question value
             archived: The archived value
             range: The range value
+            ml_predidictions: The parameters of the posterior Dirichlet distribution
+            ml_probability_distributions: The the Dirichlet distribution values
 
         Returns:
             The updated attribute
@@ -1765,12 +1839,15 @@ class HARIClient:
             success_response_item_model=models.Attribute,
         )
 
-    def delete_attribute(self, dataset_id: str, attribute_id: str) -> models.Attribute:
+    def delete_attribute(
+        self, dataset_id: str, attribute_id: str, annotatable_id: str
+    ) -> str:
         """Delete an attribute from a dataset.
 
         Args:
-            dataset_id (str): The ID of the dataset.
-            attribute_id (str): The ID of the attribute.
+            dataset_id: The ID of the dataset.
+            attribute_id: The ID of the attribute.
+            annotatable_id: The id of the annotatable the attribute belongs to
 
         Returns:
             The deleted attribute
@@ -1781,5 +1858,6 @@ class HARIClient:
         return self._request(
             "DELETE",
             f"/datasets/{dataset_id}/attributes/{attribute_id}",
-            success_response_item_model=models.Attribute,
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=str,
         )
