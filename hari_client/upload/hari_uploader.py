@@ -215,7 +215,7 @@ class HARIUploader:
     ) -> None:
         for media in medias_to_upload:
             if len(media.media_objects) == 0:
-                return
+                continue
             # from the endpoints we used, we know that the results items are of type models.AnnotatableCreateResponse,
             # which contains the bulk_operation_annotatable_id.
             filtered_upload_response = list(
