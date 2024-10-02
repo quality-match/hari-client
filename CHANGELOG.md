@@ -1,5 +1,10 @@
 ## [major.minor.patch] - YYYY-MM-DD
 
+### Internal
+
+- update old type-hinting conventions for is 3.11
+- fix some str/uuid inconsistencies for models
+
 ## [1.0.0] - 27.09.2024
 
 ### New Features
