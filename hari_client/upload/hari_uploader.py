@@ -330,6 +330,8 @@ class HARIUploader:
         media_object_upload_bulk_response: models.BulkResponse,
     ) -> None:
         for media_object in media_objects_to_upload:
+            if len(media_object.attributes) == 0:
+                continue
             # from the endpoints we used, we know that the results items are of type
             # models.AnnotatableCreateResponse, which contains the bulk_operation_
             # annotatable_id.
@@ -362,6 +364,8 @@ class HARIUploader:
         media_upload_bulk_response: models.BulkResponse,
     ) -> None:
         for media in medias_to_upload:
+            if len(media.attributes) == 0:
+                continue
             # from the endpoints we used, we know that the results items are of type
             # models.AnnotatableCreateResponse, which contains the bulk_operation_
             # annotatable_id.
@@ -372,8 +376,7 @@ class HARIUploader:
                     media_upload_bulk_response.results,
                 )
             )
-            if len(media.attributes) == 0:
-                return
+
             if len(filtered_upload_response) == 0:
                 raise HARIMediaUploadError(
                     f"Media upload response doesn't match expectation. Couldn't find "
