@@ -25,7 +25,7 @@ class VisualisationParameters(str, enum.Enum):
 ComparisonOperator = typing.Literal["<", "<=", ">", ">=", "==", "!="]
 SetOperator = typing.Literal["in", "not in", "all"]
 LogicOperator = typing.Literal["and", "or", "not"]
-QueryOperator = typing.Union[ComparisonOperator, SetOperator]
+QueryOperator = ComparisonOperator | SetOperator
 
 
 class QueryParameter(BaseModel):
@@ -36,15 +36,15 @@ class QueryParameter(BaseModel):
 
 class LogicParameter(BaseModel):
     operator: LogicOperator
-    queries: list[typing.Union[QueryParameter, LogicParameter]]
+    queries: list[QueryParameter | LogicParameter]
 
 
 class PaginationParameter(BaseModel):
-    limit: typing.Optional[int] = None
-    skip: typing.Optional[int] = None
+    limit: int | None = None
+    skip: int | None = None
 
 
-QueryList = list[typing.Union[QueryParameter, LogicParameter]]
+QueryList = list[QueryParameter | LogicParameter]
 SortingDirection = typing.Literal["asc", "desc"]
 
 
@@ -80,15 +80,15 @@ class Point2DAggregationMetrics(BaseModel):
 
 
 class BoundingBox2DAggregationMetrics(BaseModel):
-    iou_to_aggregated_box: typing.Optional[dict[str, typing.Any]] = pydantic.Field(
+    iou_to_aggregated_box: dict[str, typing.Any] | None = pydantic.Field(
         default=None, title="Iou To Aggregated Box"
     )
-    distance_to_center_of_aggregated_box: typing.Optional[
-        dict[str, typing.Any]
-    ] = pydantic.Field(default=None, title="Distance To Center Of Aggregated Box")
-    absolute_difference_to_area_of_aggregated_box: typing.Optional[
-        dict[str, typing.Any]
-    ] = pydantic.Field(
+    distance_to_center_of_aggregated_box: dict[str, typing.Any] | None = pydantic.Field(
+        default=None, title="Distance To Center Of Aggregated Box"
+    )
+    absolute_difference_to_area_of_aggregated_box: dict[
+        str, typing.Any
+    ] | None = pydantic.Field(
         default=None, title="Absolute Difference To Area Of Aggregated Box"
     )
 
@@ -98,7 +98,7 @@ class Point3DAggregation(BaseModel):
     x: typing.Any = pydantic.Field(title="X")
     y: typing.Any = pydantic.Field(title="Y")
     z: typing.Any = pydantic.Field(title="Z")
-    metrics: typing.Optional[Point3DAggregationMetrics] = pydantic.Field(
+    metrics: Point3DAggregationMetrics | None = pydantic.Field(
         default=None, title="Point3DAggregationMetrics"
     )
 
@@ -107,7 +107,7 @@ class Point2DAggregation(BaseModel):
     type: str = pydantic.Field(title="Type")
     x: typing.Any = pydantic.Field(title="X")
     y: typing.Any = pydantic.Field(title="Y")
-    metrics: typing.Optional[Point2DAggregationMetrics] = pydantic.Field(
+    metrics: Point2DAggregationMetrics | None = pydantic.Field(
         default=None, title="Point2DAggregationMetrics"
     )
 
@@ -118,7 +118,7 @@ class BoundingBox2DAggregation(BaseModel):
     y: typing.Any = pydantic.Field(title="Y")
     width: typing.Any = pydantic.Field(title="Width")
     height: typing.Any = pydantic.Field(title="Height")
-    metrics: typing.Optional[BoundingBox2DAggregationMetrics] = pydantic.Field(
+    metrics: BoundingBox2DAggregationMetrics | None = pydantic.Field(
         default=None, title="BoundingBox2DAggregationMetrics"
     )
 
@@ -235,69 +235,53 @@ class VisualisationType(str, enum.Enum):
 
 
 class Dataset(BaseModel):
-    id: str = pydantic.Field(title="Id")
+    id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     data_root: str = pydantic.Field(title="Data Root")
     creation_timestamp: str = pydantic.Field(title="Creation Timestamp")
     mediatype: MediaType = pydantic.Field(title="MediaType")
-    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
-    reference_files: typing.Optional[list] = pydantic.Field(
-        default=None, title="Reference Files"
-    )
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    reference_files: list | None = pydantic.Field(default=None, title="Reference Files")
     num_medias: int = pydantic.Field(title="Num Medias")
     num_media_objects: int = pydantic.Field(title="Num Media Objects")
-    num_annotations: typing.Optional[int] = pydantic.Field(
-        default=None, title="Num Annotations"
-    )
-    num_attributes: typing.Optional[int] = pydantic.Field(
-        default=None, title="Num Attributes"
-    )
+    num_annotations: int | None = pydantic.Field(default=None, title="Num Annotations")
+    num_attributes: int | None = pydantic.Field(default=None, title="Num Attributes")
     num_instances: int = pydantic.Field(title="Num Instances")
-    color: typing.Optional[str] = pydantic.Field(default="#FFFFFF", title="Color")
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
-    is_anonymized: typing.Optional[bool] = pydantic.Field(
-        default=False, title="Is Anonymized"
-    )
-    license: typing.Optional[str] = pydantic.Field(default=None, title="License")
-    owner: typing.Optional[str] = pydantic.Field(default=None, title="Owner")
-    current_snapshot_id: typing.Optional[int] = pydantic.Field(
+    color: str | None = pydantic.Field(default="#FFFFFF", title="Color")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
+    is_anonymized: bool | None = pydantic.Field(default=False, title="Is Anonymized")
+    license: str | None = pydantic.Field(default=None, title="License")
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    current_snapshot_id: int | None = pydantic.Field(
         default=None, title="Current Snapshot Id"
     )
-    visibility_status: typing.Optional[VisibilityStatus] = pydantic.Field(
+    visibility_status: VisibilityStatus | None = pydantic.Field(
         default="visible", title="VisibilityStatus"
     )
 
 
 class DatasetResponse(BaseModel):
-    id: str = pydantic.Field(title="Id")
+    id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
-    parent_dataset: typing.Optional[str] = pydantic.Field(
-        default=None, title="Parent Dataset"
-    )
-    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
+    parent_dataset: str | None = pydantic.Field(default=None, title="Parent Dataset")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
     num_medias: int = pydantic.Field(title="Num Medias")
     num_media_objects: int = pydantic.Field(title="Num Media Objects")
     num_instances: int = pydantic.Field(title="Num Instances")
-    done_percentage: typing.Optional[typing.Any] = pydantic.Field(
+    done_percentage: typing.Any | None = pydantic.Field(
         default=None, title="Done Percentage"
     )
-    creation_timestamp: typing.Optional[str] = pydantic.Field(
+    creation_timestamp: str | None = pydantic.Field(
         default=None, title="Creation Timestamp"
     )
-    color: typing.Optional[str] = pydantic.Field(default="#FFFFFF", title="Color")
-    subset_type: typing.Optional[SubsetType] = pydantic.Field(
-        default=None, title="SubsetType"
-    )
+    color: str | None = pydantic.Field(default="#FFFFFF", title="Color")
+    subset_type: SubsetType | None = pydantic.Field(default=None, title="SubsetType")
     mediatype: MediaType = pydantic.Field(title="MediaType")
-    object_category: typing.Optional[bool] = pydantic.Field(
-        default=None, title="Object Category"
-    )
-    is_anonymized: typing.Optional[bool] = pydantic.Field(
-        default=None, title="Is Anonymized"
-    )
-    export_id: typing.Optional[str] = pydantic.Field(default=None, title="Export Id")
-    license: typing.Optional[str] = pydantic.Field(default=None, title="License")
-    visibility_status: typing.Optional[VisibilityStatus] = pydantic.Field(
+    object_category: bool | None = pydantic.Field(default=None, title="Object Category")
+    is_anonymized: bool | None = pydantic.Field(default=None, title="Is Anonymized")
+    export_id: str | None = pydantic.Field(default=None, title="Export Id")
+    license: str | None = pydantic.Field(default=None, title="License")
+    visibility_status: VisibilityStatus | None = pydantic.Field(
         default=VisibilityStatus.VISIBLE, title="VisibilityStatus"
     )
 
@@ -313,12 +297,12 @@ class CameraModelType(str, enum.Enum):
 
 
 class CameraDistortionCoefficients(BaseModel):
-    k1: typing.Optional[typing.Any] = pydantic.Field(default=None, title="K1")
-    k2: typing.Optional[typing.Any] = pydantic.Field(default=None, title="K2")
-    k3: typing.Optional[typing.Any] = pydantic.Field(default=None, title="K3")
-    k4: typing.Optional[typing.Any] = pydantic.Field(default=None, title="K4")
-    p1: typing.Optional[typing.Any] = pydantic.Field(default=None, title="P1")
-    p2: typing.Optional[typing.Any] = pydantic.Field(default=None, title="P2")
+    k1: typing.Any | None = pydantic.Field(default=None, title="K1")
+    k2: typing.Any | None = pydantic.Field(default=None, title="K2")
+    k3: typing.Any | None = pydantic.Field(default=None, title="K3")
+    k4: typing.Any | None = pydantic.Field(default=None, title="K4")
+    p1: typing.Any | None = pydantic.Field(default=None, title="P1")
+    p2: typing.Any | None = pydantic.Field(default=None, title="P2")
 
 
 class CameraIntrinsics(BaseModel):
@@ -327,9 +311,9 @@ class CameraIntrinsics(BaseModel):
     principal_point: Point2DTuple = pydantic.Field()
     width_px: typing.Any = pydantic.Field(title="Width Px")
     height_px: typing.Any = pydantic.Field(title="Height Px")
-    distortion_coefficients: typing.Optional[
-        CameraDistortionCoefficients
-    ] = pydantic.Field(default=None, title="CameraDistortionCoefficients")
+    distortion_coefficients: CameraDistortionCoefficients | None = pydantic.Field(
+        default=None, title="CameraDistortionCoefficients"
+    )
 
 
 class PointCloudMetadata(BaseModel):
@@ -338,14 +322,12 @@ class PointCloudMetadata(BaseModel):
 
 
 class ImageMetadata(BaseModel):
-    width: typing.Optional[int] = pydantic.Field(default=None, title="Width")
-    height: typing.Optional[int] = pydantic.Field(default=None, title="Height")
-    camera_intrinsics: typing.Optional[CameraIntrinsics] = pydantic.Field(
+    width: int | None = pydantic.Field(default=None, title="Width")
+    height: int | None = pydantic.Field(default=None, title="Height")
+    camera_intrinsics: CameraIntrinsics | None = pydantic.Field(
         default=None, title="CameraIntrinsics"
     )
-    camera_extrinsics: typing.Optional[Pose3D] = pydantic.Field(
-        default=None, title="Pose3D"
-    )
+    camera_extrinsics: Pose3D | None = pydantic.Field(default=None, title="Pose3D")
 
 
 class TransformationParameters(BaseModel):
@@ -365,25 +347,21 @@ class TransformationParameters(BaseModel):
         flop: whether to flop the image vertically
     """
 
-    resize: typing.Optional[list] = pydantic.Field(default=None, title="Resize")
-    crop: typing.Optional[list] = pydantic.Field(default=None, title="Crop")
-    quality: typing.Optional[int] = pydantic.Field(default=None, title="Quality")
-    format: typing.Optional[
-        typing.Union[str, str, str, str, str, str, str, str, str]
-    ] = pydantic.Field(default=None, title="Format")
-    rotate: typing.Optional[int] = pydantic.Field(default=None, title="Rotate")
-    upscale: typing.Optional[bool] = pydantic.Field(default=None, title="Upscale")
-    proportion: typing.Optional[typing.Any] = pydantic.Field(
-        default=None, title="Proportion"
-    )
-    strip_exif: typing.Optional[bool] = pydantic.Field(default=None, title="Strip Exif")
-    strip_icc: typing.Optional[bool] = pydantic.Field(default=None, title="Strip Icc")
-    flip: typing.Optional[bool] = pydantic.Field(default=None, title="Flip")
-    flop: typing.Optional[bool] = pydantic.Field(default=None, title="Flop")
-    original_image_height: typing.Optional[int] = pydantic.Field(
+    resize: list | None = pydantic.Field(default=None, title="Resize")
+    crop: list | None = pydantic.Field(default=None, title="Crop")
+    quality: int | None = pydantic.Field(default=None, title="Quality")
+    format: str | None = pydantic.Field(default=None, title="Format")
+    rotate: int | None = pydantic.Field(default=None, title="Rotate")
+    upscale: bool | None = pydantic.Field(default=None, title="Upscale")
+    proportion: typing.Any | None = pydantic.Field(default=None, title="Proportion")
+    strip_exif: bool | None = pydantic.Field(default=None, title="Strip Exif")
+    strip_icc: bool | None = pydantic.Field(default=None, title="Strip Icc")
+    flip: bool | None = pydantic.Field(default=None, title="Flip")
+    flop: bool | None = pydantic.Field(default=None, title="Flop")
+    original_image_height: int | None = pydantic.Field(
         default=None, title="Original Image Height"
     )
-    original_image_width: typing.Optional[int] = pydantic.Field(
+    original_image_width: int | None = pydantic.Field(
         default=None, title="Original Image Width"
     )
 
@@ -392,103 +370,95 @@ class ImageTransformation(BaseModel):
     """An image transformation is a visualisation created by transforming an image file."""
 
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
     )
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     visualisation_type: str = pydantic.Field(
         default="ImageTransformation", title="Visualisation Type"
     )
-    visualisation_configuration_id: typing.Optional[str] = pydantic.Field(
+    visualisation_configuration_id: str | None = pydantic.Field(
         default=None, title="Visualisation Configuration Id"
     )
-    annotatable_id: typing.Optional[str] = pydantic.Field(
-        default=None, title="Annotatable Id"
-    )
-    annotatable_type: typing.Optional[DataBaseObjectType] = pydantic.Field(
+    annotatable_id: str | None = pydantic.Field(default=None, title="Annotatable Id")
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
         default=None, title="DataBaseObjectType"
     )
     parameters: TransformationParameters = pydantic.Field(
         title="TransformationParameters"
     )
-    media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
 
 
 class Video(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
     )
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     visualisation_type: str = pydantic.Field(
         default="Video", title="Visualisation Type"
     )
-    visualisation_configuration_id: typing.Optional[str] = pydantic.Field(
+    visualisation_configuration_id: str | None = pydantic.Field(
         default=None, title="Visualisation Configuration Id"
     )
-    annotatable_id: typing.Optional[str] = pydantic.Field(
-        default=None, title="Annotatable Id"
-    )
-    annotatable_type: typing.Optional[DataBaseObjectType] = pydantic.Field(
+    annotatable_id: str | None = pydantic.Field(default=None, title="Annotatable Id")
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
         default=None, title="DataBaseObjectType"
     )
-    parameters: typing.Optional[VideoParameters] = pydantic.Field(
+    parameters: VideoParameters | None = pydantic.Field(
         default=None, title="VideoParameters"
     )
-    media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
 
 
 class Tile(BaseModel):
     """A special case of cropping, where the image is cropped into multiple tiles."""
 
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
     )
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     visualisation_type: str = pydantic.Field(default="Tile", title="Visualisation Type")
-    visualisation_configuration_id: typing.Optional[str] = pydantic.Field(
+    visualisation_configuration_id: str | None = pydantic.Field(
         default=None, title="Visualisation Configuration Id"
     )
-    annotatable_id: typing.Optional[str] = pydantic.Field(
-        default=None, title="Annotatable Id"
-    )
-    annotatable_type: typing.Optional[DataBaseObjectType] = pydantic.Field(
+    annotatable_id: str | None = pydantic.Field(default=None, title="Annotatable Id")
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
         default=None, title="DataBaseObjectType"
     )
     parameters: TransformationParameters = pydantic.Field(
         title="TransformationParameters"
     )
-    media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
 
 
 class RenderedVisualisation(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default="2024-06-30T23:04:12.478027", title="Timestamp"
     )
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     visualisation_type: str = pydantic.Field(
         default="Rendered", title="Visualisation Type"
     )
-    visualisation_configuration_id: typing.Optional[str] = pydantic.Field(
+    visualisation_configuration_id: str | None = pydantic.Field(
         default=None, title="Visualisation Configuration Id"
     )
-    annotatable_id: typing.Optional[str] = pydantic.Field(
-        default=None, title="Annotatable Id"
-    )
-    annotatable_type: typing.Optional[DataBaseObjectType] = pydantic.Field(
+    annotatable_id: str | None = pydantic.Field(default=None, title="Annotatable Id")
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
         default=None, title="DataBaseObjectType"
     )
-    parameters: typing.Optional[VisualisationParameters] = pydantic.Field(
+    parameters: VisualisationParameters | None = pydantic.Field(
         default=None, title="VisualisationParameters"
     )
     media_url: str = pydantic.Field(title="Media Url")
@@ -496,90 +466,78 @@ class RenderedVisualisation(BaseModel):
 
 class Media(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default=None,
         title="Timestamp",
     )
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     back_reference: str = pydantic.Field(title="Back Reference")
     subset_ids: list = pydantic.Field(default=[], title="Subset Ids")
     attributes: list = pydantic.Field(default=[], title="Attributes")
     thumbnails: dict[str, typing.Any] = pydantic.Field(default={}, title="Thumbnails")
-    visualisations: typing.Optional[list[VisualisationUnion]] = pydantic.Field(
+    visualisations: list[VisualisationUnion] | None = pydantic.Field(
         default=None, title="Visualisations"
     )
-    scene_id: typing.Optional[str] = pydantic.Field(default=None, title="Scene Id")
-    realWorldObject_id: typing.Optional[str] = pydantic.Field(
+    scene_id: str | None = pydantic.Field(default=None, title="Scene Id")
+    realWorldObject_id: str | None = pydantic.Field(
         default=None, title="Realworldobject Id"
     )
     type: str = pydantic.Field(default="Media", title="Type")
     media_url: str = pydantic.Field(title="Media Url")
     pii_media_url: str = pydantic.Field(title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
-    metadata: typing.Optional[
-        typing.Union[ImageMetadata, PointCloudMetadata]
-    ] = pydantic.Field(default=None, title="ImageMetadata")
-    frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
-    media_type: typing.Optional[MediaType] = pydantic.Field(
-        default=None, title="MediaType"
+    metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
+        default=None, title="ImageMetadata"
     )
-    frame_timestamp: typing.Optional[str] = pydantic.Field(
-        default=None, title="Frame Timestamp"
-    )
-    back_reference_json: typing.Optional[str] = pydantic.Field(
+    frame_idx: int | None = pydantic.Field(default=None, title="Frame Idx")
+    media_type: MediaType | None = pydantic.Field(default=None, title="MediaType")
+    frame_timestamp: str | None = pydantic.Field(default=None, title="Frame Timestamp")
+    back_reference_json: str | None = pydantic.Field(
         default=None, title="Back Reference Json"
     )
 
 
 class MediaResponse(BaseModel):
-    id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
-    dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
-    timestamp: typing.Optional[str] = pydantic.Field(default=None, title="Timestamp")
-    archived: typing.Optional[bool] = pydantic.Field(default=None, title="Archived")
-    back_reference: typing.Optional[str] = pydantic.Field(
-        default=None, title="Back Reference"
-    )
-    subset_ids: typing.Optional[list] = pydantic.Field(default=None, title="Subset Ids")
-    attributes: typing.Optional[list] = pydantic.Field(default=None, title="Attributes")
-    thumbnails: typing.Optional[dict[str, typing.Any]] = pydantic.Field(
+    id: str | None = pydantic.Field(default=None, title="Id")
+    dataset_id: uuid.UUID | None = pydantic.Field(default=None, title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
+    timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
+    archived: bool | None = pydantic.Field(default=None, title="Archived")
+    back_reference: str | None = pydantic.Field(default=None, title="Back Reference")
+    subset_ids: list | None = pydantic.Field(default=None, title="Subset Ids")
+    attributes: list | None = pydantic.Field(default=None, title="Attributes")
+    thumbnails: dict[str, typing.Any] | None = pydantic.Field(
         default=None, title="Thumbnails"
     )
-    visualisations: typing.Optional[list[VisualisationUnion]] = pydantic.Field(
+    visualisations: list[VisualisationUnion] | None = pydantic.Field(
         default=None, title="Visualisations"
     )
-    scene_id: typing.Optional[str] = pydantic.Field(default=None, title="Scene Id")
-    realWorldObject_id: typing.Optional[str] = pydantic.Field(
+    scene_id: str | None = pydantic.Field(default=None, title="Scene Id")
+    realWorldObject_id: str | None = pydantic.Field(
         default=None, title="Realworldobject Id"
     )
-    type: typing.Optional[str] = pydantic.Field(default=None, title="Type")
-    media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
-    pii_media_url: typing.Optional[str] = pydantic.Field(
-        default=None, title="Pii Media Url"
+    type: str | None = pydantic.Field(default=None, title="Type")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
+    pii_media_url: str | None = pydantic.Field(default=None, title="Pii Media Url")
+    name: str | None = pydantic.Field(default=None, title="Name")
+    metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
+        default=None, title="ImageMetadata"
     )
-    name: typing.Optional[str] = pydantic.Field(default=None, title="Name")
-    metadata: typing.Optional[
-        typing.Union[ImageMetadata, PointCloudMetadata]
-    ] = pydantic.Field(default=None, title="ImageMetadata")
-    frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
-    media_type: typing.Optional[MediaType] = pydantic.Field(
-        default=None, title="MediaType"
-    )
-    frame_timestamp: typing.Optional[str] = pydantic.Field(
-        default=None, title="Frame Timestamp"
-    )
-    back_reference_json: typing.Optional[str] = pydantic.Field(
+    frame_idx: int | None = pydantic.Field(default=None, title="Frame Idx")
+    media_type: MediaType | None = pydantic.Field(default=None, title="MediaType")
+    frame_timestamp: str | None = pydantic.Field(default=None, title="Frame Timestamp")
+    back_reference_json: str | None = pydantic.Field(
         default=None, title="Back Reference Json"
     )
 
 
 class FilterCount(BaseModel):
-    false_negative_percentage: typing.Optional[typing.Any] = pydantic.Field(
+    false_negative_percentage: typing.Any | None = pydantic.Field(
         default=None, title="False Negative Percentage"
     )
-    false_positive_percentage: typing.Optional[typing.Any] = pydantic.Field(
+    false_positive_percentage: typing.Any | None = pydantic.Field(
         default=None, title="False Positive Percentage"
     )
     total_count: int = pydantic.Field(title="Total Count")
@@ -608,26 +566,20 @@ class CropVisualisationConfigParameters(BaseModel):
     type: str = pydantic.Field(default="crop", title="Type")
     padding_percent: int = pydantic.Field(title="Padding Percent")
     padding_minimum: int = pydantic.Field(title="Padding Minimum")
-    max_size: typing.Optional[list] = pydantic.Field(default=None, title="Max Size")
-    aspect_ratio: typing.Optional[list] = pydantic.Field(
-        default=None, title="Aspect Ratio"
-    )
+    max_size: list | None = pydantic.Field(default=None, title="Max Size")
+    aspect_ratio: list | None = pydantic.Field(default=None, title="Aspect Ratio")
 
 
 class VisualisationConfiguration(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(default=None, title="Timestamp")
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     name: str = pydantic.Field(title="Name")
-    parameters: typing.Union[
-        CropVisualisationConfigParameters,
-        LidarVideoVisualisationConfigParameters,
-        LidarVideoStackedVisualisationConfigParameters,
-        TileVisualisationConfigParameters,
-        RenderedVisualisationConfigParameters,
-    ] = pydantic.Field(title="CropVisualisationConfigParameters")
+    parameters: CropVisualisationConfigParameters | LidarVideoVisualisationConfigParameters | LidarVideoStackedVisualisationConfigParameters | TileVisualisationConfigParameters | RenderedVisualisationConfigParameters = pydantic.Field(
+        title="CropVisualisationConfigParameters"
+    )
     subset_ids: list = pydantic.Field(title="Subset Ids")
 
 
@@ -645,111 +597,97 @@ class Visualisation(BaseModel):
     """
 
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(
         default=None,
         title="Timestamp",
     )
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     visualisation_type: VisualisationType = pydantic.Field(title="VisualisationType")
-    visualisation_configuration_id: typing.Optional[str] = pydantic.Field(
+    visualisation_configuration_id: str | None = pydantic.Field(
         default=None, title="Visualisation Configuration Id"
     )
-    annotatable_id: typing.Optional[str] = pydantic.Field(
-        default=None, title="Annotatable Id"
-    )
-    annotatable_type: typing.Optional[DataBaseObjectType] = pydantic.Field(
+    annotatable_id: str | None = pydantic.Field(default=None, title="Annotatable Id")
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
         default=None, title="DataBaseObjectType"
     )
-    parameters: typing.Optional[VisualisationParameters] = pydantic.Field(
+    parameters: VisualisationParameters | None = pydantic.Field(
         default=None, title="VisualisationParameters"
     )
-    media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
 
 
 class MediaObject(BaseModel):
     id: str = pydantic.Field(title="Id")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str = pydantic.Field(default=None, title="Timestamp")
-    archived: typing.Optional[bool] = pydantic.Field(default=False, title="Archived")
+    archived: bool | None = pydantic.Field(default=False, title="Archived")
     back_reference: str = pydantic.Field(title="Back Reference")
     subset_ids: list = pydantic.Field(default=[], title="Subset Ids")
     attributes: list = pydantic.Field(default=[], title="Attributes")
     thumbnails: dict[str, typing.Any] = pydantic.Field(default={}, title="Thumbnails")
-    visualisations: typing.Optional[list[VisualisationUnion]] = pydantic.Field(
+    visualisations: list[VisualisationUnion] | None = pydantic.Field(
         default=None, title="Visualisations"
     )
-    scene_id: typing.Optional[str] = pydantic.Field(default=None, title="Scene Id")
-    realWorldObject_id: typing.Optional[str] = pydantic.Field(
+    scene_id: str | None = pydantic.Field(default=None, title="Scene Id")
+    realWorldObject_id: str | None = pydantic.Field(
         default=None, title="Realworldobject Id"
     )
     type: str = pydantic.Field(default="MediaObject", title="Type")
     media_id: str = pydantic.Field(title="Media Id")
     media_url: str = pydantic.Field(title="Media Url")
     crop_url: str = pydantic.Field(default=None, title="Crop Url")
-    object_category: typing.Optional[str] = pydantic.Field(
-        default=None, title="Object Category"
-    )
+    object_category: str | None = pydantic.Field(default=None, title="Object Category")
     source: DataSource = pydantic.Field(title="DataSource")
-    qm_data: typing.Optional[list[GeometryUnion]] = pydantic.Field(
+    qm_data: list[GeometryUnion] | None = pydantic.Field(
         default=None, title="QM sourced geometry object"
     )
-    reference_data: typing.Optional[GeometryUnion] = pydantic.Field(
+    reference_data: GeometryUnion | None = pydantic.Field(
         default=None, title="Externally sourced geometry object"
     )
-    frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
-    instance_id: typing.Optional[str] = pydantic.Field(
-        default=None, title="Instance Id"
-    )
-    media_object_type: typing.Optional[MediaObjectType] = pydantic.Field(
+    frame_idx: int | None = pydantic.Field(default=None, title="Frame Idx")
+    instance_id: str | None = pydantic.Field(default=None, title="Instance Id")
+    media_object_type: MediaObjectType | None = pydantic.Field(
         default=None, title="Media Object Type"
     )
 
 
 class MediaObjectResponse(BaseModel):
-    id: typing.Optional[str] = pydantic.Field(default=None, title="Id")
-    dataset_id: typing.Optional[str] = pydantic.Field(default=None, title="Dataset Id")
-    tags: typing.Optional[list] = pydantic.Field(default=None, title="Tags")
-    timestamp: typing.Optional[str] = pydantic.Field(default=None, title="Timestamp")
-    archived: typing.Optional[bool] = pydantic.Field(default=None, title="Archived")
-    back_reference: typing.Optional[str] = pydantic.Field(
-        default=None, title="Back Reference"
-    )
-    subset_ids: typing.Optional[list] = pydantic.Field(default=None, title="Subset Ids")
-    attributes: typing.Optional[list] = pydantic.Field(default=None, title="Attributes")
-    thumbnails: typing.Optional[dict[str, typing.Any]] = pydantic.Field(
+    id: str | None = pydantic.Field(default=None, title="Id")
+    dataset_id: uuid.UUID | None = pydantic.Field(default=None, title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
+    timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
+    archived: bool | None = pydantic.Field(default=None, title="Archived")
+    back_reference: str | None = pydantic.Field(default=None, title="Back Reference")
+    subset_ids: list | None = pydantic.Field(default=None, title="Subset Ids")
+    attributes: list | None = pydantic.Field(default=None, title="Attributes")
+    thumbnails: dict[str, typing.Any] | None = pydantic.Field(
         default=None, title="Thumbnails"
     )
-    visualisations: typing.Optional[list[VisualisationUnion]] = pydantic.Field(
+    visualisations: list[VisualisationUnion] | None = pydantic.Field(
         default=None, title="Visualisations"
     )
-    scene_id: typing.Optional[str] = pydantic.Field(default=None, title="Scene Id")
-    realWorldObject_id: typing.Optional[str] = pydantic.Field(
+    scene_id: str | None = pydantic.Field(default=None, title="Scene Id")
+    realWorldObject_id: str | None = pydantic.Field(
         default=None, title="Realworldobject Id"
     )
-    type: typing.Optional[str] = pydantic.Field(default=None, title="Type")
-    media_id: typing.Optional[str] = pydantic.Field(default=None, title="Media Id")
-    media_url: typing.Optional[str] = pydantic.Field(default=None, title="Media Url")
-    crop_url: typing.Optional[str] = pydantic.Field(default=None, title="Crop Url")
-    object_category: typing.Optional[str] = pydantic.Field(
-        default=None, title="Object Category"
-    )
-    source: typing.Optional[DataSource] = pydantic.Field(
-        default=None, title="DataSource"
-    )
-    qm_data: typing.Optional[list[GeometryUnion]] = pydantic.Field(
+    type: str | None = pydantic.Field(default=None, title="Type")
+    media_id: str | None = pydantic.Field(default=None, title="Media Id")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
+    crop_url: str | None = pydantic.Field(default=None, title="Crop Url")
+    object_category: str | None = pydantic.Field(default=None, title="Object Category")
+    source: DataSource | None = pydantic.Field(default=None, title="DataSource")
+    qm_data: list[GeometryUnion] | None = pydantic.Field(
         default=None, title="QM sourced geometry object"
     )
-    reference_data: typing.Optional[GeometryUnion] = pydantic.Field(
+    reference_data: GeometryUnion | None = pydantic.Field(
         default=None, title="Externally sourced geometry object"
     )
-    frame_idx: typing.Optional[int] = pydantic.Field(default=None, title="Frame Idx")
-    instance_id: typing.Optional[str] = pydantic.Field(
-        default=None, title="Instance Id"
-    )
-    media_object_type: typing.Optional[MediaObjectType] = pydantic.Field(
+    frame_idx: int | None = pydantic.Field(default=None, title="Frame Idx")
+    instance_id: str | None = pydantic.Field(default=None, title="Instance Id")
+    media_object_type: MediaObjectType | None = pydantic.Field(
         default=None, title="Media Object Type"
     )
 
@@ -782,7 +720,7 @@ class AttributeHistogramStatistics(BaseModel):
     quantiles_50: float
     quantiles_75: float
     interquartile_range: float
-    shapiro_p_value: typing.Optional[float] = None
+    shapiro_p_value: float | None = None
 
 
 class AttributeHistogram(BaseModel):
@@ -791,16 +729,16 @@ class AttributeHistogram(BaseModel):
     filter_name: str
     type: HistogramType
     attribute_group: AttributeGroup
-    dataset_id: str
-    subset_id: typing.Optional[str] = None
-    num_buckets: typing.Optional[int] = None
-    lower: typing.Optional[float] = None
-    upper: typing.Optional[float] = None
-    interval: typing.Optional[float] = None
-    buckets: list[tuple[typing.Union[int, float, str], int]]
+    dataset_id: uuid.UUID
+    subset_id: str | None = None
+    num_buckets: int | None = None
+    lower: float | None = None
+    upper: float | None = None
+    interval: float | None = None
+    buckets: list[tuple[int | float | str, int]]
     cant_solves: int = 0
     corrupt_data: int = 0
-    statistics: typing.Optional[AttributeHistogramStatistics] = None
+    statistics: AttributeHistogramStatistics | None = None
 
 
 class MediaUploadUrlInfo(BaseModel):
@@ -815,19 +753,17 @@ class VisualisationUploadUrlInfo(BaseModel):
     visualisation_url: str
 
 
-VisualisationUnion = typing.Union[
-    ImageTransformation, Video, Tile, RenderedVisualisation
-]
-GeometryUnion = typing.Union[
-    BBox2DCenterPoint,
-    Point2DXY,
-    PolyLine2DFlatCoordinates,
-    CuboidCenterPoint,
-    Point3DXYZ,
-    BoundingBox2DAggregation,
-    Point2DAggregation,
-    Point3DAggregation,
-]
+VisualisationUnion = ImageTransformation | Video | Tile | RenderedVisualisation
+GeometryUnion = (
+    BBox2DCenterPoint
+    | Point2DXY
+    | PolyLine2DFlatCoordinates
+    | CuboidCenterPoint
+    | Point3DXYZ
+    | BoundingBox2DAggregation
+    | Point2DAggregation
+    | Point3DAggregation
+)
 
 
 class BulkOperationStatusEnum(str, enum.Enum):
@@ -859,9 +795,9 @@ class ResponseStatesEnum(str, enum.Enum):
 
 
 class BaseBulkItemResponse(BaseModel, arbitrary_types_allowed=True):
-    item_id: typing.Optional[str] = None
+    item_id: str | None = None
     status: ResponseStatesEnum
-    errors: typing.Optional[list[str]] = None
+    errors: list[str] | None = None
 
 
 class AnnotatableCreateResponse(BaseBulkItemResponse):
@@ -878,31 +814,29 @@ class BulkResponse(BaseModel):
         default_factory=BulkUploadSuccessSummary
     )
     results: list[
-        typing.Union[
-            AnnotatableCreateResponse, AttributeCreateResponse, BaseBulkItemResponse
-        ]
+        AnnotatableCreateResponse | AttributeCreateResponse | BaseBulkItemResponse
     ] = pydantic.Field(default_factory=list)
 
 
 class MediaCreate(BaseModel):
     # file_path is not part of the HARI API, but is used to define where to read the media file from
-    file_path: typing.Optional[str] = pydantic.Field(default=None, exclude=True)
+    file_path: str | None = pydantic.Field(default=None, exclude=True)
 
     name: str
     media_type: MediaType
     back_reference: str
-    media_url: typing.Optional[str] = None
+    media_url: str | None = None
 
     archived: bool = False
-    scene_id: typing.Optional[str] = None
-    realWorldObject_id: typing.Optional[str] = None
-    visualisations: typing.Optional[list[VisualisationUnion]] = None
-    subset_ids: typing.Union[set[str], list[str], None] = None
+    scene_id: str | None = None
+    realWorldObject_id: str | None = None
+    visualisations: list[VisualisationUnion] | None = None
+    subset_ids: set[str] | list[str] | None = None
 
-    metadata: typing.Union[ImageMetadata, PointCloudMetadata, None] = None
-    frame_idx: typing.Optional[int] = None
-    frame_timestamp: typing.Optional[datetime.datetime] = None
-    back_reference_json: typing.Optional[str] = None
+    metadata: ImageMetadata | PointCloudMetadata | None = None
+    frame_idx: int | None = None
+    frame_timestamp: datetime.datetime | None = None
+    back_reference_json: str | None = None
 
 
 class BulkMediaCreate(MediaCreate):
@@ -915,20 +849,20 @@ class MediaObjectCreate(BaseModel):
     back_reference: str
 
     archived: bool = False
-    scene_id: typing.Optional[str] = None
-    realWorldObject_id: typing.Optional[str] = None
-    visualisations: typing.Optional[list[VisualisationUnion]] = None
-    subset_ids: typing.Union[set[str], list[str], None] = None
+    scene_id: str | None = None
+    realWorldObject_id: str | None = None
+    visualisations: list[VisualisationUnion] | None = None
+    subset_ids: set[str] | list[str] | None = None
 
-    instance_id: typing.Optional[str] = None
-    object_category: typing.Optional[str] = None
+    instance_id: str | None = None
+    object_category: str | None = None
     # source represents if the media object is either a geometry that was constructed by
     # QM, e.g., by annotating media data; or a geometry that was already provided by a
     # customer, and hence, would be a REFERENCE.
-    qm_data: typing.Optional[list[GeometryUnion]] = None
-    reference_data: typing.Optional[GeometryUnion] = None
-    frame_idx: typing.Optional[int] = None
-    media_object_type: typing.Optional[GeometryUnion] = None
+    qm_data: list[GeometryUnion] | None = None
+    reference_data: GeometryUnion | None = None
+    frame_idx: int | None = None
+    media_object_type: GeometryUnion | None = None
 
 
 class BulkMediaObjectCreate(MediaObjectCreate):
@@ -957,22 +891,20 @@ class ProcessingJobStatus(str, enum.Enum):
 class ProcessingJob(BaseModel):
     id: uuid.UUID = pydantic.Field(title="ID")
     status: ProcessingJobStatus = pydantic.Field(title="Status")
-    owner: typing.Optional[uuid.UUID] = pydantic.Field(default=None, title="Owner")
-    user_group: typing.Optional[str] = pydantic.Field(default=None, title="User Group")
-    created_at: typing.Optional[datetime.datetime] = pydantic.Field(
+    owner: uuid.UUID | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    created_at: datetime.datetime | None = pydantic.Field(
         title="Created At", default=None
     )
-    updated_at: typing.Optional[datetime.datetime] = pydantic.Field(
+    updated_at: datetime.datetime | None = pydantic.Field(
         title="Updated At", default=None
     )
-    archived_at: typing.Optional[datetime.datetime] = pydantic.Field(
+    archived_at: datetime.datetime | None = pydantic.Field(
         title="Archived At", default=None
     )
     process_name: str = pydantic.Field(title="Process Name")
     details: str = pydantic.Field(title="Details")
-    trace_id: typing.Optional[uuid.UUID] = pydantic.Field(
-        default=None, title="Trace ID"
-    )
+    trace_id: uuid.UUID | None = pydantic.Field(default=None, title="Trace ID")
 
 
 class BaseProcessingJobParameters(BaseModel):
