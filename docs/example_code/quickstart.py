@@ -15,12 +15,15 @@ config = Config()
 hari = HARIClient(config=config)
 
 # 2. Create a dataset
-# Replace "CHANGEME" with you own user group!
+# Replace "CHANGEME" with your own user group!
 new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
 print("Dataset created with id:", new_dataset.id)
 
-# 3. Set up your medias and all of their media objects.
+dataset_id = new_dataset.id
+
+# 3. Set up your medias and all of their media objects and attributes.
 # In this example we use 3 images with 1 media object each.
+# And the first image and media object one attribute each.
 media_1 = hari_uploader.HARIMedia(
     file_path="images/image_1.jpg",
     name="A busy street 1",
@@ -88,7 +91,7 @@ media_object_3 = hari_uploader.HARIMediaObject(
 media_3.add_media_object(media_object_3)
 
 # 4. Set up the uploader and add the medias to it
-uploader = hari_uploader.HARIUploader(client=hari, dataset_id=new_dataset.id)
+uploader = hari_uploader.HARIUploader(client=hari, dataset_id=dataset_id)
 uploader.add_media(media_1, media_2, media_3)
 
 # 5. Trigger the upload process
@@ -120,7 +123,7 @@ if (
 # 6. Create a subset
 print("Creating new subset...")
 new_subset_id = hari.create_subset(
-    dataset_id=uuid.UUID(new_dataset.id),
+    dataset_id=dataset_id,
     subset_type=models.SubsetType.MEDIA_OBJECT,
     subset_name="All media objects",
 )
@@ -129,10 +132,10 @@ print(f"Created new subset with id {new_subset_id}")
 # 7. Trigger metadata updates
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
-metadata_rebuild_trace_id = str(uuid.uuid4())
+metadata_rebuild_trace_id = uuid.uuid4()
 print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
 metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
-    dataset_id=uuid.UUID(new_dataset.id), trace_id=uuid.UUID(metadata_rebuild_trace_id)
+    dataset_id=dataset_id, trace_id=metadata_rebuild_trace_id
 )
 
 # track the status of all metadata rebuild jobs and wait for them to finish
@@ -140,7 +143,7 @@ job_statuses = []
 jobs_are_still_running = True
 while jobs_are_still_running:
     jobs = hari.get_processing_jobs(trace_id=metadata_rebuild_trace_id)
-    job_statuses = [(job.id, job.status) for job in jobs]
+    job_statuses = [(job.id, job.status.value, job.process_name) for job in jobs]
 
     jobs_are_still_running = any(
         [

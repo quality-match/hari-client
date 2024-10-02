@@ -108,9 +108,9 @@ class HARIUploadResults(pydantic.BaseModel):
 
 
 class HARIUploader:
-    def __init__(self, client: HARIClient, dataset_id: str) -> None:
+    def __init__(self, client: HARIClient, dataset_id: uuid.UUID) -> None:
         self.client: HARIClient = client
-        self.dataset_id: str = dataset_id
+        self.dataset_id: uuid.UUID = dataset_id
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
@@ -215,7 +215,7 @@ class HARIUploader:
 
         # upload media batch
         media_upload_response = self.client.create_medias(
-            dataset_id=str(self.dataset_id), medias=medias_to_upload
+            dataset_id=self.dataset_id, medias=medias_to_upload
         )
         # TODO: what if upload failures occur in the media upload above?
         self._update_hari_media_object_media_ids(
@@ -287,7 +287,7 @@ class HARIUploader:
         for media_object in media_objects_to_upload:
             self._set_bulk_operation_annotatable_id(item=media_object)
         response = self.client.create_media_objects(
-            dataset_id=str(self.dataset_id), media_objects=media_objects_to_upload
+            dataset_id=self.dataset_id, media_objects=media_objects_to_upload
         )
         self._update_hari_attribute_media_object_ids(
             media_objects_to_upload=media_objects_to_upload,
@@ -405,7 +405,7 @@ def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     If only one BulkResponse object is provided, it will be returned as is.
 
     Args:
-        *args (models.BulkResponse): Multiple BulkResponse objects
+        *args: Multiple BulkResponse objects
 
     Returns:
         models.BulkResponse: The merged BulkResponse object
