@@ -18,7 +18,7 @@ class HARIAttribute(models.BulkAttributeCreate):
 
 
 class HARIMediaObject(models.BulkMediaObjectCreate):
-    # the attribute field is not part of the lower level MediaCreate model of the hari
+    # the attributes field is not part of the lower level MediaCreate model of the hari
     # api, but we need it to add media_objects to a media before uploading the media.
     attributes: list[HARIAttribute] = pydantic.Field(default=[], exclude=True)
     # overwrites the media_id field to not be required,
@@ -63,9 +63,9 @@ class HARIMediaObjectUploadError(Exception):
 
 
 class HARIMedia(models.BulkMediaCreate):
-    # the media_objects and attribute fields are not part of the lower level MediaCreate
-    # model of the hari api, but we need it to add media_objects to a media before
-    # uploading the media
+    # the media_objects and attributes fields are not part of the lower level
+    # MediaCreate model of the hari api, but we need them to add media objects and
+    # attributes to a media befored uploading the media
     media_objects: list[HARIMediaObject] = pydantic.Field(default=[], exclude=True)
     attributes: list[HARIAttribute] = pydantic.Field(default=[], exclude=True)
     # overwrites the bulk_operation_annotatable_id field to not be required,
@@ -115,6 +115,7 @@ class HARIUploader:
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
         self._media_object_cnt: int = 0
+        self._attribute_cnt: int = 0
 
     def add_media(self, *args: HARIMedia) -> None:
         """
@@ -153,6 +154,8 @@ class HARIUploader:
                 else:
                     self._media_object_back_references.add(media_object.back_reference)
                 self._media_object_cnt += 1
+                self._attribute_cnt += len(media.attributes)
+                self._attribute_cnt += len(media_object.attributes)
 
     def upload(
         self,
@@ -175,7 +178,8 @@ class HARIUploader:
         # upload batches of medias
         log.info(
             f"Starting upload of {len(self._medias)} medias with "
-            f"{self._media_object_cnt} media_objects to HARI."
+            f"{self._media_object_cnt} media_objects and {self._attribute_cnt} "
+            f"attributes to HARI."
         )
         media_upload_responses: list[models.BulkResponse] = []
         media_object_upload_responses: list[models.BulkResponse] = []
@@ -234,6 +238,7 @@ class HARIUploader:
         media_object_upload_responses = self._upload_media_objects_in_batches(
             all_media_objects
         )
+        # upload attributes of this batch of media in batches
         attributes_upload_responses = self._upload_attributes_in_batches(all_attributes)
 
         return (
@@ -248,8 +253,8 @@ class HARIUploader:
         attributes_upload_responses: list[models.BulkResponse] = []
         for idx in range(0, len(attributes), HARIClient.BULK_UPLOAD_LIMIT):
             attributes_to_upload = attributes[idx : idx + HARIClient.BULK_UPLOAD_LIMIT]
-            response = self.client.create_attributes(
-                dataset_id=str(self.dataset_id), attributes=attributes_to_upload
+            response = self._upload_attribute_batch(
+                attributes_to_upload=attributes_to_upload
             )
             attributes_upload_responses.append(response)
         return attributes_upload_responses
@@ -268,6 +273,14 @@ class HARIUploader:
             media_object_upload_responses.append(response)
         return media_object_upload_responses
 
+    def _upload_attribute_batch(
+        self, attributes_to_upload: list[HARIAttribute]
+    ) -> models.BulkResponse:
+        response = self.client.create_attributes(
+            dataset_id=str(self.dataset_id), attributes=attributes_to_upload
+        )
+        return response
+
     def _upload_media_object_batch(
         self, media_objects_to_upload: list[HARIMediaObject]
     ) -> models.BulkResponse:
@@ -278,7 +291,7 @@ class HARIUploader:
         )
         self._update_hari_attribute_media_object_ids(
             media_objects_to_upload=media_objects_to_upload,
-            media_upload_bulk_response=response,
+            media_object_upload_bulk_response=response,
         )
         return response
 
@@ -308,16 +321,13 @@ class HARIUploader:
                     f"Media upload response contains multiple items for "
                     f"{media.bulk_operation_annotatable_id=}."
                 )
-            media_upload_response: models.AnnotatableCreateResponse = (
-                filtered_upload_response[0]
-            )
             for media_object in media.media_objects:
-                media_object.media_id = media_upload_response.item_id
+                media_object.media_id = filtered_upload_response[0].item_id
 
     def _update_hari_attribute_media_object_ids(
         self,
         media_objects_to_upload: list[HARIMedia] | list[HARIMediaObject],
-        media_upload_bulk_response: models.BulkResponse,
+        media_object_upload_bulk_response: models.BulkResponse,
     ) -> None:
         for media_object in media_objects_to_upload:
             # from the endpoints we used, we know that the results items are of type
@@ -327,7 +337,7 @@ class HARIUploader:
                 filter(
                     lambda x: x.bulk_operation_annotatable_id
                     == media_object.bulk_operation_annotatable_id,
-                    media_upload_bulk_response.results,
+                    media_object_upload_bulk_response.results,
                 )
             )
             if len(media_object.attributes) == 0:
@@ -342,11 +352,8 @@ class HARIUploader:
                     f"MediaObject upload response contains multiple items for "
                     f"{media_object.bulk_operation_annotatable_id=}."
                 )
-            media_upload_response: models.AnnotatableCreateResponse = (
-                filtered_upload_response[0]
-            )
             for attributes in media_object.attributes:
-                attributes.annotatable_id = media_upload_response.item_id
+                attributes.annotatable_id = filtered_upload_response[0].item_id
                 attributes.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _update_hari_attribute_media_ids(
@@ -381,7 +388,7 @@ class HARIUploader:
                 filtered_upload_response[0]
             )
             for attributes in media.attributes:
-                attributes.annotatable_id = media_upload_response.item_id
+                attributes.annotatable_id = filtered_upload_response[0].item_id
                 attributes.annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):

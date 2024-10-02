@@ -48,15 +48,15 @@ attribute_object_1 = hari_uploader.HARIAttribute(
 )
 media_object_1.add_attribute(attribute_object_1)
 media_1.add_media_object(media_object_1)
-attribute_1_media_1_id = str(uuid.uuid4())
-attribute_1_media_1 = hari_uploader.HARIAttribute(
-    id=attribute_1_media_1_id,
+attribute_media_1_id = str(uuid.uuid4())
+attribute_media_1 = hari_uploader.HARIAttribute(
+    id=attribute_media_1_id,
     name="area",
     attribute_type=models.AttributeType.Categorical,
     value=6912,
     attribute_group=models.AttributeGroup.InitialAttribute,
 )
-media_1.add_attribute(attribute_1_media_1)
+media_1.add_attribute(attribute_media_1)
 
 media_object_2 = hari_uploader.HARIMediaObject(
     source=models.DataSource.REFERENCE,
@@ -77,16 +77,15 @@ media_3 = hari_uploader.HARIMedia(
     back_reference="image 3",
     media_type=models.MediaType.IMAGE,
 )
-media_3.add_media_object(
-    hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
-        back_reference="road marking",
-        reference_data=models.PolyLine2DFlatCoordinates(
-            coordinates=[1450, 1550, 1450, 1000],
-            closed=False,
-        ),
-    )
+media_object_3 = hari_uploader.HARIMediaObject(
+    source=models.DataSource.REFERENCE,
+    back_reference="road marking",
+    reference_data=models.PolyLine2DFlatCoordinates(
+        coordinates=[1450, 1550, 1450, 1000],
+        closed=False,
+    ),
 )
+media_3.add_media_object(media_object_3)
 
 # 4. Set up the uploader and add the medias to it
 uploader = hari_uploader.HARIUploader(client=hari, dataset_id=new_dataset.id)

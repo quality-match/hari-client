@@ -950,7 +950,7 @@ class BulkMediaObjectCreate(MediaObjectCreate):
 
 
 class AttributeCreate(BaseModel):
-    id: str = pydantic.Field(title="ID")
+    id: str
     name: str
     annotatable_id: str
     annotatable_type: DataBaseObjectType
@@ -975,7 +975,6 @@ class AttributeCreate(BaseModel):
     cumulated_frequency: typing.Any | None = None
     frequency: dict[str, int] | None = None
     question: str | None = None
-    model_config = pydantic.ConfigDict(validate_assignment=True, extra="forbid")
 
     @pydantic.model_validator(mode="before")
     @classmethod

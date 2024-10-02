@@ -184,7 +184,7 @@ def test_update_hari_attribute_media_object_ids():
     # Act
     uploader._update_hari_attribute_media_object_ids(
         media_objects_to_upload=[media_object_1, media_object_2],
-        media_upload_bulk_response=models.BulkResponse(
+        media_object_upload_bulk_response=models.BulkResponse(
             results=[
                 models.AnnotatableCreateResponse(
                     item_id="new_media_object_id_1",
@@ -233,7 +233,20 @@ def test_hari_uploader_creates_batches_correctly(mocker):
         ),
     )
     mocker.patch.object(
-        mock_client, "create_media_objects", return_value=models.BulkResponse()
+        mock_client,
+        "create_media_objects",
+        return_value=models.BulkResponse(
+            results=[
+                models.AnnotatableCreateResponse(
+                    status=models.ResponseStatesEnum.SUCCESS,
+                    bulk_operation_annotatable_id=f"bulk_id_{i}",
+                )
+                for i in range(2200)
+            ]
+        ),
+    )
+    mocker.patch.object(
+        mock_client, "create_attributes", return_value=models.BulkResponse()
     )
 
     # there are multiple batches of medias and media objects, but the bulk_ids for the medias are expected to be continuous
@@ -261,9 +274,11 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     )
     media_spy = mocker.spy(mock_uploader, "_upload_media_batch")
     media_object_spy = mocker.spy(mock_uploader, "_upload_media_object_batch")
+    attribute_spy = mocker.spy(mock_uploader, "_upload_attribute_batch")
 
     # 1100 medias --> 3 batches
     # 2200 media_objects --> 5 batches
+    # 6600 attributes --> 14 batches
     for i in range(1100):
         media = hari_uploader.HARIMedia(
             name=f"my image {i}",
@@ -271,12 +286,30 @@ def test_hari_uploader_creates_batches_correctly(mocker):
             back_reference=f"img_{i}",
         )
         for k in range(2):
-            media.add_media_object(
-                hari_uploader.HARIMediaObject(
-                    source=models.DataSource.REFERENCE,
-                    back_reference=f"img_{i}_obj_{k}",
+            media_object = hari_uploader.HARIMediaObject(
+                source=models.DataSource.REFERENCE,
+                back_reference=f"img_{i}_obj_{k}",
+            )
+            media.add_media_object(media_object)
+            media.add_attribute(
+                hari_uploader.HARIAttribute(
+                    id=f"attr_{i}_{k}",
+                    name=f"attr_{i}_{k}",
+                    attribute_type=models.AttributeType.Categorical,
+                    value=f"value_{i}_{k}",
+                    attribute_group=models.AttributeGroup.InitialAttribute,
                 )
             )
+            for l in range(2):
+                media_object.add_attribute(
+                    hari_uploader.HARIAttribute(
+                        id=f"attr_{i}_{k}_{l}",
+                        name=f"attr_{i}_{k}_{l}",
+                        attribute_type=models.AttributeType.Categorical,
+                        value=f"value_{i}_{k}_{l}",
+                        attribute_group=models.AttributeGroup.InitialAttribute,
+                    )
+                )
         mock_uploader.add_media(media)
 
     # Act
@@ -298,6 +331,23 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     assert len(media_object_calls[3].kwargs["media_objects_to_upload"]) == 500
     assert len(media_object_calls[4].kwargs["media_objects_to_upload"]) == 200
 
+    assert attribute_spy.call_count == 14
+    attribute_calls = attribute_spy.call_args_list
+    assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[1].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[2].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[3].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[4].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[5].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[6].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[7].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[8].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[9].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[10].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[11].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[12].kwargs["attributes_to_upload"]) == 500
+    assert len(attribute_calls[13].kwargs["attributes_to_upload"]) == 100
+
 
 def test_hari_uploader_creates_single_batch_correctly(mocker):
     # Arrange
@@ -317,27 +367,51 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
         ),
     )
     mocker.patch.object(
-        mock_client, "create_media_objects", return_value=models.BulkResponse()
+        mock_client,
+        "create_media_objects",
+        return_value=models.BulkResponse(
+            results=[
+                models.AnnotatableCreateResponse(
+                    status=models.ResponseStatesEnum.SUCCESS,
+                    bulk_operation_annotatable_id=f"bulk_id_{i}",
+                )
+                for i in range(10)
+            ]
+        ),
+    )
+    mocker.patch.object(
+        mock_client, "create_attributes", return_value=models.BulkResponse()
     )
 
     mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
 
-    global running_bulk_id
-    running_bulk_id = 0
+    global running_media_bulk_id
+    running_media_bulk_id = 0
+    global running_media_object_bulk_id
+    running_media_object_bulk_id = 0
 
     def id_setter_mock(item: hari_uploader.HARIMedia | hari_uploader.HARIMediaObject):
-        global running_bulk_id
-        item.bulk_operation_annotatable_id = f"bulk_id_{running_bulk_id}"
-        running_bulk_id += 1
+        global running_media_bulk_id
+        global running_media_object_bulk_id
+        if isinstance(item, hari_uploader.HARIMedia):
+            item.bulk_operation_annotatable_id = f"bulk_id_{running_media_bulk_id}"
+            running_media_bulk_id += 1
+        elif isinstance(item, hari_uploader.HARIMediaObject):
+            item.bulk_operation_annotatable_id = (
+                f"bulk_id_{running_media_object_bulk_id}"
+            )
+            running_media_object_bulk_id += 1
 
     mocker.patch.object(
         mock_uploader, "_set_bulk_operation_annotatable_id", side_effect=id_setter_mock
     )
     media_spy = mocker.spy(mock_uploader, "_upload_media_batch")
     media_object_spy = mocker.spy(mock_uploader, "_upload_media_object_batch")
+    attribute_spy = mocker.spy(mock_uploader, "_upload_attribute_batch")
 
     # 5 medias --> 1 batch
     # 10 media_objects --> 1 batch
+    # 30 attributes --> 1 batch
     for i in range(5):
         media = hari_uploader.HARIMedia(
             name=f"my image {i}",
@@ -345,12 +419,31 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
             back_reference=f"img_{i}",
         )
         for k in range(2):
-            media.add_media_object(
-                hari_uploader.HARIMediaObject(
-                    source=models.DataSource.REFERENCE,
-                    back_reference=f"img_{i}_obj_{k}",
+            media_object = hari_uploader.HARIMediaObject(
+                source=models.DataSource.REFERENCE,
+                back_reference=f"img_{i}_obj_{k}",
+            )
+            media.add_media_object(media_object)
+            media.add_attribute(
+                hari_uploader.HARIAttribute(
+                    id=f"attr_{i}_{k}",
+                    name=f"attr_{i}_{k}",
+                    attribute_type=models.AttributeType.Categorical,
+                    value=f"value_{i}_{k}",
+                    attribute_group=models.AttributeGroup.InitialAttribute,
                 )
             )
+            for l in range(2):
+                media_object.add_attribute(
+                    hari_uploader.HARIAttribute(
+                        id=f"attr_{i}_{k}_{l}",
+                        name=f"attr_{i}_{k}_{l}",
+                        attribute_type=models.AttributeType.Categorical,
+                        value=f"value_{i}_{k}_{l}",
+                        attribute_group=models.AttributeGroup.InitialAttribute,
+                    )
+                )
+
         mock_uploader.add_media(media)
 
     # Act
@@ -365,6 +458,10 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
     assert media_object_spy.call_count == 1
     media_object_calls = media_object_spy.call_args_list
     assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 10
+
+    assert attribute_spy.call_count == 1
+    attribute_calls = attribute_spy.call_args_list
+    assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 30
 
 
 def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(mocker):
