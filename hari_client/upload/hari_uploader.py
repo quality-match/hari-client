@@ -214,6 +214,8 @@ class HARIUploader:
         media_upload_bulk_response: models.BulkResponse,
     ) -> None:
         for media in medias_to_upload:
+            if len(media.media_objects) == 0:
+                return
             # from the endpoints we used, we know that the results items are of type models.AnnotatableCreateResponse,
             # which contains the bulk_operation_annotatable_id.
             filtered_upload_response = list(
@@ -245,6 +247,7 @@ class HARIUploader:
 def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     """
     Merges multiple BulkResponse objects into one.
+    If no BulkResponse objects are provided, an empty BulkResponse object with status SUCCESS is returned.
     If only one BulkResponse object is provided, it will be returned as is.
 
     Args:
@@ -253,10 +256,14 @@ def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     Returns:
         models.BulkResponse: The merged BulkResponse object
     """
+    final_response = models.BulkResponse()
+
+    if len(args) == 0:
+        final_response.status = models.BulkOperationStatusEnum.SUCCESS
+        return final_response
+
     if len(args) == 1:
         return args[0]
-
-    final_response = models.BulkResponse()
 
     statuses = set()
 
