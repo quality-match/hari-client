@@ -301,8 +301,8 @@ class HARIUploader:
     ) -> None:
         for media in medias_to_upload:
             # from the endpoints we used, we know that the results items are of type
-            # models.AnnotatableCreateResponse, which contains the bulk_operation_
-            # annotatable_id.
+            # models.AnnotatableCreateResponse, which contains
+            # the bulk_operation_annotatable_id.
             filtered_upload_response = list(
                 filter(
                     lambda x: x.bulk_operation_annotatable_id
@@ -335,8 +335,8 @@ class HARIUploader:
             if len(media_object.attributes) == 0:
                 continue
             # from the endpoints we used, we know that the results items are of type
-            # models.AnnotatableCreateResponse, which contains the bulk_operation_
-            # annotatable_id.
+            # models.AnnotatableCreateResponse, which contains
+            # the bulk_operation_annotatable_id.
             filtered_upload_response = list(
                 filter(
                     lambda x: x.bulk_operation_annotatable_id
@@ -344,8 +344,6 @@ class HARIUploader:
                     media_object_upload_bulk_response.results,
                 )
             )
-            if len(media_object.attributes) == 0:
-                return
             if len(filtered_upload_response) == 0:
                 raise HARIMediaObjectUploadError(
                     f"MediaObject upload response doesn't match expectation. Couldn't find "
@@ -372,8 +370,8 @@ class HARIUploader:
             if len(media.attributes) == 0:
                 continue
             # from the endpoints we used, we know that the results items are of type
-            # models.AnnotatableCreateResponse, which contains the bulk_operation_
-            # annotatable_id.
+            # models.AnnotatableCreateResponse, which contains
+            # the bulk_operation_annotatable_id.
             filtered_upload_response = list(
                 filter(
                     lambda x: x.bulk_operation_annotatable_id
