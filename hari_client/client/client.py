@@ -1789,7 +1789,7 @@ class HARIClient:
         frequency: dict[str, int] | None = None,
         question: str | None = None,
         archived: bool | None = None,
-        ml_predidictions: dict[str, float] | None = None,
+        ml_predictions: dict[str, float] | None = None,
         ml_probability_distributions: dict[str, float] | None = None,
     ) -> models.Attribute:
         """Updates the attribute with the given id.
