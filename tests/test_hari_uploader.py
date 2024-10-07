@@ -122,6 +122,7 @@ def test_update_hari_attribute_media_ids():
     assert media_1.attributes[0].annotatable_type == models.DataBaseObjectType.MEDIA
     assert media_2.attributes[0].annotatable_id == "new_media_id_2"
     assert media_2.attributes[0].annotatable_type == models.DataBaseObjectType.MEDIA
+    assert uploader._attribute_cnt == 2
 
 
 def test_update_hari_attribute_media_object_ids():
@@ -330,6 +331,7 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     assert len(media_object_calls[2].kwargs["media_objects_to_upload"]) == 500
     assert len(media_object_calls[3].kwargs["media_objects_to_upload"]) == 500
     assert len(media_object_calls[4].kwargs["media_objects_to_upload"]) == 200
+    assert mock_uploader._media_object_cnt == 2200
 
     assert attribute_spy.call_count == 14
     attribute_calls = attribute_spy.call_args_list
@@ -347,6 +349,7 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     assert len(attribute_calls[11].kwargs["attributes_to_upload"]) == 500
     assert len(attribute_calls[12].kwargs["attributes_to_upload"]) == 500
     assert len(attribute_calls[13].kwargs["attributes_to_upload"]) == 100
+    assert mock_uploader._attribute_cnt == 6600
 
 
 def test_hari_uploader_creates_single_batch_correctly(mocker):
@@ -458,10 +461,12 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
     assert media_object_spy.call_count == 1
     media_object_calls = media_object_spy.call_args_list
     assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 10
+    assert mock_uploader._media_object_cnt == 10
 
     assert attribute_spy.call_count == 1
     attribute_calls = attribute_spy.call_args_list
     assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 30
+    assert mock_uploader._attribute_cnt == 30
 
 
 def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(mocker):
