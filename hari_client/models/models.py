@@ -948,8 +948,8 @@ class Attribute(BaseModel):
     cumulated_frequency: typing.Any | None = None
     frequency: dict[str, int] | None = None
     question: str | None = None
-    ml_predictions: dict[str, float] | None
-    ml_probability_distributions: dict[str, float] | None
+    ml_predictions: dict[str, float] | None = None
+    ml_probability_distributions: dict[str, float] | None = None
 
 
 class AttributeResponse(BaseModel):
