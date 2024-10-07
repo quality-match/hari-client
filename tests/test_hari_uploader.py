@@ -1,13 +1,27 @@
+import uuid
+
 import pytest
 
+from hari_client import Config
 from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 
+test_config = Config(
+    hari_username="username",
+    hari_password="password",
+    hari_api_base_url="api_base_url",
+    hari_client_id="client_id",
+    hari_auth_url="auth_url",
+)
+test_client = HARIClient(config=test_config)
+
 
 def test_update_hari_media_object_media_ids():
     # Arrange
-    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
+    uploader = hari_uploader.HARIUploader(
+        client=test_client, dataset_id=uuid.UUID(int=0)
+    )
     media_1 = hari_uploader.HARIMedia(
         name="my image 1",
         media_type=models.MediaType.IMAGE,
@@ -62,7 +76,9 @@ def test_update_hari_media_object_media_ids():
 
 def test_update_hari_attribute_media_ids():
     # Arrange
-    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
+    uploader = hari_uploader.HARIUploader(
+        client=test_client, dataset_id=uuid.UUID(int=0)
+    )
     media_1 = hari_uploader.HARIMedia(
         name="my image 1",
         media_type=models.MediaType.IMAGE,
@@ -127,7 +143,9 @@ def test_update_hari_attribute_media_ids():
 
 def test_update_hari_attribute_media_object_ids():
     # Arrange
-    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
+    uploader = hari_uploader.HARIUploader(
+        client=test_client, dataset_id=uuid.UUID(int=0)
+    )
     media_1 = hari_uploader.HARIMedia(
         name="my image 1",
         media_type=models.MediaType.IMAGE,
@@ -219,7 +237,7 @@ def test_update_hari_attribute_media_object_ids():
 def test_hari_uploader_creates_batches_correctly(mocker):
     # Arrange
     # setup mock_client and mock_uploader that allow for testing the full upload method
-    mock_client = HARIClient(config=None)
+    mock_client = HARIClient(config=test_config)
     mocker.patch.object(
         mock_client,
         "create_medias",
@@ -269,7 +287,9 @@ def test_hari_uploader_creates_batches_correctly(mocker):
             )
             running_media_object_bulk_id += 1
 
-    mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
+    mock_uploader = hari_uploader.HARIUploader(
+        client=mock_client, dataset_id=uuid.UUID(int=0)
+    )
     mocker.patch.object(
         mock_uploader, "_set_bulk_operation_annotatable_id", side_effect=id_setter_mock
     )
@@ -323,6 +343,7 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     assert len(media_calls[0].kwargs["medias_to_upload"]) == 500
     assert len(media_calls[1].kwargs["medias_to_upload"]) == 500
     assert len(media_calls[2].kwargs["medias_to_upload"]) == 100
+    assert len(mock_uploader._medias) == 1100
 
     assert media_object_spy.call_count == 5
     media_object_calls = media_object_spy.call_args_list
@@ -355,7 +376,7 @@ def test_hari_uploader_creates_batches_correctly(mocker):
 def test_hari_uploader_creates_single_batch_correctly(mocker):
     # Arrange
     # setup mock_client and mock_uploader that allow for testing the full upload method
-    mock_client = HARIClient(config=None)
+    mock_client = HARIClient(config=test_config)
     mocker.patch.object(
         mock_client,
         "create_medias",
@@ -386,7 +407,9 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
         mock_client, "create_attributes", return_value=models.BulkResponse()
     )
 
-    mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
+    mock_uploader = hari_uploader.HARIUploader(
+        client=mock_client, dataset_id=uuid.UUID(int=0)
+    )
 
     global running_media_bulk_id
     running_media_bulk_id = 0
@@ -457,6 +480,7 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
     assert media_spy.call_count == 1
     media_calls = media_spy.call_args_list
     assert len(media_calls[0].kwargs["medias_to_upload"]) == 5
+    assert len(mock_uploader._medias) == 5
 
     assert media_object_spy.call_count == 1
     media_object_calls = media_object_spy.call_args_list
@@ -472,7 +496,9 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
 def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(mocker):
     # Arrange
     log_spy = mocker.spy(hari_uploader.log, "warning")
-    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
+    uploader = hari_uploader.HARIUploader(
+        client=test_client, dataset_id=uuid.UUID(int=0)
+    )
     uploader.add_media(
         hari_uploader.HARIMedia(
             name="my image 1",
@@ -499,7 +525,9 @@ def test_warning_for_hari_uploader_receives_duplicate_media_object_back_referenc
 ):
     # Arrange
     log_spy = mocker.spy(hari_uploader.log, "warning")
-    uploader = hari_uploader.HARIUploader(client=None, dataset_id="")
+    uploader = hari_uploader.HARIUploader(
+        client=test_client, dataset_id=uuid.UUID(int=0)
+    )
     media = hari_uploader.HARIMedia(
         name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
     )
@@ -550,7 +578,7 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
 ):
     # Arrange
     # setup mock_client and mock_uploader that allow for testing the full upload method
-    mock_client = HARIClient(config=None)
+    mock_client = HARIClient(config=test_config)
     mocker.patch.object(
         mock_client,
         "create_medias",
@@ -568,7 +596,9 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
         mock_client, "create_media_objects", return_value=models.BulkResponse()
     )
 
-    mock_uploader = hari_uploader.HARIUploader(client=mock_client, dataset_id="")
+    mock_uploader = hari_uploader.HARIUploader(
+        client=mock_client, dataset_id=uuid.UUID(int=0)
+    )
 
     def id_setter_mock(item: hari_uploader.HARIMedia | hari_uploader.HARIMediaObject):
         item.bulk_operation_annotatable_id = "bulk_id"
