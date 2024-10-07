@@ -1,5 +1,9 @@
 ## [major.minor.patch] - YYYY-MM-DD
 
+### New Features
+
+- added support for attributes bulk upload with hari-uploader [PR#17](https://github.com/quality-match/hari-client/pull/17)
+
 ### Fixes
 
 - fixed merge_bulk_responses for the case when no responses are given, therefore uploading media without media_objects isn't identified as an unsuccessful upload anymore [PR#20](https://github.com/quality-match/hari-client/pull/20)
