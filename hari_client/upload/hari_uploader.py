@@ -65,7 +65,7 @@ class HARIMediaObjectUploadError(Exception):
 class HARIMedia(models.BulkMediaCreate):
     # the media_objects and attributes fields are not part of the lower level
     # MediaCreate model of the hari api, but we need them to add media objects and
-    # attributes to a media befored uploading the media
+    # attributes to a media before uploading the media
     media_objects: list[HARIMediaObject] = pydantic.Field(default=[], exclude=True)
     attributes: list[HARIAttribute] = pydantic.Field(default=[], exclude=True)
     # overwrites the bulk_operation_annotatable_id field to not be required,
@@ -141,7 +141,7 @@ class HARIUploader:
                 self._media_back_references.add(media.back_reference)
 
             self._medias.append(media)
-
+            self._attribute_cnt += len(media.attributes)
             # check and remember media object back_references
             for media_object in media.media_objects:
                 if media_object.back_reference in self._media_object_back_references:
@@ -154,7 +154,6 @@ class HARIUploader:
                 else:
                     self._media_object_back_references.add(media_object.back_reference)
                 self._media_object_cnt += 1
-                self._attribute_cnt += len(media.attributes)
                 self._attribute_cnt += len(media_object.attributes)
 
     def upload(
@@ -321,8 +320,11 @@ class HARIUploader:
                     f"Media upload response contains multiple items for "
                     f"{media.bulk_operation_annotatable_id=}."
                 )
+            media_upload_response: models.AnnotatableCreateResponse = (
+                filtered_upload_response[0]
+            )
             for media_object in media.media_objects:
-                media_object.media_id = filtered_upload_response[0].item_id
+                media_object.media_id = media_upload_response.item_id
 
     def _update_hari_attribute_media_object_ids(
         self,
@@ -354,8 +356,11 @@ class HARIUploader:
                     f"MediaObject upload response contains multiple items for "
                     f"{media_object.bulk_operation_annotatable_id=}."
                 )
+            media_object_upload_response: models.AnnotatableCreateResponse = (
+                filtered_upload_response[0]
+            )
             for attributes in media_object.attributes:
-                attributes.annotatable_id = filtered_upload_response[0].item_id
+                attributes.annotatable_id = media_object_upload_response.item_id
                 attributes.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _update_hari_attribute_media_ids(
@@ -391,7 +396,7 @@ class HARIUploader:
                 filtered_upload_response[0]
             )
             for attributes in media.attributes:
-                attributes.annotatable_id = filtered_upload_response[0].item_id
+                attributes.annotatable_id = media_upload_response.item_id
                 attributes.annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):

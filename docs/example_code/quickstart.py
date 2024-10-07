@@ -41,9 +41,9 @@ media_object_1 = hari_uploader.HARIMediaObject(
         height=732.0,
     ),
 )
-attribute_object_1_id = str(uuid.uuid4())
-attribute_object_1 = hari_uploader.HARIAttribute(
-    id=attribute_object_1_id,
+attribute_1_id = str(uuid.uuid4())
+attribute_1 = hari_uploader.HARIAttribute(
+    id=attribute_1_id,
     name="Is human?",
     attribute_type=models.AttributeType.Categorical,
     value="yes",
@@ -104,8 +104,8 @@ print(f"media upload summary\n  {upload_results.medias.summary}")
 print(f"media_object upload status: {upload_results.media_objects.status.value}")
 print(f"media object upload summary\n  {upload_results.media_objects.summary}")
 
-print(f"attribute upload status: {upload_results.attribute_objects.status.value}")
-print(f"attribute upload summary\n  {upload_results.attribute_objects.summary}")
+print(f"attribute upload status: {upload_results.attributes.status.value}")
+print(f"attribute upload summary\n  {upload_results.attributes.summary}")
 
 if (
     upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
