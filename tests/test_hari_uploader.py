@@ -609,6 +609,7 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
 @pytest.mark.parametrize(
     "bulk_responses, expected_merged_response",
     [
+        ([], models.BulkResponse(status=models.BulkOperationStatusEnum.SUCCESS)),
         ([models.BulkResponse()], models.BulkResponse()),
         (
             [
