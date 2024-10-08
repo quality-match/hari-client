@@ -1,5 +1,9 @@
 ## [major.minor.patch] - YYYY-MM-DD
 
+### New Features
+
+- added support for Attribute endpoints to client [PR#18](https://github.com/quality-match/hari-client/pull/18)
+
 ## [1.0.0] - 27.09.2024
 
 ### New Features
