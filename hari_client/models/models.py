@@ -889,7 +889,7 @@ class AttributeCreate(BaseModel):
     annotatable_id: str
     annotatable_type: DataBaseObjectType
     attribute_type: AttributeType | None = None
-    attribute_group: AttributeGroup | None = AttributeGroup.InitialAttribute
+    attribute_group: AttributeGroup = AttributeGroup.InitialAttribute
     value: typeT
     min: typeT | None = None
     max: typeT | None = None

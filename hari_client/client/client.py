@@ -1642,8 +1642,7 @@ class HARIClient:
         annotatable_id: str,
         value: models.typeT,
         annotatable_type: models.DataBaseObjectType,
-        attribute_group: models.AttributeGroup
-        | None = models.AttributeGroup.InitialAttribute,
+        attribute_group: models.AttributeGroup = models.AttributeGroup.InitialAttribute,
         attribute_type: models.AttributeType | None = None,
         min: models.typeT | None = None,
         max: models.typeT | None = None,
