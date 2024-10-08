@@ -23,7 +23,7 @@ dataset_id = new_dataset.id
 
 # 3. Set up your medias and all of their media objects and attributes.
 # In this example we use 3 images with 1 media object each.
-# And the first image and media object one attribute each.
+# The first media and media object have 1 attribute each.
 media_1 = hari_uploader.HARIMedia(
     file_path="images/image_1.jpg",
     name="A busy street 1",
@@ -41,16 +41,15 @@ media_object_1 = hari_uploader.HARIMediaObject(
         height=732.0,
     ),
 )
-attribute_1_id = str(uuid.uuid4())
-attribute_1 = hari_uploader.HARIAttribute(
-    id=attribute_1_id,
-    name="Is human?",
-    attribute_type=models.AttributeType.Categorical,
-    value="yes",
+attribute_object_1_id = str(uuid.uuid4())
+attribute_object_1 = hari_uploader.HARIAttribute(
+    id=attribute_object_1_id,
+    name="Is this a human being?",
+    attribute_type=models.AttributeType.Binary,
+    value=True,
     attribute_group=models.AttributeGroup.InitialAttribute,
 )
-media_object_1.add_attribute(attribute_object_1)
-media_1.add_media_object(media_object_1)
+
 attribute_media_1_id = str(uuid.uuid4())
 attribute_media_1 = hari_uploader.HARIAttribute(
     id=attribute_media_1_id,
@@ -60,6 +59,8 @@ attribute_media_1 = hari_uploader.HARIAttribute(
     attribute_group=models.AttributeGroup.InitialAttribute,
 )
 media_1.add_attribute(attribute_media_1)
+media_object_1.add_attribute(attribute_object_1)
+media_1.add_media_object(media_object_1)
 
 media_object_2 = hari_uploader.HARIMediaObject(
     source=models.DataSource.REFERENCE,
@@ -101,7 +102,7 @@ upload_results = uploader.upload()
 print(f"media upload status: {upload_results.medias.status.value}")
 print(f"media upload summary\n  {upload_results.medias.summary}")
 
-print(f"media_object upload status: {upload_results.media_objects.status.value}")
+print(f"media object upload status: {upload_results.media_objects.status.value}")
 print(f"media object upload summary\n  {upload_results.media_objects.summary}")
 
 print(f"attribute upload status: {upload_results.attributes.status.value}")
@@ -116,8 +117,8 @@ if (
         "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
     )
     print(f"media upload details: {upload_results.medias.results}")
-    print(f"media object upload details: {upload_results.media_objects.results}")
-    print(f"attribute upload status: {upload_results.media_objects.status.value}")
+    print(f"media objects upload details: {upload_results.media_objects.results}")
+    print(f"attributes upload details: {upload_results.attributes.results}")
     sys.exit(1)
 
 # 6. Create a subset
@@ -143,7 +144,7 @@ job_statuses = []
 jobs_are_still_running = True
 while jobs_are_still_running:
     jobs = hari.get_processing_jobs(trace_id=metadata_rebuild_trace_id)
-    job_statuses = [(job.id, job.status.value, job.process_name) for job in jobs]
+    job_statuses = [(job.process_name, job.status.value, job.id) for job in jobs]
 
     jobs_are_still_running = any(
         [
