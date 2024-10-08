@@ -1641,8 +1641,8 @@ class HARIClient:
         name: str,
         annotatable_id: str,
         value: models.typeT,
-        attribute_group: models.AttributeGroup,
         annotatable_type: models.DataBaseObjectType,
+        attribute_group: models.AttributeGroup = models.AttributeGroup.InitialAttribute,
         attribute_type: models.AttributeType | None = None,
         min: models.typeT | None = None,
         max: models.typeT | None = None,
@@ -1673,6 +1673,7 @@ class HARIClient:
             annotatable_id: The annotatable id
             annotatable_type: The annotatable type
             attribute_group: The attribute group
+            attribute_type: The attribute type
             min: The min value
             max: The max value
             sum: The sum value
