@@ -3,6 +3,7 @@
 ### New Features
 
 - added support for attributes bulk upload with hari-uploader [PR#17](https://github.com/quality-match/hari-client/pull/17)
+- added support for Attribute endpoints to client [PR#18](https://github.com/quality-match/hari-client/pull/18)
 
 ### Fixes
 
