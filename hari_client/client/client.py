@@ -1758,15 +1758,15 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/attributes/{attribute_id}",
             params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
-            success_response_item_model=models.Attribute,
+            success_response_item_model=models.AttributeResponse,
         )
 
     def update_attribute(
         self,
         dataset_id: str,
         attribute_id: str,
+        annotatable_id: str,
         name: str | None = None,
-        annotatable_id: str | None = None,
         annotatable_type: models.DataBaseObjectType | None = None,
         attribute_group: models.AttributeGroup | None = None,
         value: models.typeT | None = None,
@@ -1822,7 +1822,7 @@ class HARIClient:
             question: The question value
             archived: The archived value
             range: The range value
-            ml_predidictions: The parameters of the posterior Dirichlet distribution
+            ml_predictions: The parameters of the posterior Dirichlet distribution
             ml_probability_distributions: The the Dirichlet distribution values
 
         Returns:

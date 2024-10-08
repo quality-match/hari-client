@@ -927,6 +927,7 @@ class Attribute(BaseModel):
     question: str
     annotatable_id: str
     annotatable_type: DataBaseObjectType
+    subset_ids: set[str] = set()
     attribute_type: AttributeType | None = None
     attribute_group: AttributeGroup
     value: typeT
@@ -957,6 +958,7 @@ class AttributeResponse(BaseModel):
     dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
+    subset_ids: set[str] = pydantic.Field(default=set(), title="Subset Ids")
     metadata_id: str | None = pydantic.Field(default=None, title="Metadata Id")
     name: str | None = pydantic.Field(default=None, title="Name")
     question: str | None = pydantic.Field(default=None, title="Question")
