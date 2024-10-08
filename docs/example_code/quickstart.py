@@ -44,9 +44,9 @@ media_object_1 = hari_uploader.HARIMediaObject(
 attribute_object_1_id = str(uuid.uuid4())
 attribute_object_1 = hari_uploader.HARIAttribute(
     id=attribute_object_1_id,
-    name="Is human?",
-    attribute_type=models.AttributeType.Categorical,
-    value="yes",
+    name="Is this a human being?",
+    attribute_type=models.AttributeType.Binary,
+    value=True,
     attribute_group=models.AttributeGroup.InitialAttribute,
 )
 
