@@ -1056,7 +1056,7 @@ class HARIClient:
         dataset_id: uuid.UUID,
         media_id: str,
         back_reference: str,
-        source: models.DataSource,
+        source: models.DataSource = models.DataSource.REFERENCE,
         archived: bool | None = False,
         scene_id: str | None = None,
         realWorldObject_id: str | None = None,
