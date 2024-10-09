@@ -859,7 +859,7 @@ class BulkMediaCreate(MediaCreate):
 
 class MediaObjectCreate(BaseModel):
     media_id: str
-    source: DataSource
+    source: DataSource = DataSource.REFERENCE
     back_reference: str
 
     archived: bool = False

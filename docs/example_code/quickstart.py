@@ -31,7 +31,6 @@ media_1 = hari_uploader.HARIMedia(
     media_type=models.MediaType.IMAGE,
 )
 media_object_1 = hari_uploader.HARIMediaObject(
-    source=models.DataSource.REFERENCE,
     back_reference="pedestrian_1",
     reference_data=models.BBox2DCenterPoint(
         type=models.BBox2DType.BBOX2D_CENTER_POINT,
@@ -61,7 +60,6 @@ media_object_1.add_attribute(attribute_object_1)
 media_1.add_media_object(media_object_1)
 
 media_object_2 = hari_uploader.HARIMediaObject(
-    source=models.DataSource.REFERENCE,
     back_reference="motorcycle_wheel_1",
     reference_data=models.Point2DXY(x=975.0, y=2900.0),
 )
@@ -80,7 +78,6 @@ media_3 = hari_uploader.HARIMedia(
     media_type=models.MediaType.IMAGE,
 )
 media_object_3 = hari_uploader.HARIMediaObject(
-    source=models.DataSource.REFERENCE,
     back_reference="road marking",
     reference_data=models.PolyLine2DFlatCoordinates(
         coordinates=[1450, 1550, 1450, 1000],

@@ -13,6 +13,7 @@
 
 - updated occurrences of old type-hinting conventions (e.g. using pipe (`|`) instead of `typing.Optional` and `typing.Union`) [PR#19](https://github.com/quality-match/hari-client/pull/19)
 - fixed some str/uuid inconsistencies for models [PR#19](https://github.com/quality-match/hari-client/pull/19)
+- updated media object source to be optional defaulting to `REFERENCE` during media object(s) creation [PR#24](https://github.com/quality-match/hari-client/pull/24)
 
 ## [1.0.0] - 27.09.2024
 
