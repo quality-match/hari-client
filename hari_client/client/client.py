@@ -1599,7 +1599,7 @@ class HARIClient:
     ### attributes ###
     def create_attributes(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         attributes: list[models.BulkAttributeCreate],
     ) -> models.BulkResponse:
         """Creates new attributes in the database. The limit is 500 per call.
@@ -1636,8 +1636,8 @@ class HARIClient:
 
     def create_attribute(
         self,
-        id: str,
-        dataset_id: str,
+        id: uuid.UUID,
+        dataset_id: uuid.UUID,
         name: str,
         annotatable_id: str,
         value: models.typeT,
@@ -1707,7 +1707,7 @@ class HARIClient:
 
     def get_attributes(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         archived: bool | None = False,
         limit: int | None = None,
         skip: int | None = None,
@@ -1740,7 +1740,7 @@ class HARIClient:
         )
 
     def get_attribute(
-        self, dataset_id: str, attribute_id: str, annotatable_id: str
+        self, dataset_id: uuid.UUID, attribute_id: str, annotatable_id: str
     ) -> models.AttributeResponse:
         """Returns an attribute with a given attribute_id.
 
@@ -1764,7 +1764,7 @@ class HARIClient:
 
     def update_attribute(
         self,
-        dataset_id: str,
+        dataset_id: uuid.UUID,
         attribute_id: str,
         annotatable_id: str,
         name: str | None = None,
@@ -1841,7 +1841,7 @@ class HARIClient:
         )
 
     def delete_attribute(
-        self, dataset_id: str, attribute_id: str, annotatable_id: str
+        self, dataset_id: uuid.UUID, attribute_id: str, annotatable_id: str
     ) -> str:
         """Delete an attribute from a dataset.
 
