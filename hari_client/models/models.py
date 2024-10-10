@@ -884,7 +884,7 @@ class BulkMediaObjectCreate(MediaObjectCreate):
 
 
 class AttributeCreate(BaseModel):
-    id: uuid.UUID
+    id: str
     name: str
     annotatable_id: str
     annotatable_type: DataBaseObjectType

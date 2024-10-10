@@ -87,7 +87,7 @@ def test_update_hari_attribute_media_ids():
     media_1.bulk_operation_annotatable_id = "bulk_id_1"
     media_1.add_attribute(
         hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+            id="attr_1",
             name="my attribute 1",
             attribute_type=models.AttributeType.Categorical,
             value="value 1",
@@ -103,7 +103,7 @@ def test_update_hari_attribute_media_ids():
     media_2.bulk_operation_annotatable_id = "bulk_id_2"
     media_2.add_attribute(
         hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+            id="attr_1",
             name="my attribute 2",
             attribute_type=models.AttributeType.Categorical,
             value="value 2",
@@ -164,7 +164,7 @@ def test_update_hari_attribute_media_object_ids():
     )
     media_object_1.bulk_operation_annotatable_id = "bulk_id_1"
     attribute_object_1 = hari_uploader.HARIAttribute(
-        id=uuid.uuid4(),
+        id="attr_1",
         name="Is human?",
         attribute_type=models.AttributeType.Categorical,
         value="yes",
@@ -191,7 +191,7 @@ def test_update_hari_attribute_media_object_ids():
     )
     media_object_2.bulk_operation_annotatable_id = "bulk_id_2"
     attribute_object_2 = hari_uploader.HARIAttribute(
-        id=uuid.uuid4(),
+        id="attr_1",
         name="Is human?",
         attribute_type=models.AttributeType.Categorical,
         value="yes",
@@ -314,7 +314,7 @@ def test_hari_uploader_creates_batches_correctly(mocker):
             media.add_media_object(media_object)
             media.add_attribute(
                 hari_uploader.HARIAttribute(
-                    id=uuid.uuid4(),
+                    id=f"attr_{i}_{k}",
                     name=f"attr_{i}_{k}",
                     attribute_type=models.AttributeType.Categorical,
                     value=f"value_{i}_{k}",
@@ -324,7 +324,7 @@ def test_hari_uploader_creates_batches_correctly(mocker):
             for l in range(2):
                 media_object.add_attribute(
                     hari_uploader.HARIAttribute(
-                        id=uuid.uuid4(),
+                        id=f"attr_{i}_{k}_{l}",
                         name=f"attr_{i}_{k}_{l}",
                         attribute_type=models.AttributeType.Categorical,
                         value=f"value_{i}_{k}_{l}",
@@ -452,7 +452,7 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
             media.add_media_object(media_object)
             media.add_attribute(
                 hari_uploader.HARIAttribute(
-                    id=uuid.uuid4(),
+                    id=f"attr_{i}_{k}",
                     name=f"attr_{i}_{k}",
                     attribute_type=models.AttributeType.Categorical,
                     value=f"value_{i}_{k}",
@@ -462,7 +462,7 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
             for l in range(2):
                 media_object.add_attribute(
                     hari_uploader.HARIAttribute(
-                        id=uuid.uuid4(),
+                        id=f"attr_{i}_{k}_{l}",
                         name=f"attr_{i}_{k}_{l}",
                         attribute_type=models.AttributeType.Categorical,
                         value=f"value_{i}_{k}_{l}",
