@@ -57,6 +57,7 @@ attribute_media_1 = hari_uploader.HARIAttribute(
 )
 media_1.add_attribute(attribute_media_1)
 media_object_1.add_attribute(attribute_object_1)
+media_object_1.set_object_category_subset_name("pedestrian")
 media_1.add_media_object(media_object_1)
 
 media_object_2 = hari_uploader.HARIMediaObject(
@@ -69,6 +70,7 @@ media_2 = hari_uploader.HARIMedia(
     back_reference="image 2",
     media_type=models.MediaType.IMAGE,
 )
+media_object_2.set_object_category_subset_name("wheel")
 media_2.add_media_object(media_object_2)
 
 media_3 = hari_uploader.HARIMedia(
@@ -84,10 +86,15 @@ media_object_3 = hari_uploader.HARIMediaObject(
         closed=False,
     ),
 )
+media_object_3.set_object_category_subset_name("road_marking")
 media_3.add_media_object(media_object_3)
 
 # 4. Set up the uploader and add the medias to it
-uploader = hari_uploader.HARIUploader(client=hari, dataset_id=dataset_id)
+uploader = hari_uploader.HARIUploader(
+    client=hari,
+    dataset_id=dataset_id,
+    object_categories=set(["pedestrian", "wheel", "road_marking"]),
+)
 uploader.add_media(media_1, media_2, media_3)
 
 # 5. Trigger the upload process
