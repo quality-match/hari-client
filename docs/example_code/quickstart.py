@@ -25,6 +25,7 @@ dataset_id = new_dataset.id
 # In this example we use 3 images with 1 media object each.
 # The first media and media object have 1 attribute each.
 media_1 = hari_uploader.HARIMedia(
+    # note: the file_path won't be saved in HARI, it's only used during uploading
     file_path="images/image_1.jpg",
     name="A busy street 1",
     back_reference="image 1",
