@@ -61,6 +61,88 @@ def test_add_media():
     assert uploader._attribute_cnt == 1
 
 
+def test_create_object_category_subset(mocker):
+    # Arrange
+    pedestrian_subset_id = str(uuid.uuid4())
+    wheel_subset_id = str(uuid.uuid4())
+    object_categories = {"pedestrian", "wheel"}
+    object_category_vs_subsets = {
+        "pedestrian": pedestrian_subset_id,
+        "wheel": wheel_subset_id,
+    }
+    mock_client = HARIClient(config=test_config)
+    mocker.patch.object(
+        mock_client,
+        "create_subset",
+        side_effect=[pedestrian_subset_id, wheel_subset_id],
+    )
+
+    uploader = hari_uploader.HARIUploader(
+        client=mock_client,
+        dataset_id=uuid.UUID(int=0),
+        object_categories=object_categories,
+    )
+    assert uploader.object_categories == {
+        "pedestrian",
+        "wheel",
+    }
+    assert uploader._object_category_subsets == {}
+
+    # Act
+    uploader._create_object_category_subsets()
+
+    # Assert
+    assert uploader._object_category_subsets == object_category_vs_subsets
+
+
+def test_validate_media_objects_object_category_subsets_consistency():
+    # Arrange
+    object_categories = {
+        "pedestrian",
+    }
+
+    uploader = hari_uploader.HARIUploader(
+        client=test_client,
+        dataset_id=uuid.UUID(int=0),
+        object_categories=object_categories,
+    )
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        object_category_subset_name="pedestrian",
+    )
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    )
+    media_object_1.set_object_category_subset_name("pedestrian")
+    media_1.add_media_object(media_object_1)
+    uploader.add_media(media_1)
+    # Act
+    errors = uploader._validate_media_objects_object_category_subsets_consistency()
+
+    # Assert
+    assert len(errors) == 0
+
+    # Arrange
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    )
+    media_object_2.set_object_category_subset_name("wheel")
+    media_1.add_media_object(media_object_2)
+
+    # Act
+
+    # Assert
+    errors = uploader._validate_media_objects_object_category_subsets_consistency()
+    assert len(errors) == 1
+    assert (
+        type(errors[0])
+        == hari_uploader.HARIMediaObjectUnknownObjectCategorySubsetNameError
+    )
+
+
 def test_update_hari_media_object_media_ids():
     # Arrange
     uploader = hari_uploader.HARIUploader(
