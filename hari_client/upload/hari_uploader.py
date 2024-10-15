@@ -236,6 +236,13 @@ class HARIUploader:
                             media_object.subset_ids.append(media_object.object_category)
                         else:
                             media_object.subset_ids = [media_object.object_category]
+                        # also add the object_category subset_id to the overall list of subset_ids for the media
+                        if media.subset_ids:
+                            media.subset_ids.append(media_object.object_category)
+                        else:
+                            media.subset_ids = [media_object.object_category]
+                        # avoid duplicates in the subset_ids list
+                        media.subset_ids = list(set(media.subset_ids))
 
     def upload(
         self,
