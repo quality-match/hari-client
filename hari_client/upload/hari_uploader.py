@@ -174,7 +174,8 @@ class HARIUploader:
                 self._attribute_cnt += len(media_object.attributes)
 
     def _create_object_category_subsets(self) -> None:
-        for object_category in self.object_categories:
+        # sort object_categories to ensure consistent subset creation order
+        for object_category in sorted(self.object_categories):
             subset_id = self.client.create_subset(
                 dataset_id=self.dataset_id,
                 subset_type=models.SubsetType.MEDIA_OBJECT,

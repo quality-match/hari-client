@@ -1,3 +1,4 @@
+import collections
 import uuid
 
 import pytest
@@ -15,6 +16,40 @@ test_config = Config(
     hari_auth_url="auth_url",
 )
 test_client = HARIClient(config=test_config)
+
+
+@pytest.fixture()
+def setup_basic_uploader(mocker) -> tuple[hari_uploader.HARIUploader, dict[str, str]]:
+    """Sets up a basic uploader with a mock client
+    returns
+        uploader: HARIUploader instance
+        object_category_vs_subsets: dict[str, str] mapping object category names to their subset ids
+    """
+    pedestrian_subset_id = str(uuid.uuid4())
+    wheel_subset_id = str(uuid.uuid4())
+    object_categories = {"pedestrian", "wheel"}
+    object_category_vs_subsets = {
+        "pedestrian": pedestrian_subset_id,
+        "wheel": wheel_subset_id,
+    }
+    mock_client = HARIClient(config=test_config)
+    mocker.patch.object(
+        mock_client,
+        "create_subset",
+        side_effect=[pedestrian_subset_id, wheel_subset_id],
+    )
+
+    uploader = hari_uploader.HARIUploader(
+        client=mock_client,
+        dataset_id=uuid.UUID(int=0),
+        object_categories=object_categories,
+    )
+    assert uploader.object_categories == {
+        "pedestrian",
+        "wheel",
+    }
+    assert uploader._object_category_subsets == {}
+    return uploader, object_category_vs_subsets
 
 
 def test_add_media():
@@ -61,38 +96,15 @@ def test_add_media():
     assert uploader._attribute_cnt == 1
 
 
-def test_create_object_category_subset(mocker):
+def test_create_object_category_subset(setup_basic_uploader):
     # Arrange
-    pedestrian_subset_id = str(uuid.uuid4())
-    wheel_subset_id = str(uuid.uuid4())
-    object_categories = {"pedestrian", "wheel"}
-    object_category_vs_subsets = {
-        "pedestrian": pedestrian_subset_id,
-        "wheel": wheel_subset_id,
-    }
-    mock_client = HARIClient(config=test_config)
-    mocker.patch.object(
-        mock_client,
-        "create_subset",
-        side_effect=[pedestrian_subset_id, wheel_subset_id],
-    )
-
-    uploader = hari_uploader.HARIUploader(
-        client=mock_client,
-        dataset_id=uuid.UUID(int=0),
-        object_categories=object_categories,
-    )
-    assert uploader.object_categories == {
-        "pedestrian",
-        "wheel",
-    }
-    assert uploader._object_category_subsets == {}
+    uploader, object_categories_vs_subsets = setup_basic_uploader
 
     # Act
     uploader._create_object_category_subsets()
 
     # Assert
-    assert uploader._object_category_subsets == object_category_vs_subsets
+    assert uploader._object_category_subsets == object_categories_vs_subsets
 
 
 def test_validate_media_objects_object_category_subsets_consistency():
@@ -141,6 +153,47 @@ def test_validate_media_objects_object_category_subsets_consistency():
         type(errors[0])
         == hari_uploader.HARIMediaObjectUnknownObjectCategorySubsetNameError
     )
+
+
+def test_assign_media_objects_to_object_category_subsets(setup_basic_uploader):
+    # Arrange
+    uploader, object_categories_vs_subsets = setup_basic_uploader
+    obj_cat_vs_subs_iter = iter(object_categories_vs_subsets.items())
+    object_category_1, subset_1 = next(obj_cat_vs_subs_iter)
+    object_category_2, subset_2 = next(obj_cat_vs_subs_iter)
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        object_category_subset_name="pedestrian",
+    )
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    )
+    media_object_1.set_object_category_subset_name("pedestrian")
+    media_1.add_media_object(media_object_1)
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    )
+    media_object_2.set_object_category_subset_name("wheel")
+    media_1.add_media_object(media_object_2)
+    uploader.add_media(media_1)
+
+    # Act
+    uploader._create_object_category_subsets()
+    uploader._assign_media_objects_to_object_category_subsets()
+
+    # Assert
+    for media in uploader._medias:
+        for media_object in media.media_objects:
+            if media_object.object_category_subset_name == object_category_1:
+                assert media_object.subset_ids == [subset_1]
+            elif media_object.object_category_subset_name == object_category_2:
+                assert media_object.subset_ids == [subset_2]
+        assert collections.Counter(media.subset_ids) == collections.Counter(
+            [subset_1, subset_2]
+        )
 
 
 def test_update_hari_media_object_media_ids():
