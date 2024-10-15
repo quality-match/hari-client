@@ -17,6 +17,50 @@ test_config = Config(
 test_client = HARIClient(config=test_config)
 
 
+def test_add_media():
+    # Arrange
+    uploader = hari_uploader.HARIUploader(
+        client=test_client, dataset_id=uuid.UUID(int=0)
+    )
+    assert len(uploader._medias) == 0
+    assert uploader._attribute_cnt == 0
+
+    # Act
+    uploader.add_media(
+        hari_uploader.HARIMedia(
+            name="my image",
+            media_type=models.MediaType.IMAGE,
+            back_reference="img",
+            attributes=[
+                hari_uploader.HARIAttribute(
+                    id="attr_1",
+                    name="my attribute 1",
+                    attribute_type=models.AttributeType.Categorical,
+                    value="value 1",
+                    attribute_group=models.AttributeGroup.InitialAttribute,
+                )
+            ],
+        )
+    )
+
+    # Assert
+    assert len(uploader._medias) == 1
+    assert uploader._attribute_cnt == 1
+
+    # Act
+    # add another media without attributes
+    uploader.add_media(
+        hari_uploader.HARIMedia(
+            name="my image",
+            media_type=models.MediaType.IMAGE,
+            back_reference="img",
+        )
+    )
+    # Assert
+    assert len(uploader._medias) == 2
+    assert uploader._attribute_cnt == 1
+
+
 def test_update_hari_media_object_media_ids():
     # Arrange
     uploader = hari_uploader.HARIUploader(
