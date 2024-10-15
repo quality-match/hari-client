@@ -446,6 +446,18 @@ def test_hari_uploader_creates_batches_correctly(mocker):
     mocker.patch.object(
         mock_client, "create_attributes", return_value=models.BulkResponse()
     )
+    pedestrian_subset_id = str(uuid.uuid4())
+    wheel_subset_id = str(uuid.uuid4())
+    object_categories = {"pedestrian", "wheel"}
+    object_category_vs_subsets = {
+        "pedestrian": pedestrian_subset_id,
+        "wheel": wheel_subset_id,
+    }
+    mocker.patch.object(
+        mock_client,
+        "create_subset",
+        side_effect=[pedestrian_subset_id, wheel_subset_id],
+    )
 
     # there are multiple batches of medias and media objects, but the bulk_ids for the medias are expected to be continuous
     # as implemented in the create_medias mock above.
@@ -467,7 +479,9 @@ def test_hari_uploader_creates_batches_correctly(mocker):
             running_media_object_bulk_id += 1
 
     mock_uploader = hari_uploader.HARIUploader(
-        client=mock_client, dataset_id=uuid.UUID(int=0)
+        client=mock_client,
+        dataset_id=uuid.UUID(int=0),
+        object_categories=object_categories,
     )
     mocker.patch.object(
         mock_uploader, "_set_bulk_operation_annotatable_id", side_effect=id_setter_mock
@@ -582,12 +596,27 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
             ]
         ),
     )
+
     mocker.patch.object(
         mock_client, "create_attributes", return_value=models.BulkResponse()
     )
 
+    pedestrian_subset_id = str(uuid.uuid4())
+    wheel_subset_id = str(uuid.uuid4())
+    object_categories = {"pedestrian", "wheel"}
+    object_category_vs_subsets = {
+        "pedestrian": pedestrian_subset_id,
+        "wheel": wheel_subset_id,
+    }
+    mocker.patch.object(
+        mock_client,
+        "create_subset",
+        side_effect=[pedestrian_subset_id, wheel_subset_id],
+    )
     mock_uploader = hari_uploader.HARIUploader(
-        client=mock_client, dataset_id=uuid.UUID(int=0)
+        client=mock_client,
+        dataset_id=uuid.UUID(int=0),
+        object_categories=object_categories,
     )
 
     global running_media_bulk_id
@@ -774,9 +803,22 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
     mocker.patch.object(
         mock_client, "create_media_objects", return_value=models.BulkResponse()
     )
-
+    pedestrian_subset_id = str(uuid.uuid4())
+    wheel_subset_id = str(uuid.uuid4())
+    object_categories = {"pedestrian", "wheel"}
+    object_category_vs_subsets = {
+        "pedestrian": pedestrian_subset_id,
+        "wheel": wheel_subset_id,
+    }
+    mocker.patch.object(
+        mock_client,
+        "create_subset",
+        side_effect=[pedestrian_subset_id, wheel_subset_id],
+    )
     mock_uploader = hari_uploader.HARIUploader(
-        client=mock_client, dataset_id=uuid.UUID(int=0)
+        client=mock_client,
+        dataset_id=uuid.UUID(int=0),
+        object_categories=object_categories,
     )
 
     def id_setter_mock(item: hari_uploader.HARIMedia | hari_uploader.HARIMediaObject):
