@@ -101,7 +101,10 @@ def test_create_object_category_subset(setup_basic_uploader):
     uploader, object_categories_vs_subsets = setup_basic_uploader
 
     # Act
-    uploader._create_object_category_subsets()
+    obj_categories_to_create = [
+        obj_cat for obj_cat in object_categories_vs_subsets.keys()
+    ]
+    uploader._create_object_category_subsets(obj_categories_to_create)
 
     # Assert
     assert uploader._object_category_subsets == object_categories_vs_subsets
@@ -181,8 +184,11 @@ def test_assign_media_objects_to_object_category_subsets(setup_basic_uploader):
     uploader.add_media(media_1)
 
     # Act
-    uploader._create_object_category_subsets()
-    uploader._assign_media_objects_to_object_category_subsets()
+    obj_categories_to_create = [
+        obj_cat for obj_cat in object_categories_vs_subsets.keys()
+    ]
+    uploader._create_object_category_subsets(obj_categories_to_create)
+    uploader._assign_object_category_subsets()
 
     # Assert
     for media in uploader._medias:
@@ -458,6 +464,21 @@ def test_hari_uploader_creates_batches_correctly(mocker):
         "create_subset",
         side_effect=[pedestrian_subset_id, wheel_subset_id],
     )
+    dataset_response = models.DatasetResponse(
+        id=uuid.UUID(int=0),
+        name="my dataset",
+        num_medias=1,
+        num_media_objects=1,
+        num_instances=1,
+        mediatype=models.MediaType.IMAGE,
+    )
+    mocker.patch.object(
+        mock_client,
+        "get_subsets_for_dataset",
+        side_effect=[
+            [dataset_response],
+        ],
+    )
 
     # there are multiple batches of medias and media objects, but the bulk_ids for the medias are expected to be continuous
     # as implemented in the create_medias mock above.
@@ -612,6 +633,21 @@ def test_hari_uploader_creates_single_batch_correctly(mocker):
         mock_client,
         "create_subset",
         side_effect=[pedestrian_subset_id, wheel_subset_id],
+    )
+    dataset_response = models.DatasetResponse(
+        id=uuid.UUID(int=0),
+        name="my dataset",
+        num_medias=1,
+        num_media_objects=1,
+        num_instances=1,
+        mediatype=models.MediaType.IMAGE,
+    )
+    mocker.patch.object(
+        mock_client,
+        "get_subsets_for_dataset",
+        side_effect=[
+            [dataset_response],
+        ],
     )
     mock_uploader = hari_uploader.HARIUploader(
         client=mock_client,
@@ -814,6 +850,21 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
         mock_client,
         "create_subset",
         side_effect=[pedestrian_subset_id, wheel_subset_id],
+    )
+    dataset_response = models.DatasetResponse(
+        id=uuid.UUID(int=0),
+        name="my dataset",
+        num_medias=1,
+        num_media_objects=1,
+        num_instances=1,
+        mediatype=models.MediaType.IMAGE,
+    )
+    mocker.patch.object(
+        mock_client,
+        "get_subsets_for_dataset",
+        side_effect=[
+            [dataset_response],
+        ],
     )
     mock_uploader = hari_uploader.HARIUploader(
         client=mock_client,

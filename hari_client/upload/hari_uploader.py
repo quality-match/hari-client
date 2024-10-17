@@ -173,7 +173,13 @@ class HARIUploader:
                 self._media_object_cnt += 1
                 self._attribute_cnt += len(media_object.attributes)
 
+    def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
+        self._object_category_subsets[object_category] = str(subset_id)
+
     def _create_object_category_subsets(self, object_categories: list[str]) -> None:
+        log.info(f"Creating {len(object_categories)} object_category subsets.")
+        # create only the object_category subsets that don't exist on the server, yet
+        newly_created_object_category_subsets = {}
         # sort object_categories to ensure consistent subset creation order
         for object_category in sorted(object_categories):
             subset_id = self.client.create_subset(
@@ -182,7 +188,11 @@ class HARIUploader:
                 subset_name=object_category,
                 object_category=True,
             )
-            self._object_category_subsets[object_category] = subset_id
+            self._add_object_category_subset(object_category, subset_id)
+            newly_created_object_category_subsets[object_category] = subset_id
+        log.info(
+            f"Successfully created object_category subsets: {newly_created_object_category_subsets=}"
+        )
 
     def _validate_media_objects_object_category_subsets_consistency(
         self,
@@ -214,7 +224,8 @@ class HARIUploader:
                         )
         return errors
 
-    def _assign_media_objects_to_object_category_subsets(self) -> None:
+    def _assign_object_category_subsets(self) -> None:
+        """Asssigns object_category_subsets to media_objects and media based on their object_category_subset_name"""
         if len(self._object_category_subsets) > 0:
             for media in self._medias:
                 for media_object in media.media_objects:
@@ -245,6 +256,55 @@ class HARIUploader:
                         # avoid duplicates in the subset_ids list
                         media.subset_ids = list(set(media.subset_ids))
 
+    def _get_existing_object_category_subsets(self) -> list[models.DatasetResponse]:
+        # fetch existing object_category subsets
+        subsets = self.client.get_subsets_for_dataset(dataset_id=self.dataset_id)
+        # filter out subsets that are object_category subsets
+        object_category_subsets = [
+            subset for subset in subsets if subset.object_category is True
+        ]
+        log.info(f"All existing object_category subsets: {object_category_subsets=}")
+        return object_category_subsets
+
+    def _handle_object_categories(self) -> None:
+        """
+        Validates consistency of object_categories across media objects,
+        gets all existing object_category subsets from the server,
+        then creates missing object_category subsets.
+        """
+        # set up object category subsets
+        log.info(f"Initializing object_category subsets.")
+        media_object_object_category_subset_errors = (
+            self._validate_media_objects_object_category_subsets_consistency()
+        )
+        if media_object_object_category_subset_errors:
+            log.error(
+                f"Found {len(media_object_object_category_subset_errors)} errors with object_category_subset_name consistency."
+            )
+            raise media_object_object_category_subset_errors
+        object_category_subsets = self._get_existing_object_category_subsets()
+        # add already existing subsets to the object_category_subsets dict
+        for obj_category_subset in object_category_subsets:
+            self._add_object_category_subset(
+                obj_category_subset.name, obj_category_subset.id
+            )
+        # check whether all required object_category subsets already exist
+        object_categories_without_existing_subsets = [
+            obj_cat
+            for obj_cat in self.object_categories
+            if obj_cat
+            not in [obj_cat_subset.name for obj_cat_subset in object_category_subsets]
+        ]
+
+        self._create_object_category_subsets(object_categories_without_existing_subsets)
+        log.info(
+            f"All object category subsets of this dataset: {self._object_category_subsets=}"
+        )
+        self._assign_object_category_subsets()
+        # TODO: test this with some already created obj category subsets where others are missing
+        # TODO: update quickstart with util to get all subset categories (maybe) + documentation
+        # TODO: fix tests - duplicated mocker needs to be modularized
+
     def upload(
         self,
     ) -> HARIUploadResults | None:
@@ -263,56 +323,7 @@ class HARIUploader:
             )
             return None
 
-        # set up object category subsets
-        log.info(f"Initializing object_category subsets.")
-        media_object_object_category_subset_errors = (
-            self._validate_media_objects_object_category_subsets_consistency()
-        )
-        if media_object_object_category_subset_errors:
-            log.error(
-                f"Found {len(media_object_object_category_subset_errors)} errors with object_category_subset_name consistency."
-            )
-            raise media_object_object_category_subset_errors
-        # TODO: visibility_status as parameter? what is it used for?
-        # fetch existing object_category subsets
-        subsets = self.client.get_subsets_for_dataset(dataset_id=self.dataset_id)
-        # filter out subsets that are object_category subsets
-        object_category_subsets = [
-            subset for subset in subsets if subset.object_category is True
-        ]
-        # add already existing subsets to the object_category_subsets dict
-        for obj_category_subset in object_category_subsets:
-            self._object_category_subsets[
-                obj_category_subset.name
-            ] = obj_category_subset.id
-        # check whether all required object_category subsets already exist
-        remaining_object_categories_without_existing_subsets = [
-            obj_cat
-            for obj_cat in self.object_categories
-            if obj_cat
-            not in [obj_cat_subset.name for obj_cat_subset in object_category_subsets]
-        ]
-        log.info(f"Creating {len(self.object_categories)} object_category subsets.")
-        # create only the object_category subsets that don't exist on the server, yet
-        self._create_object_category_subsets(
-            remaining_object_categories_without_existing_subsets
-        )
-
-        # specify only the newly created ones separately from the ones that have already existed before
-        newly_created_object_category_subsets = {
-            (k, v)
-            for k, v in self._object_category_subsets.items()
-            if k in remaining_object_categories_without_existing_subsets
-        }
-        log.info(
-            f"Successfully created object_category subsets: {newly_created_object_category_subsets=}"
-        )
-        log.info(
-            f"All object category subsets of this dataset: {self._object_category_subsets=}"
-        )
-        self._assign_media_objects_to_object_category_subsets()
-
-        # TODO: test this with some already created obj category subsets where others are missing
+        self._handle_object_categories()
 
         # upload batches of medias
         log.info(
