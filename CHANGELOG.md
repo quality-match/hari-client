@@ -8,13 +8,13 @@
 ### Fixes
 
 - fixed merge_bulk_responses for the case when no responses are given, therefore uploading media without media_objects isn't identified as an unsuccessful upload anymore [PR#20](https://github.com/quality-match/hari-client/pull/20)
+- fixed bug updating media/annotatable ids for media objects and attributes when shared [PR#27](https://github.com/quality-match/hari-client/pull/27)
 
 ### Internal
 
 - updated occurrences of old type-hinting conventions (e.g. using pipe (`|`) instead of `typing.Optional` and `typing.Union`) [PR#19](https://github.com/quality-match/hari-client/pull/19)
 - fixed some str/uuid inconsistencies for models [PR#19](https://github.com/quality-match/hari-client/pull/19)
 - updated media object source to be optional defaulting to `REFERENCE` during media object(s) creation [PR#24](https://github.com/quality-match/hari-client/pull/24)
-- fixed bug updating media/annotatable ids for media objects and attributes when shared [PR#27](https://github.com/quality-match/hari-client/pull/27)
 
 ## [1.0.0] - 27.09.2024
 
