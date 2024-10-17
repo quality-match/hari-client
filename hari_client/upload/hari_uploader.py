@@ -122,11 +122,11 @@ class HARIUploader:
         self,
         client: HARIClient,
         dataset_id: uuid.UUID,
-        object_categories: set[str] | None = None,
+        object_categories: set[str] = [],
     ) -> None:
         self.client: HARIClient = client
         self.dataset_id: str = dataset_id
-        self.object_categories: set[str] | None = object_categories
+        self.object_categories: set[str] = object_categories
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
@@ -282,6 +282,9 @@ class HARIUploader:
                 f"Found {len(media_object_object_category_subset_errors)} errors with object_category_subset_name consistency."
             )
             raise media_object_object_category_subset_errors
+        # TODO: also validate that for each object_category specified in the hari_uploader-init, there exists at least one media_object and media for it
+
+        # TODO: also validate that each media has the object_category_subset_names of its medias
         object_category_subsets = self._get_existing_object_category_subsets()
         # add already existing subsets to the object_category_subsets dict
         for obj_category_subset in object_category_subsets:
