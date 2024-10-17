@@ -62,7 +62,9 @@ def test_add_media(mock_uploader_for_object_category_validation):
     assert uploader._attribute_cnt == 1
 
 
-def test_create_object_category_subset(mock_uploader_for_object_category_validation):
+def test_create_object_category_subset_sets_uploader_attribute_correctly(
+    mock_uploader_for_object_category_validation,
+):
     (
         uploader,
         object_categories_vs_subsets,
@@ -123,7 +125,7 @@ def test_validate_media_objects_object_category_subsets_consistency(
     )
 
 
-def test_assign_media_objects_to_object_category_subsets(
+def test_assign_media_objects_to_object_category_subsets_sets_subset_ids_corectly(
     mock_uploader_for_object_category_validation,
 ):
     # Arrange

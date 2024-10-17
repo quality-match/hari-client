@@ -9,7 +9,7 @@ pytest_plugins = [
 
 
 @pytest.fixture()
-def test_client() -> HARIClient:
+def test_client():
     test_config = Config(
         hari_username="username",
         hari_password="password",
@@ -17,4 +17,4 @@ def test_client() -> HARIClient:
         hari_client_id="client_id",
         hari_auth_url="auth_url",
     )
-    return HARIClient(config=test_config)
+    yield HARIClient(config=test_config)
