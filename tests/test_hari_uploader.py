@@ -28,11 +28,10 @@ def test_update_hari_media_object_media_ids():
         back_reference="img_1",
     )
     media_1.bulk_operation_annotatable_id = "bulk_id_1"
-    media_1.add_media_object(
-        hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-        )
+    shared_media_object = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
     )
+    media_1.add_media_object(shared_media_object)
     uploader.add_media(media_1)
     media_2 = hari_uploader.HARIMedia(
         name="my image 2",
@@ -40,9 +39,10 @@ def test_update_hari_media_object_media_ids():
         back_reference="img_2",
     )
     media_2.bulk_operation_annotatable_id = "bulk_id_2"
+    media_2.add_media_object(shared_media_object)
     media_2.add_media_object(
         hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE, back_reference="img_2_obj_1"
+            source=models.DataSource.REFERENCE, back_reference="img_2_obj_2"
         )
     )
     uploader.add_media(media_2)
@@ -72,6 +72,8 @@ def test_update_hari_media_object_media_ids():
     # Assert
     assert uploader._medias[0].media_objects[0].media_id == "new_media_id_1"
     assert uploader._medias[1].media_objects[0].media_id == "new_media_id_2"
+    assert uploader._medias[1].media_objects[1].media_id == "new_media_id_2"
+    uploader._media_object_cnt = 3
 
 
 def test_update_hari_attribute_media_ids():
@@ -79,21 +81,20 @@ def test_update_hari_attribute_media_ids():
     uploader = hari_uploader.HARIUploader(
         client=test_client, dataset_id=uuid.UUID(int=0)
     )
+    shared_attribute = hari_uploader.HARIAttribute(
+        id="attr_1",
+        name="my attribute 1",
+        attribute_type=models.AttributeType.Categorical,
+        value="value 1",
+        attribute_group=models.AttributeGroup.InitialAttribute,
+    )
     media_1 = hari_uploader.HARIMedia(
         name="my image 1",
         media_type=models.MediaType.IMAGE,
         back_reference="img_1",
     )
     media_1.bulk_operation_annotatable_id = "bulk_id_1"
-    media_1.add_attribute(
-        hari_uploader.HARIAttribute(
-            id="attr_1",
-            name="my attribute 1",
-            attribute_type=models.AttributeType.Categorical,
-            value="value 1",
-            attribute_group=models.AttributeGroup.InitialAttribute,
-        )
-    )
+    media_1.add_attribute(shared_attribute)
     uploader.add_media(media_1)
     media_2 = hari_uploader.HARIMedia(
         name="my image 2",
@@ -101,9 +102,10 @@ def test_update_hari_attribute_media_ids():
         back_reference="img_2",
     )
     media_2.bulk_operation_annotatable_id = "bulk_id_2"
+    media_2.add_attribute(shared_attribute)
     media_2.add_attribute(
         hari_uploader.HARIAttribute(
-            id="attr_1",
+            id="attr_2",
             name="my attribute 2",
             attribute_type=models.AttributeType.Categorical,
             value="value 2",
@@ -138,7 +140,9 @@ def test_update_hari_attribute_media_ids():
     assert media_1.attributes[0].annotatable_type == models.DataBaseObjectType.MEDIA
     assert media_2.attributes[0].annotatable_id == "new_media_id_2"
     assert media_2.attributes[0].annotatable_type == models.DataBaseObjectType.MEDIA
-    assert uploader._attribute_cnt == 2
+    assert media_2.attributes[1].annotatable_id == "new_media_id_2"
+    assert media_2.attributes[1].annotatable_type == models.DataBaseObjectType.MEDIA
+    assert uploader._attribute_cnt == 3
 
 
 def test_update_hari_attribute_media_object_ids():
@@ -163,14 +167,14 @@ def test_update_hari_attribute_media_object_ids():
         ),
     )
     media_object_1.bulk_operation_annotatable_id = "bulk_id_1"
-    attribute_object_1 = hari_uploader.HARIAttribute(
+    shared_attribute_object_1 = hari_uploader.HARIAttribute(
         id="attr_1",
         name="Is human?",
         attribute_type=models.AttributeType.Categorical,
         value="yes",
         attribute_group=models.AttributeGroup.InitialAttribute,
     )
-    media_object_1.add_attribute(attribute_object_1)
+    media_object_1.add_attribute(shared_attribute_object_1)
     media_1.add_media_object(media_object_1)
 
     media_2 = hari_uploader.HARIMedia(
@@ -191,12 +195,13 @@ def test_update_hari_attribute_media_object_ids():
     )
     media_object_2.bulk_operation_annotatable_id = "bulk_id_2"
     attribute_object_2 = hari_uploader.HARIAttribute(
-        id="attr_1",
+        id="attr_2",
         name="Is human?",
         attribute_type=models.AttributeType.Categorical,
         value="yes",
         attribute_group=models.AttributeGroup.InitialAttribute,
     )
+    media_object_2.add_attribute(shared_attribute_object_1)
     media_object_2.add_attribute(attribute_object_2)
     media_2.add_media_object(media_object_2)
 
@@ -232,6 +237,12 @@ def test_update_hari_attribute_media_object_ids():
         media_object_2.attributes[0].annotatable_type
         == models.DataBaseObjectType.MEDIAOBJECT
     )
+    assert media_object_2.attributes[1].annotatable_id == "new_media_object_id_2"
+    assert (
+        media_object_2.attributes[1].annotatable_type
+        == models.DataBaseObjectType.MEDIAOBJECT
+    )
+    uploader._attribute_cnt = 3
 
 
 def test_hari_uploader_creates_batches_correctly(mocker):
