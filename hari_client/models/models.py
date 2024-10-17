@@ -866,7 +866,7 @@ class MediaObjectCreate(BaseModel):
     scene_id: str | None = None
     realWorldObject_id: str | None = None
     visualisations: list[VisualisationUnion] | None = None
-    subset_ids: set[str] | list[str] | None = None
+    subset_ids: list[str] | None = None
 
     instance_id: str | None = None
     object_category: str | None = None
