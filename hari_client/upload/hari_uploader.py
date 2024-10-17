@@ -122,11 +122,12 @@ class HARIUploader:
         self,
         client: HARIClient,
         dataset_id: uuid.UUID,
-        object_categories: set[str] = [],
+        object_categories_to_validate: set | None = None,
     ) -> None:
         self.client: HARIClient = client
         self.dataset_id: str = dataset_id
-        self.object_categories: set[str] = object_categories
+        self.object_categories: set[str] = set()
+        self.object_categories_to_validate = object_categories_to_validate or set()
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
@@ -206,22 +207,23 @@ class HARIUploader:
             that were found during the validation
         """
         errors = []
-        for media in self._medias:
-            for media_object in media.media_objects:
-                # was the media_object assigned an object_category_subset_name?
-                if media_object.object_category_subset_name:
-                    # was the object_category_subset_name specified in the HARIUploader constructor?
-                    if (
-                        media_object.object_category_subset_name
-                        not in self.object_categories
-                    ):
-                        errors.append(
-                            HARIMediaObjectUnknownObjectCategorySubsetNameError(
-                                f"A subset for the specified object_category_subset_name ({media_object.object_category_subset_name}) wasn't specified."
-                                f"Only the object_categories that were specified in the HARIUploader constructor are allowed: {self.object_categories}"
-                                f"media_object: {media_object}"
+        if self.object_categories_to_validate:
+            for media in self._medias:
+                for media_object in media.media_objects:
+                    # was the media_object assigned an object_category_subset_name?
+                    if media_object.object_category_subset_name:
+                        # was the object_category_subset_name specified in the HARIUploader constructor?
+                        if (
+                            media_object.object_category_subset_name
+                            not in self.object_categories_to_validate
+                        ):
+                            errors.append(
+                                HARIMediaObjectUnknownObjectCategorySubsetNameError(
+                                    f"A subset for the specified object_category_subset_name ({media_object.object_category_subset_name}) wasn't specified."
+                                    f"Only the object_categories that were specified in the HARIUploader constructor are allowed: {self.object_categories}"
+                                    f"media_object: {media_object}"
+                                )
                             )
-                        )
         return errors
 
     def _assign_object_category_subsets(self) -> None:

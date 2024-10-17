@@ -21,6 +21,13 @@ from hari_client import models
 
 
 class TestHariUploader:
+    """
+    Tests for the HARIUploader class.
+    How to use:
+    - check if an existing fixture can be used for your test
+        - if not, create a new fixture with a HariClient to prepare the test data
+    """
+
     @pytest.fixture()
     def test_client(self) -> None:
         self.test_config = Config(
@@ -34,10 +41,10 @@ class TestHariUploader:
 
     # TODO: more test setups, better names
     @pytest.fixture(autouse=True)
-    def setup_basic_uploader(
+    def mock_client_(
         self, test_client, mocker
     ) -> tuple[hari_uploader.HARIUploader, dict[str, str]]:
-        """Sets up a basic self.uploader with a mock client
+        """Sets up a basic uplader using object_categories
         returns
             self.uploader: HARIUploader instance
             object_category_vs_subsets: dict[str, str] mapping object category names to their subset ids
@@ -56,9 +63,9 @@ class TestHariUploader:
         self.uploader = hari_uploader.HARIUploader(
             client=self.mock_client,
             dataset_id=uuid.UUID(int=0),
-            object_categories=object_categories,
+            object_categories_to_validate=object_categories,
         )
-        assert self.uploader.object_categories == {
+        assert self.uploader.object_categories_to_validate == {
             "pedestrian",
             "wheel",
         }
@@ -68,7 +75,7 @@ class TestHariUploader:
         }
         assert self.uploader._object_category_subsets == {}
 
-    def test_add_media(self, setup_basic_uploader):
+    def test_add_media(self):
         # Arrange
 
         assert len(self.uploader._medias) == 0
@@ -109,7 +116,7 @@ class TestHariUploader:
         assert len(self.uploader._medias) == 2
         assert self.uploader._attribute_cnt == 1
 
-    def test_create_object_category_subset(self, setup_basic_uploader):
+    def test_create_object_category_subset(self):
         # Act
         obj_categories_to_create = [
             obj_cat for obj_cat in self.object_categories_vs_subsets.keys()
@@ -164,9 +171,7 @@ class TestHariUploader:
             == hari_uploader.HARIMediaObjectUnknownObjectCategorySubsetNameError
         )
 
-    def test_assign_media_objects_to_object_category_subsets(
-        self, setup_basic_uploader
-    ):
+    def test_assign_media_objects_to_object_category_subsets(self):
         # Arrange
         obj_cat_vs_subs_iter = iter(self.object_categories_vs_subsets.items())
         object_category_1, subset_1 = next(obj_cat_vs_subs_iter)
@@ -497,7 +502,7 @@ class TestHariUploader:
         mock_uploader = hari_uploader.HARIUploader(
             client=self.mock_client,
             dataset_id=uuid.UUID(int=0),
-            object_categories=object_categories,
+            object_categories_to_validate=object_categories,
         )
         mocker.patch.object(
             mock_uploader,
@@ -647,7 +652,7 @@ class TestHariUploader:
         mock_uploader = hari_uploader.HARIUploader(
             client=self.mock_client,
             dataset_id=uuid.UUID(int=0),
-            object_categories=object_categories,
+            object_categories_to_validate=object_categories,
         )
 
         global running_media_bulk_id
@@ -861,7 +866,7 @@ class TestHariUploader:
         mock_uploader = hari_uploader.HARIUploader(
             client=self.mock_client,
             dataset_id=uuid.UUID(int=0),
-            object_categories=object_categories,
+            object_categories_to_validate=object_categories,
         )
 
         def id_setter_mock(

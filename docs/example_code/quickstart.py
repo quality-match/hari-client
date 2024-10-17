@@ -94,7 +94,7 @@ media_3.add_media_object(media_object_3)
 uploader = hari_uploader.HARIUploader(
     client=hari,
     dataset_id=dataset_id,
-    object_categories=set(["pedestrian", "wheel", "road_marking"]),
+    object_categories_to_validate={"pedestrian", "wheel", "road_marking"},
 )
 uploader.add_media(media_1, media_2, media_3)
 
