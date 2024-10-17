@@ -1,3 +1,4 @@
+import copy
 import uuid
 
 import pydantic
@@ -232,11 +233,13 @@ class HARIUploader:
         for media in medias_to_upload:
             all_media_objects.extend(media.media_objects)
             all_attributes.extend(media.attributes)
-        for media_object in all_media_objects:
-            all_attributes.extend(media_object.attributes)
+
         media_object_upload_responses = self._upload_media_objects_in_batches(
             all_media_objects
         )
+        for media_object in all_media_objects:
+            all_attributes.extend(media_object.attributes)
+
         # upload attributes of this batch of media in batches
         attributes_upload_responses = self._upload_attributes_in_batches(all_attributes)
 
@@ -276,7 +279,7 @@ class HARIUploader:
         self, attributes_to_upload: list[HARIAttribute]
     ) -> models.BulkResponse:
         response = self.client.create_attributes(
-            dataset_id=str(self.dataset_id), attributes=attributes_to_upload
+            dataset_id=self.dataset_id, attributes=attributes_to_upload
         )
         return response
 
@@ -325,8 +328,11 @@ class HARIUploader:
             media_upload_response: models.AnnotatableCreateResponse = (
                 filtered_upload_response[0]
             )
-            for media_object in media.media_objects:
-                media_object.media_id = media_upload_response.item_id
+
+            for i, media_object in enumerate(media.media_objects):
+                # Create a copy of the media object to avoid changing shared attributes
+                media.media_objects[i] = copy.deepcopy(media_object)
+                media.media_objects[i].media_id = media_upload_response.item_id
 
     def _update_hari_attribute_media_object_ids(
         self,
@@ -359,9 +365,15 @@ class HARIUploader:
             media_object_upload_response: models.AnnotatableCreateResponse = (
                 filtered_upload_response[0]
             )
-            for attributes in media_object.attributes:
-                attributes.annotatable_id = media_object_upload_response.item_id
-                attributes.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
+            for i, attribute in enumerate(media_object.attributes):
+                # Create a copy of the attribute to avoid changing shared attributes
+                media_object.attributes[i] = copy.deepcopy(attribute)
+                media_object.attributes[
+                    i
+                ].annotatable_id = media_object_upload_response.item_id
+                media_object.attributes[
+                    i
+                ].annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _update_hari_attribute_media_ids(
         self,
@@ -395,9 +407,11 @@ class HARIUploader:
             media_upload_response: models.AnnotatableCreateResponse = (
                 filtered_upload_response[0]
             )
-            for attributes in media.attributes:
-                attributes.annotatable_id = media_upload_response.item_id
-                attributes.annotatable_type = models.DataBaseObjectType.MEDIA
+            for i, attribute in enumerate(media.attributes):
+                # Create a copy of the attribute to avoid changing shared attributes
+                media.attributes[i] = copy.deepcopy(attribute)
+                media.attributes[i].annotatable_id = media_upload_response.item_id
+                media.attributes[i].annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):
         if not item.bulk_operation_annotatable_id:
