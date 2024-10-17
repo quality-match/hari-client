@@ -268,6 +268,14 @@ class HARIUploader:
         log.info(f"All existing object_category subsets: {object_category_subsets=}")
         return object_category_subsets
 
+    def get_distinct_subset_names_from_added_media_objects(self) -> set[str]:
+        return {
+            media_obj.object_category_subset_name
+            for medias in self._medias
+            for media_obj in medias.media_objects
+            if media_obj.object_category_subset_name is not None
+        }
+
     def _handle_object_categories(self) -> None:
         """
         Validates consistency of object_categories across media objects,
@@ -284,20 +292,23 @@ class HARIUploader:
                 f"Found {len(media_object_object_category_subset_errors)} errors with object_category_subset_name consistency."
             )
             raise media_object_object_category_subset_errors
-        # TODO: also validate that for each object_category specified in the hari_uploader-init, there exists at least one media_object and media for it
-
         # TODO: also validate that each media has the object_category_subset_names of its medias
+
         object_category_subsets = self._get_existing_object_category_subsets()
         # add already existing subsets to the object_category_subsets dict
         for obj_category_subset in object_category_subsets:
             self._add_object_category_subset(
                 obj_category_subset.name, obj_category_subset.id
             )
+
+        distinct_subset_names = (
+            self.get_distinct_subset_names_from_added_media_objects()
+        )
         # check whether all required object_category subsets already exist
         object_categories_without_existing_subsets = [
-            obj_cat
-            for obj_cat in self.object_categories
-            if obj_cat
+            subset_name
+            for subset_name in distinct_subset_names
+            if subset_name
             not in [obj_cat_subset.name for obj_cat_subset in object_category_subsets]
         ]
 
