@@ -1641,7 +1641,11 @@ class HARIClient:
         name: str,
         annotatable_id: str,
         value: models.typeT,
-        annotatable_type: models.DataBaseObjectType,
+        annotatable_type: typing.Literal[
+            models.DataBaseObjectType.MEDIA,
+            models.DataBaseObjectType.MEDIAOBJECT,
+            models.DataBaseObjectType.INSTANCE,
+        ],
         attribute_group: models.AttributeGroup = models.AttributeGroup.InitialAttribute,
         attribute_type: models.AttributeType | None = None,
         min: models.typeT | None = None,
