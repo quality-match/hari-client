@@ -126,7 +126,6 @@ class HARIUploader:
     ) -> None:
         self.client: HARIClient = client
         self.dataset_id: str = dataset_id
-        self.object_categories: set[str] = set()
         self.object_categories_to_validate = object_categories_to_validate or set()
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
@@ -220,7 +219,7 @@ class HARIUploader:
                             errors.append(
                                 HARIMediaObjectUnknownObjectCategorySubsetNameError(
                                     f"A subset for the specified object_category_subset_name ({media_object.object_category_subset_name}) wasn't specified."
-                                    f"Only the object_categories that were specified in the HARIUploader constructor are allowed: {self.object_categories}"
+                                    f"Only the object_categories that were specified in the HARIUploader constructor are allowed: {self.object_categories_to_validate}"
                                     f"media_object: {media_object}"
                                 )
                             )
@@ -242,7 +241,7 @@ class HARIUploader:
                         if media_object.object_category is None:
                             raise HARIMediaObjectUnknownObjectCategorySubsetNameError(
                                 f"A subset for the specified object_category_subset_name ({media_object.object_category_subset_name}) wasn't created."
-                                f"Only the object_categories that were specified in the HARIUploader constructor are allowed: {self.object_categories}"
+                                f"Only the object_categories that were specified in the HARIUploader constructor are allowed: {self.object_categories_to_validate}"
                                 f"media_object: {media_object}"
                             )
                         # also add the object_category subset_id to the overall list of subset_ids
@@ -292,7 +291,6 @@ class HARIUploader:
                 f"Found {len(media_object_object_category_subset_errors)} errors with object_category_subset_name consistency."
             )
             raise media_object_object_category_subset_errors
-        # TODO: also validate that each media has the object_category_subset_names of its medias
 
         object_category_subsets = self._get_existing_object_category_subsets()
         # add already existing subsets to the object_category_subsets dict
