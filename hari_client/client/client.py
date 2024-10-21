@@ -1,4 +1,5 @@
 import datetime
+import json
 import pathlib
 import types
 import typing
@@ -15,6 +16,13 @@ from hari_client.utils import logger
 T = typing.TypeVar("T")
 
 log = logger.setup_logger(__name__)
+
+
+class UUIDEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, uuid.UUID):
+            return str(obj)
+        return super().default(obj)
 
 
 def _parse_response_model(
@@ -158,6 +166,9 @@ class HARIClient:
         # prepare request
         self._refresh_access_token()
         full_url = f"{self.config.hari_api_base_url}{url}"
+
+        if "json" in kwargs:
+            kwargs["json"] = json.loads(json.dumps(kwargs["json"], cls=UUIDEncoder))
 
         # do request and basic error handling
         response = self.session.request(method, full_url, **kwargs)
@@ -1063,7 +1074,7 @@ class HARIClient:
         visualisations: list[models.VisualisationUnion] | None = None,
         subset_ids: list | None = None,
         instance_id: str | None = None,
-        object_category: str | None = None,
+        object_category: uuid.UUID | None = None,
         qm_data: list[models.GeometryUnion] | None = None,
         reference_data: models.GeometryUnion | None = None,
         frame_idx: int | None = None,
@@ -1157,7 +1168,7 @@ class HARIClient:
         media_id: str | None = None,
         instance_id: str | None = None,
         source: models.DataSource | None = None,
-        object_category: str | None = None,
+        object_category: uuid.UUID | None = None,
         qm_data: list[models.GeometryUnion] | None = None,
         reference_data: models.GeometryUnion | None = None,
         frame_idx: int | None = None,
@@ -1177,7 +1188,7 @@ class HARIClient:
             media_id: Media Id
             instance_id: Instance Id
             source: DataSource
-            object_category: Object Category
+            object_category: Object Categories subset id
             qm_data: QM sourced geometry object
             reference_data: Externally sourced geometry object
             frame_idx: Frame Idx
