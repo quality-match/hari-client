@@ -1770,6 +1770,7 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         attribute_id: str,
+        annotatable_id: str,
         name: str | None = None,
         value: models.typeT | None = None,
         min: models.typeT | None = None,

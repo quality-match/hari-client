@@ -10,11 +10,6 @@
 - fixed merge_bulk_responses for the case when no responses are given, therefore uploading media without media_objects isn't identified as an unsuccessful upload anymore [PR#20](https://github.com/quality-match/hari-client/pull/20)
 - fixed bug updating media/annotatable ids for media objects and attributes when shared [PR#27](https://github.com/quality-match/hari-client/pull/27)
 
-### Breaking Changes
-
-- restricted attribute annotatable type only to media, media object and instance [PR#28](https://github.com/quality-match/hari-client/pull/28)
-- restricted fields as `annotatable_id`, `annotatable_type` and `attribute_group` of the attribute to be updated [PR#28](https://github.com/quality-match/hari-client/pull/28)
-
 ### Internal
 
 - updated occurrences of old type-hinting conventions (e.g. using pipe (`|`) instead of `typing.Optional` and `typing.Union`) [PR#19](https://github.com/quality-match/hari-client/pull/19)
