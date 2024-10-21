@@ -1188,7 +1188,7 @@ class HARIClient:
             media_id: Media Id
             instance_id: Instance Id
             source: DataSource
-            object_category: Object Categories subset id
+            object_category: Object category's subset id
             qm_data: QM sourced geometry object
             reference_data: Externally sourced geometry object
             frame_idx: Frame Idx
