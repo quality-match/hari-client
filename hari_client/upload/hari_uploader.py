@@ -187,10 +187,8 @@ class HARIUploader:
                 self._media_object_cnt += 1
                 self._attribute_cnt += len(media_object.attributes)
 
-    def _add_object_category_subset(
-        self, object_category: str, subset_id: uuid.UUID
-    ) -> None:
-        self._object_category_subsets[object_category] = str(subset_id)
+    def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
+        self._object_category_subsets[object_category] = subset_id
 
     def _create_object_category_subsets(self, object_categories: list[str]) -> None:
         log.info(f"Creating {len(object_categories)} object_category subsets.")
