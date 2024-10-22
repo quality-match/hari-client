@@ -1,14 +1,13 @@
 import pytest
 
-from hari_client import Config
 from hari_client import errors
 from hari_client import HARIClient
 from hari_client import models
 
 
-def test_create_medias_with_missing_file_paths():
+def test_create_medias_with_missing_file_paths(test_client):
     # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    client = test_client
     media_create = models.MediaCreate(
         name="my test media",
         back_reference="my test media backref",
@@ -17,12 +16,12 @@ def test_create_medias_with_missing_file_paths():
 
     # Act + Assert
     with pytest.raises(errors.MediaCreateMissingFilePathError):
-        hari.create_medias(dataset_id="1234", medias=[media_create])
+        client.create_medias(dataset_id="1234", medias=[media_create])
 
 
-def test_create_medias_with_different_file_extensions():
+def test_create_medias_with_different_file_extensions(test_client):
     # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    client = test_client
     media_create_1 = models.MediaCreate(
         name="my test media 1",
         back_reference="my test media 1 backref",
@@ -38,12 +37,12 @@ def test_create_medias_with_different_file_extensions():
 
     # Act + Assert
     with pytest.raises(errors.UploadingFilesWithDifferentFileExtensionsError):
-        hari.create_medias(dataset_id="1234", medias=[media_create_1, media_create_2])
+        client.create_medias(dataset_id="1234", medias=[media_create_1, media_create_2])
 
 
-def test_create_medias_with_too_many_objects():
+def test_create_medias_with_too_many_objects(test_client):
     # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    client = test_client
     media_create = models.MediaCreate(
         name="my test media",
         back_reference="my test media backref",
@@ -53,15 +52,15 @@ def test_create_medias_with_too_many_objects():
 
     # Act + Assert
     with pytest.raises(errors.BulkUploadSizeRangeError):
-        hari.create_medias(
+        client.create_medias(
             dataset_id="1234",
             medias=[media_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)],
         )
 
 
-def test_create_media_objects_with_too_many_objects():
+def test_create_media_objects_with_too_many_objects(test_client):
     # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    client = test_client
     media_object_create = models.MediaObjectCreate(
         media_id="1234",
         source=models.DataSource.REFERENCE,
@@ -70,7 +69,7 @@ def test_create_media_objects_with_too_many_objects():
 
     # Act + Assert
     with pytest.raises(errors.BulkUploadSizeRangeError):
-        hari.create_media_objects(
+        client.create_media_objects(
             dataset_id="1234",
             media_objects=[
                 media_object_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)
@@ -78,13 +77,13 @@ def test_create_media_objects_with_too_many_objects():
         )
 
 
-def test_get_presigned_media_upload_url_batch_size_range():
+def test_get_presigned_media_upload_url_batch_size_range(test_client):
     # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    client = test_client
 
     # Act + Assert
     with pytest.raises(errors.ParameterNumberRangeError, match="value=0"):
-        hari.get_presigned_media_upload_url(
+        client.get_presigned_media_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             batch_size=0,
@@ -94,20 +93,20 @@ def test_get_presigned_media_upload_url_batch_size_range():
         errors.ParameterNumberRangeError,
         match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
     ):
-        hari.get_presigned_media_upload_url(
+        client.get_presigned_media_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
         )
 
 
-def test_get_presigned_visualisation_upload_url_batch_size_range():
+def test_get_presigned_visualisation_upload_url_batch_size_range(test_client):
     # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    client = test_client
 
     # Act + Assert
     with pytest.raises(errors.ParameterNumberRangeError, match="value=0"):
-        hari.get_presigned_visualisation_upload_url(
+        client.get_presigned_visualisation_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             visualisation_config_id="1234",
@@ -118,7 +117,7 @@ def test_get_presigned_visualisation_upload_url_batch_size_range():
         errors.ParameterNumberRangeError,
         match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
     ):
-        hari.get_presigned_visualisation_upload_url(
+        client.get_presigned_visualisation_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             visualisation_config_id="1234",
@@ -126,17 +125,17 @@ def test_get_presigned_visualisation_upload_url_batch_size_range():
         )
 
 
-def test_trigger_metadata_rebuild_validation_for_dataset_ids_list():
+def test_trigger_metadata_rebuild_validation_for_dataset_ids_list(test_client):
     # Arrange
-    hari = HARIClient(config=Config(hari_username="abc", hari_password="123"))
+    client = test_client
 
     # Act + Assert
     with pytest.raises(errors.ParameterListLengthError, match="length=0"):
-        hari.trigger_metadata_rebuild_job(
+        client.trigger_metadata_rebuild_job(
             dataset_ids=[],
         )
 
     with pytest.raises(errors.ParameterListLengthError, match="length=11"):
-        hari.trigger_metadata_rebuild_job(
+        client.trigger_metadata_rebuild_job(
             dataset_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
         )
