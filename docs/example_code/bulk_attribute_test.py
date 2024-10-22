@@ -16,79 +16,64 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="BB_local_client", user_group="QM-ops")
-print("Dataset created with id:", new_dataset.id)
+# new_dataset = hari.create_dataset(name="BB_local_client", user_group="QM-ops")
+# print("Dataset created with id:", new_dataset.id)
 
-dataset_id = new_dataset.id
+dataset_id = "e6019f2d-0a3e-4cc0-9583-843fc13f52c4"
 
-# 3. Set up your medias and all of their media objects and attributes.
-# In this example we use 3 images with 1 media object each.
-# The first media and media object have 1 attribute each.
+# 3. Set up a media and somemedia objects
+
 media_1 = hari_uploader.HARIMedia(
-    file_path="images/image_1.jpg",
-    name="A busy street 1",
+    file_path="images/ecp1.png",
+    name="cam 1",
     back_reference="image 1",
     media_type=models.MediaType.IMAGE,
 )
 media_object_1 = hari_uploader.HARIMediaObject(
-    back_reference="pedestrian_1",
+    back_reference="object_1",
     reference_data=models.BBox2DCenterPoint(
         type=models.BBox2DType.BBOX2D_CENTER_POINT,
-        x=1400.0,
-        y=1806.0,
-        width=344.0,
-        height=732.0,
+        x=100.0,
+        y=104.0,
+        width=56.0,
+        height=42.0,
     ),
 )
-attribute_object_1_id = str(uuid.uuid4())
-attribute_object_1 = hari_uploader.HARIAttribute(
-    id=attribute_object_1_id,
-    name="Is this a human being?",
-    attribute_type=models.AttributeType.Binary,
-    value=True,
-)
 
-attribute_media_1_id = str(uuid.uuid4())
-attribute_media_1 = hari_uploader.HARIAttribute(
-    id=attribute_media_1_id,
-    name="area",
-    attribute_type=models.AttributeType.Categorical,
-    value=6912,
-)
-media_1.add_attribute(attribute_media_1)
-media_object_1.add_attribute(attribute_object_1)
+n_media_attributes = 200
+n_object_attributes = 308
+
+# add initial attributes with the same type to media and media objects
+init_attribute_media_1_id = str(uuid.uuid4())
+init_attribute_object_1_id = str(uuid.uuid4())
+
+for i in range(n_media_attributes):
+    media_1.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=str(uuid.uuid4()),
+            name=f"initMediaAttributeCat_{i}",
+            attribute_type=models.AttributeType.Categorical,
+            value=f"string{i}",
+        )
+    )
+
+for i in range(n_object_attributes):
+    media_object_1.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=str(uuid.uuid4()),
+            name=f"initObjectAttributeSlid_{i}",
+            attribute_type=models.AttributeType.Slider,
+            value=i,
+        )
+    )
+
+
+
 media_1.add_media_object(media_object_1)
-
-media_object_2 = hari_uploader.HARIMediaObject(
-    back_reference="motorcycle_wheel_1",
-    reference_data=models.Point2DXY(x=975.0, y=2900.0),
-)
-media_2 = hari_uploader.HARIMedia(
-    file_path="images/image_2.jpg",
-    name="A busy street 2",
-    back_reference="image 2",
-    media_type=models.MediaType.IMAGE,
-)
-media_2.add_media_object(media_object_2)
-
-media_3 = hari_uploader.HARIMedia(
-    file_path="images/image_3.jpg",
-    name="A busy street 3",
-    back_reference="image 3",
-    media_type=models.MediaType.IMAGE,
-)
-media_object_3 = hari_uploader.HARIMediaObject(
-    back_reference="road marking",
-    reference_data=models.PolyLine2DFlatCoordinates(
-        coordinates=[1450, 1550, 1450, 1000],
-        closed=False,
-    ),
-)
-media_3.add_media_object(media_object_3)
 
 # 4. Set up the uploader and add the medias to it
 uploader = hari_uploader.HARIUploader(client=hari, dataset_id=dataset_id)
-uploader.add_media(media_1, media_2, media_3)
+uploader.add_media(media_1)
 
 # 5. Trigger the upload process
 upload_results = uploader.upload()
@@ -121,7 +106,7 @@ print("Creating new subset...")
 new_subset_id = hari.create_subset(
     dataset_id=dataset_id,
     subset_type=models.SubsetType.MEDIA_OBJECT,
-    subset_name="All media objects",
+    subset_name="All media objects 3",
 )
 print(f"Created new subset with id {new_subset_id}")
 
