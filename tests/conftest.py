@@ -2,10 +2,7 @@ import pytest
 
 from hari_client import Config
 from hari_client import HARIClient
-
-pytest_plugins = [
-    "tests.upload.fixtures",
-]
+from tests.upload.fixtures import *  # noqa
 
 
 @pytest.fixture()
