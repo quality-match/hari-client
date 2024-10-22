@@ -1,20 +1,11 @@
 import collections
+import uuid
 
 import pytest
 
 from hari_client import hari_uploader
 from hari_client import models
-
-
-# TODO:
-#  - Add tests for the following methods:
-#    - object_categories in client initialization unset
-#       - media objects with object category name set
-#           - and without
-#    - object_categories in client initialization set
-#       - media objects with object category name set
-#           - and without
-# - starting an upload with non-eixstent object_categories on server - fail it, continue the upload
+from tests.upload import fixtures
 
 
 def test_add_media(mock_uploader_for_object_category_validation):
@@ -93,7 +84,6 @@ def test_validate_media_objects_object_category_subsets_consistency(
         name="my image 1",
         media_type=models.MediaType.IMAGE,
         back_reference="img_1",
-        object_category_subset_name="pedestrian",
     )
     media_object_1 = hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
@@ -102,10 +92,14 @@ def test_validate_media_objects_object_category_subsets_consistency(
     media_1.add_media_object(media_object_1)
     uploader.add_media(media_1)
     # Act
-    errors = uploader._validate_media_objects_object_category_subsets_consistency()
+    (
+        found_object_category_subset_names,
+        errors,
+    ) = uploader._get_and_validate_media_objects_object_category_subset_names()
 
     # Assert
     assert len(errors) == 0
+    assert found_object_category_subset_names == {"pedestrian"}
 
     # Arrange
     media_object_2 = hari_uploader.HARIMediaObject(
@@ -115,14 +109,21 @@ def test_validate_media_objects_object_category_subsets_consistency(
     media_1.add_media_object(media_object_2)
 
     # Act
+    (
+        found_object_category_subset_names,
+        errors,
+    ) = uploader._get_and_validate_media_objects_object_category_subset_names()
 
     # Assert
-    errors = uploader._validate_media_objects_object_category_subsets_consistency()
     assert len(errors) == 1
     assert (
         type(errors[0])
         == hari_uploader.HARIMediaObjectUnknownObjectCategorySubsetNameError
     )
+    assert found_object_category_subset_names == {
+        "pedestrian",
+        "some_non-existent-subset_name",
+    }
 
 
 def test_assign_media_objects_to_object_category_subsets_sets_subset_ids_corectly(
@@ -493,14 +494,23 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
     assert uploader._attribute_cnt == 6600
 
 
-def test_hari_uploader_creates_single_batch_correctly(mock_uploader_for_single_batch):
+def test_hari_uploader_creates_single_batch_correctly(mocker, test_client):
     # Arrange
     (
         uploader,
+        client,
         media_spy,
         media_object_spy,
         attribute_spy,
-    ) = mock_uploader_for_single_batch
+        subset_create_spy,
+    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
+        mocker,
+        test_client,
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=5,
+        media_objects_cnt=10,
+        attributes_cnt=30,
+    )
 
     # 5 medias --> 1 batch
     # 10 media_objects --> 1 batch
@@ -676,6 +686,200 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
 
     # the media_id of the media_object must match the one provided by the create_medias
     assert media.media_objects[0].media_id == "server_side_media_id"
+
+
+def test_hari_uploader_upload_without_specified_object_categories(mock_client):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(mock_client, dataset_id=uuid.UUID(int=0))
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    )
+    media_object_1.set_object_category_subset_name("pedestrian")
+
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    )
+    media_object_2.set_object_category_subset_name("wheel")
+
+    media_object_3 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    )
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+    )
+
+    # Act + Assert
+    media_1.add_media_object(media_object_1, media_object_2, media_object_3)
+    uploader.add_media(media_1)
+    with pytest.raises(ExceptionGroup, match="(2 sub-exceptions)") as err:
+        uploader.upload()
+    assert len(err.value.exceptions) == 2
+    for sub_exception in err.value.exceptions:
+        assert isinstance(
+            sub_exception,
+            hari_uploader.HARIMediaObjectUnknownObjectCategorySubsetNameError,
+        )
+
+
+def test_hari_uploader_upload_with_known_specified_object_categories(
+    mocker, test_client
+):
+    # Arrange
+    (
+        uploader,
+        _,
+        _,
+        _,
+        _,
+        subset_create_spy,
+    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
+        mocker,
+        test_client,
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=1,
+        media_objects_cnt=3,
+        attributes_cnt=0,
+        object_categories={"pedestrian", "wheel"},
+        object_category_subset_ids={
+            "pedestrian": uuid.uuid4(),
+            "wheel": uuid.uuid4(),
+        },
+    )
+
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    )
+    media_object_1.set_object_category_subset_name("pedestrian")
+
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    )
+    media_object_2.set_object_category_subset_name("wheel")
+
+    media_object_3 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    )
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+    )
+
+    # Act + Assert
+    media_1.add_media_object(media_object_1, media_object_2, media_object_3)
+    uploader.add_media(media_1)
+    uploader.upload()
+    assert subset_create_spy.call_count == 2
+
+
+def test_hari_uploader_upload_with_unknown_specified_object_categories(
+    mocker, test_client
+):
+    # Arrange
+    (
+        uploader,
+        _,
+        _,
+        _,
+        _,
+        subset_create_spy,
+    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
+        mocker,
+        test_client,
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=1,
+        media_objects_cnt=3,
+        attributes_cnt=0,
+        object_categories={"pedestrian", "wheel"},
+        object_category_subset_ids={
+            "pedestrian": uuid.uuid4(),
+            "wheel": uuid.uuid4(),
+        },
+    )
+
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    )
+    media_object_1.set_object_category_subset_name("pedestrian")
+
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    )
+    media_object_2.set_object_category_subset_name("wheeel")
+
+    media_object_3 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    )
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+    )
+
+    # Act + Assert
+    media_1.add_media_object(media_object_1, media_object_2, media_object_3)
+    uploader.add_media(media_1)
+    with pytest.raises(ExceptionGroup, match="(1 sub-exception)") as err:
+        uploader.upload()
+    assert len(err.value.exceptions) == 1
+    assert isinstance(
+        err.value.exceptions[0],
+        hari_uploader.HARIMediaObjectUnknownObjectCategorySubsetNameError,
+    )
+    assert subset_create_spy.call_count == 0
+
+
+def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
+    mocker, test_client
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        _,
+        _,
+        _,
+        subset_create_spy,
+    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
+        mocker,
+        test_client,
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=1,
+        media_objects_cnt=3,
+        attributes_cnt=0,
+        object_categories={"pedestrian", "wheel"},
+        object_category_subset_ids={
+            "pedestrian": uuid.uuid4(),
+            "wheel": uuid.uuid4(),
+        },
+    )
+
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    )
+    media_object_1.set_object_category_subset_name("pedestrian")
+
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    )
+    media_object_2.set_object_category_subset_name("wheel")
+
+    media_object_3 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    )
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+    )
+
+    # Act + Assert
+    # "waste" the first mocked call to get_subsets_for_dataset which returns an empty list
+    # because the second call will then simulate the subsets already existing in the backend
+    existing_subsets = client.get_subsets_for_dataset(dataset_id=uuid.UUID(int=0))
+    assert existing_subsets == []
+    media_1.add_media_object(media_object_1, media_object_2, media_object_3)
+    uploader.add_media(media_1)
+    uploader.upload()
+    assert subset_create_spy.call_count == 0
 
 
 @pytest.mark.parametrize(
