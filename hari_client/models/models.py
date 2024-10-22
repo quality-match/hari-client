@@ -887,7 +887,11 @@ class AttributeCreate(BaseModel):
     id: str
     name: str
     annotatable_id: str
-    annotatable_type: DataBaseObjectType
+    annotatable_type: typing.Literal[
+        DataBaseObjectType.MEDIA,
+        DataBaseObjectType.MEDIAOBJECT,
+        DataBaseObjectType.INSTANCE,
+    ]
     attribute_type: AttributeType | None = None
     attribute_group: AttributeGroup = AttributeGroup.InitialAttribute
     value: typeT

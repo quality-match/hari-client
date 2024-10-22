@@ -1652,7 +1652,11 @@ class HARIClient:
         name: str,
         annotatable_id: str,
         value: models.typeT,
-        annotatable_type: models.DataBaseObjectType,
+        annotatable_type: typing.Literal[
+            models.DataBaseObjectType.MEDIA,
+            models.DataBaseObjectType.MEDIAOBJECT,
+            models.DataBaseObjectType.INSTANCE,
+        ],
         attribute_group: models.AttributeGroup = models.AttributeGroup.InitialAttribute,
         attribute_type: models.AttributeType | None = None,
         min: models.typeT | None = None,
@@ -1779,8 +1783,6 @@ class HARIClient:
         attribute_id: str,
         annotatable_id: str,
         name: str | None = None,
-        annotatable_type: models.DataBaseObjectType | None = None,
-        attribute_group: models.AttributeGroup | None = None,
         value: models.typeT | None = None,
         min: models.typeT | None = None,
         max: models.typeT | None = None,
@@ -1807,13 +1809,12 @@ class HARIClient:
         """Updates the attribute with the given id.
 
         Args:
-            dataset_id: The dataset id
+            dataset_id: The dataset id the attribute belongs to
             attribute_id: The attribute id
+            annotatable_id: The annotatable id the attribute belongs to
+
             name: The name of the attribute
             value: The value of the attribute
-            annotatable_id: The annotatable id
-            annotatable_type: The annotatable type
-            attribute_group: The attribute group
             min: The min value
             max: The max value
             sum: The sum value
