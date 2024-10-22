@@ -9,6 +9,11 @@
 ### Fixes
 
 - fixed merge_bulk_responses for the case when no responses are given, therefore uploading media without media_objects isn't identified as an unsuccessful upload anymore [PR#20](https://github.com/quality-match/hari-client/pull/20)
+- fixed bug updating media/annotatable ids for media objects and attributes when shared [PR#27](https://github.com/quality-match/hari-client/pull/27)
+
+### Breaking Changes
+
+- Object category field on MediaObjects enforced as UUID. [PR#29](https://github.com/quality-match/hari-client/pull/29)
 
 ### Internal
 

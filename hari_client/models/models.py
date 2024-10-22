@@ -869,7 +869,7 @@ class MediaObjectCreate(BaseModel):
     subset_ids: set[str] | list[str] | None = None
 
     instance_id: str | None = None
-    object_category: str | None = None
+    object_category: uuid.UUID | None = None
     # source represents if the media object is either a geometry that was constructed by
     # QM, e.g., by annotating media data; or a geometry that was already provided by a
     # customer, and hence, would be a REFERENCE.
