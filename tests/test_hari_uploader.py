@@ -725,6 +725,7 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
     create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
+    create_subset_side_effect = [uuid.uuid4(), uuid.uuid4()]
     (
         uploader,
         _,
@@ -738,10 +739,7 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
         media_objects_cnt=3,
         attributes_cnt=0,
         object_categories={"pedestrian", "wheel"},
-        object_category_subset_ids={
-            "pedestrian": uuid.uuid4(),
-            "wheel": uuid.uuid4(),
-        },
+        create_subset_side_effect=create_subset_side_effect,
     )
 
     media_object_1 = hari_uploader.HARIMediaObject(
@@ -773,6 +771,7 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
     create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
+    create_subset_side_effect = []
     (
         uploader,
         _,
@@ -786,10 +785,7 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
         media_objects_cnt=3,
         attributes_cnt=0,
         object_categories={"pedestrian", "wheel"},
-        object_category_subset_ids={
-            "pedestrian": uuid.uuid4(),
-            "wheel": uuid.uuid4(),
-        },
+        create_subset_side_effect=create_subset_side_effect,
     )
 
     media_object_1 = hari_uploader.HARIMediaObject(
@@ -827,6 +823,24 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
     create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
+    create_subset_side_effect = [uuid.uuid4(), uuid.uuid4()]
+    get_subsets_for_dataset_side_effect = [
+        [
+            models.DatasetResponse(
+                id=subset_id,
+                name=subset_name,
+                object_category=True,
+                mediatype=models.MediaType.IMAGE,
+                # default nums to zero
+                num_medias=0,
+                num_media_objects=0,
+                num_instances=0,
+            )
+            for subset_id, subset_name in zip(
+                create_subset_side_effect, ["pedestrian", "wheel"]
+            )
+        ],
+    ]
     (
         uploader,
         client,
@@ -840,10 +854,8 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
         media_objects_cnt=3,
         attributes_cnt=0,
         object_categories={"pedestrian", "wheel"},
-        object_category_subset_ids={
-            "pedestrian": uuid.uuid4(),
-            "wheel": uuid.uuid4(),
-        },
+        create_subset_side_effect=create_subset_side_effect,
+        get_subsets_for_dataset_side_effect=get_subsets_for_dataset_side_effect,
     )
 
     media_object_1 = hari_uploader.HARIMediaObject(
@@ -865,10 +877,6 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
     )
 
     # Act + Assert
-    # "waste" the first mocked call to get_subsets_for_dataset which returns an empty list
-    # because the second call will then simulate the subsets already existing in the backend
-    existing_subsets = client.get_subsets_for_dataset(dataset_id=uuid.UUID(int=0))
-    assert existing_subsets == []
     media_1.add_media_object(media_object_1, media_object_2, media_object_3)
     uploader.add_media(media_1)
     uploader.upload()

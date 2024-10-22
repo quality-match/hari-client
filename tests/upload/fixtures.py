@@ -240,7 +240,8 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
         media_objects_cnt: int,
         attributes_cnt: int,
         object_categories: set[str] | None = None,
-        object_category_subset_ids: dict[str, uuid.UUID] | None = None,
+        create_subset_side_effect: list[str] | None = None,
+        get_subsets_for_dataset_side_effect: list[list[models.DatasetResponse]] = [[]],
     ) -> tuple[
         hari_uploader.HARIUploader,
         HARIClient,
@@ -289,35 +290,18 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
             ),
         )
 
-        if object_categories is not None:
-            subset_ids = sorted(list(object_category_subset_ids.values()))
+        if create_subset_side_effect is not None:
             mocker.patch.object(
                 test_client,
                 "create_subset",
-                side_effect=subset_ids,
+                side_effect=create_subset_side_effect,
             )
 
-        if object_category_subset_ids is None:
-            mocker.patch.object(test_client, "get_subsets_for_dataset", return_value=[])
-        else:
-            subsets_for_dataset = [
-                models.DatasetResponse(
-                    id=subset_id,
-                    name=subset_name,
-                    object_category=True,
-                    mediatype=models.MediaType.IMAGE,
-                    # default nums to zero
-                    num_medias=0,
-                    num_media_objects=0,
-                    num_instances=0,
-                )
-                for subset_name, subset_id in object_category_subset_ids.items()
-            ]
-            mocker.patch.object(
-                test_client,
-                "get_subsets_for_dataset",
-                side_effect=[[], subsets_for_dataset],
-            )
+        mocker.patch.object(
+            test_client,
+            "get_subsets_for_dataset",
+            side_effect=get_subsets_for_dataset_side_effect,
+        )
 
         uploader = hari_uploader.HARIUploader(
             client=test_client,
