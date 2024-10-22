@@ -210,7 +210,7 @@ def mock_uploader_for_bulk_operation_annotatable_id_setter(test_client, mocker):
     return uploader, id_setter_spy
 
 
-def create_configurable_mock_uploader_successfull_single_batch(
+def create_configurable_mock_uploader_successful_single_batch(
     mocker,
     test_client,
     dataset_id: uuid.UUID,
@@ -227,7 +227,7 @@ def create_configurable_mock_uploader_successfull_single_batch(
     typing.Any,
     typing.Any,
 ]:
-    """Creates a configurable mock uploader for a successfull upload of a single batch of medias, media objects and attributes.
+    """Creates a configurable mock uploader for a successful upload of a single batch of medias, media objects and attributes.
         The number of medias, media objects and attributes can be configured, as well as the object categories and their corresponding
         subset_ids which are mocked to be created successfully.
         The first call to get_subsets_for_dataset will return an empty list, the second call will return the specified subsets.
