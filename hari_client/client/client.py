@@ -1848,7 +1848,9 @@ class HARIClient:
             "PATCH",
             f"/datasets/{dataset_id}/attributes/{attribute_id}",
             params={"annotatable_id": annotatable_id},
-            json=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            json=self._pack(
+                locals(), ignore=["dataset_id", "attribute_id", "annotatable_id"]
+            ),
             success_response_item_model=models.Attribute,
         )
 
