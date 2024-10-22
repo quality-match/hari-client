@@ -5,7 +5,6 @@ import pytest
 
 from hari_client import hari_uploader
 from hari_client import models
-from tests.upload import fixtures
 
 
 def test_add_media(mock_uploader_for_object_category_validation):
@@ -494,7 +493,9 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
     assert uploader._attribute_cnt == 6600
 
 
-def test_hari_uploader_creates_single_batch_correctly(mocker, test_client):
+def test_hari_uploader_creates_single_batch_correctly(
+    create_configurable_mock_uploader_successful_single_batch,
+):
     # Arrange
     (
         uploader,
@@ -503,9 +504,7 @@ def test_hari_uploader_creates_single_batch_correctly(mocker, test_client):
         media_object_spy,
         attribute_spy,
         subset_create_spy,
-    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
-        mocker,
-        test_client,
+    ) = create_configurable_mock_uploader_successful_single_batch(
         dataset_id=uuid.UUID(int=0),
         medias_cnt=5,
         media_objects_cnt=10,
@@ -723,7 +722,7 @@ def test_hari_uploader_upload_without_specified_object_categories(mock_client):
 
 
 def test_hari_uploader_upload_with_known_specified_object_categories(
-    mocker, test_client
+    create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
     (
@@ -733,9 +732,7 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
         _,
         _,
         subset_create_spy,
-    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
-        mocker,
-        test_client,
+    ) = create_configurable_mock_uploader_successful_single_batch(
         dataset_id=uuid.UUID(int=0),
         medias_cnt=1,
         media_objects_cnt=3,
@@ -773,7 +770,7 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
 
 
 def test_hari_uploader_upload_with_unknown_specified_object_categories(
-    mocker, test_client
+    create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
     (
@@ -783,9 +780,7 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
         _,
         _,
         subset_create_spy,
-    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
-        mocker,
-        test_client,
+    ) = create_configurable_mock_uploader_successful_single_batch(
         dataset_id=uuid.UUID(int=0),
         medias_cnt=1,
         media_objects_cnt=3,
@@ -829,7 +824,7 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
 
 
 def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
-    mocker, test_client
+    create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
     (
@@ -839,9 +834,7 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
         _,
         _,
         subset_create_spy,
-    ) = fixtures.create_configurable_mock_uploader_successfull_single_batch(
-        mocker,
-        test_client,
+    ) = create_configurable_mock_uploader_successful_single_batch(
         dataset_id=uuid.UUID(int=0),
         medias_cnt=1,
         media_objects_cnt=3,

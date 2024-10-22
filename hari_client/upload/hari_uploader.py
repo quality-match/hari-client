@@ -283,14 +283,6 @@ class HARIUploader:
         log.info(f"All existing object_category subsets: {object_category_subsets=}")
         return object_category_subsets
 
-    def get_distinct_subset_names_from_added_media_objects(self) -> set[str]:
-        return {
-            media_obj.object_category_subset_name
-            for medias in self._medias
-            for media_obj in medias.media_objects
-            if media_obj.object_category_subset_name is not None
-        }
-
     def _handle_object_categories(self) -> None:
         """
         Validates consistency of object_categories across media objects,
