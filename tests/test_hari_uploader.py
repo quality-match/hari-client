@@ -725,7 +725,7 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
     create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
-    create_subset_side_effect = [uuid.uuid4(), uuid.uuid4()]
+    create_subset_side_effect = [str(uuid.uuid4()), str(uuid.uuid4())]
     (
         uploader,
         _,
@@ -823,11 +823,11 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
     create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
-    create_subset_side_effect = [uuid.uuid4(), uuid.uuid4()]
+    create_subset_side_effect = [str(uuid.uuid4()), str(uuid.uuid4())]
     get_subsets_for_dataset_side_effect = [
         [
             models.DatasetResponse(
-                id=subset_id,
+                id=uuid.UUID(subset_id),
                 name=subset_name,
                 object_category=True,
                 mediatype=models.MediaType.IMAGE,

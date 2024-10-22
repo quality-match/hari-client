@@ -314,7 +314,7 @@ class HARIUploader:
         # add already existing subsets to the object_category_subsets dict
         for obj_category_subset in backend_object_category_subsets:
             self._add_object_category_subset(
-                obj_category_subset.name, obj_category_subset.id
+                obj_category_subset.name, str(obj_category_subset.id)
             )
 
         # check whether all required object_category subsets already exist
