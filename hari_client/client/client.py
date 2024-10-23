@@ -1716,7 +1716,7 @@ class HARIClient:
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/attributes",
-            json=self._pack(locals(), ignore=["dataset_id"]),
+            json=self._pack(locals(), ignore=["dataset_id"], not_none=["question"]),
             success_response_item_model=models.Attribute,
         )
 
