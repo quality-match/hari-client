@@ -884,7 +884,7 @@ class BulkMediaObjectCreate(MediaObjectCreate):
 
 
 class AttributeCreate(BaseModel):
-    id: str
+    id: uuid.UUID
     name: str
     annotatable_id: str
     annotatable_type: typing.Literal[

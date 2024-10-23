@@ -24,7 +24,7 @@ def test_add_media(mock_uploader_for_object_category_validation):
             back_reference="img",
             attributes=[
                 hari_uploader.HARIAttribute(
-                    id="attr_1",
+                    id=uuid.uuid4(),
                     name="my attribute 1",
                     attribute_type=models.AttributeType.Categorical,
                     value="value 1",
@@ -246,7 +246,7 @@ def test_update_hari_attribute_media_ids(mock_uploader_for_object_category_valid
     ) = mock_uploader_for_object_category_validation
 
     shared_attribute = hari_uploader.HARIAttribute(
-        id="attr_1",
+        id=uuid.uuid4(),
         name="my attribute 1",
         attribute_type=models.AttributeType.Categorical,
         value="value 1",
@@ -269,7 +269,7 @@ def test_update_hari_attribute_media_ids(mock_uploader_for_object_category_valid
     media_2.add_attribute(shared_attribute)
     media_2.add_attribute(
         hari_uploader.HARIAttribute(
-            id="attr_2",
+            id=uuid.uuid4(),
             name="my attribute 2",
             attribute_type=models.AttributeType.Categorical,
             value="value 2",
@@ -336,7 +336,7 @@ def test_update_hari_attribute_media_object_ids(
     )
     media_object_1.bulk_operation_annotatable_id = "bulk_id_1"
     shared_attribute_object_1 = hari_uploader.HARIAttribute(
-        id="attr_1",
+        id=uuid.uuid4(),
         name="Is human?",
         attribute_type=models.AttributeType.Categorical,
         value="yes",
@@ -363,7 +363,7 @@ def test_update_hari_attribute_media_object_ids(
     )
     media_object_2.bulk_operation_annotatable_id = "bulk_id_2"
     attribute_object_2 = hari_uploader.HARIAttribute(
-        id="attr_2",
+        id=uuid.uuid4(),
         name="Is human?",
         attribute_type=models.AttributeType.Categorical,
         value="yes",
@@ -434,7 +434,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             media.add_media_object(media_object)
             media.add_attribute(
                 hari_uploader.HARIAttribute(
-                    id=f"attr_{i}_{k}",
+                    id=uuid.uuid4(),
                     name=f"attr_{i}_{k}",
                     attribute_type=models.AttributeType.Categorical,
                     value=f"value_{i}_{k}",
@@ -444,7 +444,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             for l in range(2):
                 media_object.add_attribute(
                     hari_uploader.HARIAttribute(
-                        id=f"attr_{i}_{k}_{l}",
+                        id=uuid.uuid4(),
                         name=f"attr_{i}_{k}_{l}",
                         attribute_type=models.AttributeType.Categorical,
                         value=f"value_{i}_{k}_{l}",
@@ -528,7 +528,7 @@ def test_hari_uploader_creates_single_batch_correctly(
             media.add_media_object(media_object)
             media.add_attribute(
                 hari_uploader.HARIAttribute(
-                    id=f"attr_{i}_{k}",
+                    id=uuid.uuid4(),
                     name=f"attr_{i}_{k}",
                     attribute_type=models.AttributeType.Categorical,
                     value=f"value_{i}_{k}",
@@ -538,7 +538,7 @@ def test_hari_uploader_creates_single_batch_correctly(
             for l in range(2):
                 media_object.add_attribute(
                     hari_uploader.HARIAttribute(
-                        id=f"attr_{i}_{k}_{l}",
+                        id=uuid.uuid4(),
                         name=f"attr_{i}_{k}_{l}",
                         attribute_type=models.AttributeType.Categorical,
                         value=f"value_{i}_{k}_{l}",
@@ -725,7 +725,7 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
     create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
-    create_subset_side_effect = [uuid.uuid4(), uuid.uuid4()]
+    create_subset_side_effect = [str(uuid.uuid4()), str(uuid.uuid4())]
     (
         uploader,
         _,
@@ -823,11 +823,11 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
     create_configurable_mock_uploader_successful_single_batch,
 ):
     # Arrange
-    create_subset_side_effect = [uuid.uuid4(), uuid.uuid4()]
+    create_subset_side_effect = [str(uuid.uuid4()), str(uuid.uuid4())]
     get_subsets_for_dataset_side_effect = [
         [
             models.DatasetResponse(
-                id=subset_id,
+                id=uuid.UUID(subset_id),
                 name=subset_name,
                 object_category=True,
                 mediatype=models.MediaType.IMAGE,

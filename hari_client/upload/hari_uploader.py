@@ -135,14 +135,15 @@ class HARIUploader:
                 HARIUploader will create a HARI subset for each object_category and add the corresponding medias and media_objects to it.
         """
         self.client: HARIClient = client
-        self.dataset_id: str = dataset_id
+        self.dataset_id: uuid.UUID = dataset_id
         self.object_categories = object_categories or set()
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
         self._media_object_cnt: int = 0
         self._attribute_cnt: int = 0
-        self._object_category_subsets: dict[str, uuid.UUID] = {}
+        # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
+        self._object_category_subsets: dict[str, str] = {}
 
     # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
     # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
@@ -187,7 +188,7 @@ class HARIUploader:
                 self._attribute_cnt += len(media_object.attributes)
 
     def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
-        self._object_category_subsets[object_category] = str(subset_id)
+        self._object_category_subsets[object_category] = subset_id
 
     def _create_object_category_subsets(self, object_categories: list[str]) -> None:
         log.info(f"Creating {len(object_categories)} object_category subsets.")
@@ -248,10 +249,13 @@ class HARIUploader:
                 for media_object in media.media_objects:
                     # was the media_object assigned an object_category_subset_name?
                     if media_object.object_category_subset_name:
-                        media_object.object_category = (
+                        object_category_subset_id_str = (
                             self._object_category_subsets.get(
                                 media_object.object_category_subset_name
                             )
+                        )
+                        media_object.object_category = uuid.UUID(
+                            object_category_subset_id_str
                         )
                         # does a subset_id exist for the media_object's object_category_subset_name?
                         if media_object.object_category is None:
@@ -262,14 +266,16 @@ class HARIUploader:
                             )
                         # also add the object_category subset_id to the overall list of subset_ids
                         if media_object.subset_ids:
-                            media_object.subset_ids.append(media_object.object_category)
+                            media_object.subset_ids.append(
+                                object_category_subset_id_str
+                            )
                         else:
-                            media_object.subset_ids = [media_object.object_category]
+                            media_object.subset_ids = [object_category_subset_id_str]
                         # also add the object_category subset_id to the overall list of subset_ids for the media
                         if media.subset_ids:
-                            media.subset_ids.append(media_object.object_category)
+                            media.subset_ids.append(object_category_subset_id_str)
                         else:
-                            media.subset_ids = [media_object.object_category]
+                            media.subset_ids = [object_category_subset_id_str]
                         # avoid duplicates in the subset_ids list
                         media.subset_ids = list(set(media.subset_ids))
 
@@ -308,7 +314,7 @@ class HARIUploader:
         # add already existing subsets to the object_category_subsets dict
         for obj_category_subset in backend_object_category_subsets:
             self._add_object_category_subset(
-                obj_category_subset.name, obj_category_subset.id
+                obj_category_subset.name, str(obj_category_subset.id)
             )
 
         # check whether all required object_category subsets already exist

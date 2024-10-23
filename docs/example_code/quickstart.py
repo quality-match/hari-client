@@ -41,7 +41,7 @@ media_object_1 = hari_uploader.HARIMediaObject(
         height=732.0,
     ),
 )
-attribute_object_1_id = str(uuid.uuid4())
+attribute_object_1_id = uuid.uuid4()
 attribute_object_1 = hari_uploader.HARIAttribute(
     id=attribute_object_1_id,
     name="Is this a human being?",
@@ -49,7 +49,7 @@ attribute_object_1 = hari_uploader.HARIAttribute(
     value=True,
 )
 
-attribute_media_1_id = str(uuid.uuid4())
+attribute_media_1_id = uuid.uuid4()
 attribute_media_1 = hari_uploader.HARIAttribute(
     id=attribute_media_1_id,
     name="area",
