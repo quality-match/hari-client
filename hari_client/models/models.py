@@ -805,6 +805,7 @@ class ResponseStatesEnum(str, enum.Enum):
     MISSING_DATA = "missing_data"
     SERVER_ERROR = "server_error"
     BAD_DATA = "bad_data"
+    CONFLICT = "conflict"
 
 
 class BaseBulkItemResponse(BaseModel, arbitrary_types_allowed=True):
