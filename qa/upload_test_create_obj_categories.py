@@ -1,6 +1,8 @@
 import sys
 import time
 import uuid
+from concurrent.futures import as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from hari_client import Config
 from hari_client import hari_uploader
@@ -9,7 +11,7 @@ from hari_client import models
 
 # This test should upload a specified amount of media and objects with initial attributes.
 n_media = 20  # Number of unique media to upload
-rep_media = 5  # Number of times each media is repeated
+rep_media = 10  # Number of times each media is repeated
 n_objects = 4  # Number of objects per media
 
 # The Config class will look for a .env file in your script's current working directory.
@@ -143,37 +145,51 @@ for i in range(n_media * rep_media):
     object3.set_object_category_subset_name(cur_obj_cat)
     object4.set_object_category_subset_name(cur_obj_cat)
 
-# 4. Set up the uploader and add the medias to it
-uploader = hari_uploader.HARIUploader(
-    client=hari, dataset_id=dataset_id, object_categories=object_categories
-)
-uploader.add_media(*media_list)
 
-# 5. Trigger the upload process
-upload_results = uploader.upload()
-
-# Inspect upload results
-print(f"media upload status: {upload_results.medias.status.value}")
-print(f"media upload summary\n  {upload_results.medias.summary}")
-
-print(f"media object upload status: {upload_results.media_objects.status.value}")
-print(f"media object upload summary\n  {upload_results.media_objects.summary}")
-
-print(f"attribute upload status: {upload_results.attributes.status.value}")
-print(f"attribute upload summary\n  {upload_results.attributes.summary}")
-
-if (
-    upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
-    or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
-    or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
-):
-    print(
-        "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
+# Function to handle the upload process
+def upload_media(media_chunk):
+    uploader = hari_uploader.HARIUploader(
+        client=hari, dataset_id=dataset_id, object_categories=object_categories
     )
-    print(f"media upload details: {upload_results.medias.results}")
-    print(f"media objects upload details: {upload_results.media_objects.results}")
-    print(f"attributes upload details: {upload_results.attributes.results}")
-    sys.exit(1)
+    uploader.add_media(*media_chunk)
+    return uploader.upload()
+
+
+# Split media_list into 10 chunks
+media_chunks = [media_list[i::10] for i in range(10)]
+
+# Use ThreadPoolExecutor to parallelize the upload process
+with ThreadPoolExecutor(max_workers=10) as executor:
+    futures = [executor.submit(upload_media, chunk) for chunk in media_chunks]
+    for future in as_completed(futures):
+        upload_results = future.result()
+        print(f"media upload status: {upload_results.medias.status.value}")
+        print(f"media upload summary\n  {upload_results.medias.summary}")
+
+        print(
+            f"media object upload status: {upload_results.media_objects.status.value}"
+        )
+        print(f"media object upload summary\n  {upload_results.media_objects.summary}")
+
+        print(f"attribute upload status: {upload_results.attributes.status.value}")
+        print(f"attribute upload summary\n  {upload_results.attributes.summary}")
+
+        if (
+            upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
+            or upload_results.media_objects.status
+            != models.BulkOperationStatusEnum.SUCCESS
+            or upload_results.attributes.status
+            != models.BulkOperationStatusEnum.SUCCESS
+        ):
+            print(
+                "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
+            )
+            print(f"media upload details: {upload_results.medias.results}")
+            print(
+                f"media objects upload details: {upload_results.media_objects.results}"
+            )
+            print(f"attributes upload details: {upload_results.attributes.results}")
+            sys.exit(1)
 
 # 6. Create a subset
 print("Creating new subset...")
