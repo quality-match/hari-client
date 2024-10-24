@@ -23,7 +23,7 @@ def mock_client(
     wheel_subset_id = str(uuid.uuid4())
     create_subset_return_val = [pedestrian_subset_id, wheel_subset_id]
     mocker.patch.object(
-        test_client, "create_subset", side_effect=create_subset_return_val
+        test_client, "create_empty_subset", side_effect=create_subset_return_val
     )
     yield test_client, create_subset_return_val
 
@@ -92,7 +92,7 @@ def mock_uploader_for_batching(test_client, mocker):
 
     mocker.patch.object(
         client,
-        "create_subset",
+        "create_empty_subset",
         side_effect=[pedestrian_subset_id, wheel_subset_id],
     )
     dataset_response = models.DatasetResponse(
@@ -172,7 +172,7 @@ def mock_uploader_for_bulk_operation_annotatable_id_setter(test_client, mocker):
     wheel_subset_id = str(uuid.uuid4())
     mocker.patch.object(
         client,
-        "create_subset",
+        "create_empty_subset",
         side_effect=[pedestrian_subset_id, wheel_subset_id],
     )
     dataset_response = models.DatasetResponse(
@@ -293,7 +293,7 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
         if create_subset_side_effect is not None:
             mocker.patch.object(
                 test_client,
-                "create_subset",
+                "create_empty_subset",
                 side_effect=create_subset_side_effect,
             )
 
@@ -338,7 +338,7 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
         media_spy = mocker.spy(uploader, "_upload_media_batch")
         media_object_spy = mocker.spy(uploader, "_upload_media_object_batch")
         attribute_spy = mocker.spy(uploader, "_upload_attribute_batch")
-        subset_create_spy = mocker.spy(test_client, "create_subset")
+        subset_create_spy = mocker.spy(test_client, "create_empty_subset")
 
         return (
             uploader,

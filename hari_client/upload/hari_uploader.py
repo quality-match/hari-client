@@ -196,7 +196,7 @@ class HARIUploader:
         newly_created_object_category_subsets = {}
         # sort object_categories to ensure consistent subset creation order
         for object_category in sorted(object_categories):
-            subset_id = self.client.create_subset(
+            subset_id = self.client.create_empty_subset(
                 dataset_id=self.dataset_id,
                 subset_type=models.SubsetType.MEDIA_OBJECT,
                 subset_name=object_category,
