@@ -562,7 +562,43 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-    ### media ###
+    def create_empty_subset(
+        self,
+        dataset_id: uuid.UUID,
+        subset_type: models.SubsetType,
+        subset_name: str,
+        object_category: bool | None = False,
+        visibility_status: models.VisibilityStatus | None = None,
+    ) -> str:
+        """creates a new empty subset and uploads it to the database
+
+        Args:
+            dataset_id: Dataset Id
+            subset_type: Type of the subset (media, media_object, instance, attribute)
+            subset_name: The name of the subset
+            object_category: True if the new subset shall be shown as a category for objects in HARI
+            visibility_status: Visibility status of the created subset
+
+        Returns:
+            The new subset id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        body = {}
+
+        return self._request(
+            "POST",
+            "/subsets",
+            params=self._pack(
+                locals(),
+            ),
+            json=body,
+            success_response_item_model=str,
+        )
+
+        ### media ###
+
     def create_media(
         self,
         dataset_id: uuid.UUID,

@@ -1,5 +1,9 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [2.0.1] - 24.10.2024
+
+- Updated create_subset endpoint used during object_category creation[PR#35](https://github.com/quality-match/hari-client/pull/35)
+
 ## [2.0.0] - 23.10.2024
 
 ### New Features
