@@ -34,6 +34,8 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     # of the hari api, but is needed to store which object category subset the media object should belong to.
     object_category_subset_name: str | None = pydantic.Field(default=None, exclude=True)
 
+    # overrides the BulkMediaObjectCreate validator to not raise error if the bulk_operation_annotatable_id is not set;
+    # the field is set internally by the HARIUploader
     @model_validator(mode="before")
     @classmethod
     def check_bulk_operation_annotatable_id_omitted(
@@ -92,6 +94,8 @@ class HARIMedia(models.BulkMediaCreate):
     # because it's set internally by the HARIUploader
     bulk_operation_annotatable_id: str | None = ""
 
+    # overrides the BulkMediaCreate validator to not raise error if the bulk_operation_annotatable_id is not set;
+    # the field is set internally by the HARIUploader
     @model_validator(mode="before")
     @classmethod
     def check_bulk_operation_annotatable_id_omitted(
