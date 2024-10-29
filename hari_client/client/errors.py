@@ -87,11 +87,10 @@ class ParameterListLengthError(Exception):
 
 
 class BulkOperationAnnotatableIdMissing(Exception):
-    def __init__(
-        self,
-        message="The 'bulk_operation_annotatable_id' field is missing. "
-        "Please include 'bulk_operation_annotatable_id' for each item to proceed with this bulk operation. "
-        "Its value should be unique for each item within the bulk. "
-        "This id is used to link the item in the bulk operation to the returned response entry.",
-    ):
+    def __init__(self):
+        message = (
+            "The 'bulk_operation_annotatable_id' field is missing. "
+            "Please include 'bulk_operation_annotatable_id' for each item to proceed with this bulk operation. "
+            "Its value should be a unique UUID for each item within the bulk."
+        )
         super().__init__(message)
