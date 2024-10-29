@@ -858,6 +858,11 @@ class MediaCreate(BaseModel):
 
 
 class BulkMediaCreate(MediaCreate):
+    """
+    bulk_operation_annotatable_id is used to link the media in the bulk creation to the returned response entry with created media.
+    Its value should be unique for each media within the bulk.
+    """
+
     bulk_operation_annotatable_id: str
 
     @model_validator(mode="before")
@@ -865,6 +870,7 @@ class BulkMediaCreate(MediaCreate):
     def check_bulk_operation_annotatable_id_omitted(
         cls, data: typing.Any
     ) -> typing.Any:
+        # HARIMedia handles bulk_operation_annotatable_id creation itself
         if cls.__name__ == "HARIMedia":
             return data
 
@@ -896,6 +902,11 @@ class MediaObjectCreate(BaseModel):
 
 
 class BulkMediaObjectCreate(MediaObjectCreate):
+    """
+    bulk_operation_annotatable_id is used to link the media object in the bulk creation to the returned response entry with created media object.
+    Its value should be unique for each media object within the bulk.
+    """
+
     bulk_operation_annotatable_id: str
 
     @model_validator(mode="before")
@@ -903,6 +914,7 @@ class BulkMediaObjectCreate(MediaObjectCreate):
     def check_bulk_operation_annotatable_id_omitted(
         cls, data: typing.Any
     ) -> typing.Any:
+        # HARIMediaObject handles bulk_operation_annotatable_id creation itself
         if cls.__name__ == "HARIMediaObject":
             return data
         if isinstance(data, dict) and "bulk_operation_annotatable_id" not in data:
