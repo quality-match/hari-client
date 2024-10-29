@@ -865,6 +865,9 @@ class BulkMediaCreate(MediaCreate):
     def check_bulk_operation_annotatable_id_omitted(
         cls, data: typing.Any
     ) -> typing.Any:
+        if cls.__name__ == "HARIMedia":
+            return data
+
         if isinstance(data, dict) and "bulk_operation_annotatable_id" not in data:
             raise errors.BulkOperationAnnotatableIdMissing()
         return data
@@ -900,6 +903,8 @@ class BulkMediaObjectCreate(MediaObjectCreate):
     def check_bulk_operation_annotatable_id_omitted(
         cls, data: typing.Any
     ) -> typing.Any:
+        if cls.__name__ == "HARIMediaObject":
+            return data
         if isinstance(data, dict) and "bulk_operation_annotatable_id" not in data:
             raise errors.BulkOperationAnnotatableIdMissing()
         return data
