@@ -6,6 +6,9 @@ import typing
 import uuid
 
 import pydantic
+from pydantic import model_validator
+
+from hari_client.client import errors
 
 typeT = typing.TypeVar("typeT", bound=typing.Any)
 
@@ -855,7 +858,21 @@ class MediaCreate(BaseModel):
 
 
 class BulkMediaCreate(MediaCreate):
+    """
+    bulk_operation_annotatable_id is used to link the media in the bulk creation to the returned response entry with created media.
+    Its value should be unique for each media within the bulk.
+    """
+
     bulk_operation_annotatable_id: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_bulk_operation_annotatable_id_omitted(
+        cls, data: typing.Any
+    ) -> typing.Any:
+        if isinstance(data, dict) and "bulk_operation_annotatable_id" not in data:
+            raise errors.BulkOperationAnnotatableIdMissing()
+        return data
 
 
 class MediaObjectCreate(BaseModel):
@@ -881,7 +898,21 @@ class MediaObjectCreate(BaseModel):
 
 
 class BulkMediaObjectCreate(MediaObjectCreate):
+    """
+    bulk_operation_annotatable_id is used to link the media object in the bulk creation to the returned response entry with created media object.
+    Its value should be unique for each media object within the bulk.
+    """
+
     bulk_operation_annotatable_id: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_bulk_operation_annotatable_id_omitted(
+        cls, data: typing.Any
+    ) -> typing.Any:
+        if isinstance(data, dict) and "bulk_operation_annotatable_id" not in data:
+            raise errors.BulkOperationAnnotatableIdMissing()
+        return data
 
 
 class AttributeCreate(BaseModel):

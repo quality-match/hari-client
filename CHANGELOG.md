@@ -1,8 +1,14 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Internal
+
+- added `bulk_operation_annotatable_id` presence validation for bulk media/media objects creation models [PR#36](https://github.com/quality-match/hari-client/pull/36)
+
 ## [2.0.1] - 24.10.2024
 
-- Updated create_subset endpoint used during object_category creation[PR#35](https://github.com/quality-match/hari-client/pull/35)
+### Internal
+
+- updated create_subset endpoint used during object_category creation [PR#35](https://github.com/quality-match/hari-client/pull/35)
 
 ## [2.0.0] - 23.10.2024
 
