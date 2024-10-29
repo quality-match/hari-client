@@ -1,8 +1,10 @@
 import copy
+import typing
 import uuid
 
 import pydantic
 import tqdm
+from pydantic import model_validator
 
 from hari_client import HARIClient
 from hari_client import models
@@ -31,6 +33,13 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     # the object_category_subset_name field is not part of the lower level MediaObjectCreate model
     # of the hari api, but is needed to store which object category subset the media object should belong to.
     object_category_subset_name: str | None = pydantic.Field(default=None, exclude=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_bulk_operation_annotatable_id_omitted(
+        cls, data: typing.Any
+    ) -> typing.Any:
+        return data
 
     def add_attribute(self, *args: HARIAttribute) -> None:
         for attribute in args:
@@ -82,6 +91,13 @@ class HARIMedia(models.BulkMediaCreate):
     # overwrites the bulk_operation_annotatable_id field to not be required,
     # because it's set internally by the HARIUploader
     bulk_operation_annotatable_id: str | None = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def check_bulk_operation_annotatable_id_omitted(
+        cls, data: typing.Any
+    ) -> typing.Any:
+        return data
 
     def add_media_object(self, *args: HARIMediaObject) -> None:
         for media_object in args:
