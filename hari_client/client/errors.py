@@ -84,3 +84,14 @@ class ParameterListLengthError(Exception):
         super().__init__(
             f"The valid length for the {param_name} parameter is: {minimum=}, {maximum=}, but actual length is {length=}"
         )
+
+
+class BulkOperationAnnotatableIdMissing(Exception):
+    def __init__(
+        self,
+        message="The 'bulk_operation_annotatable_id' field is missing. "
+        "Please include 'bulk_operation_annotatable_id' for each item to proceed with this bulk operation. "
+        "Its value should be unique for each item within the bulk. "
+        "This id is used to link the item in the bulk operation to the returned response entry.",
+    ):
+        super().__init__(message)
