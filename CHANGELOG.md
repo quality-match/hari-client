@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [2.0.2] - 30.10.2024
+
 ### Internal
 
 - added `bulk_operation_annotatable_id` presence validation for bulk media/media objects creation models [PR#36](https://github.com/quality-match/hari-client/pull/36)
