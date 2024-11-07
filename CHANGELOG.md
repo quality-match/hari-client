@@ -1,5 +1,11 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [2.0.3] - 07.11.2024
+
+### Fixes
+
+- added support for serialization of `datetime` objects to the HARIClient. They're serialized to ISO-8601 strings now. [PR#38](https://github.com/quality-match/hari-client/pull/38)
+
 ## [2.0.2] - 30.10.2024
 
 ### Internal

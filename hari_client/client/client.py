@@ -18,10 +18,12 @@ T = typing.TypeVar("T")
 log = logger.setup_logger(__name__)
 
 
-class UUIDEncoder(json.JSONEncoder):
+class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, uuid.UUID):
             return str(obj)
+        elif isinstance(obj, datetime.datetime):
+            return obj.isoformat()
         return super().default(obj)
 
 
@@ -168,7 +170,9 @@ class HARIClient:
         full_url = f"{self.config.hari_api_base_url}{url}"
 
         if "json" in kwargs:
-            kwargs["json"] = json.loads(json.dumps(kwargs["json"], cls=UUIDEncoder))
+            kwargs["json"] = json.loads(
+                json.dumps(kwargs["json"], cls=CustomJSONEncoder)
+            )
 
         # do request and basic error handling
         response = self.session.request(method, full_url, **kwargs)
