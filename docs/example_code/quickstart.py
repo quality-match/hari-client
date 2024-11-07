@@ -25,6 +25,7 @@ dataset_id = new_dataset.id
 # In this example we use 3 images with 1 media object each.
 # The first media and media object have 1 attribute each.
 media_1 = hari_uploader.HARIMedia(
+    # note: the file_path won't be saved in HARI, it's only used during uploading
     file_path="images/image_1.jpg",
     name="A busy street 1",
     back_reference="image 1",
@@ -40,7 +41,7 @@ media_object_1 = hari_uploader.HARIMediaObject(
         height=732.0,
     ),
 )
-attribute_object_1_id = str(uuid.uuid4())
+attribute_object_1_id = uuid.uuid4()
 attribute_object_1 = hari_uploader.HARIAttribute(
     id=attribute_object_1_id,
     name="Is this a human being?",
@@ -48,7 +49,7 @@ attribute_object_1 = hari_uploader.HARIAttribute(
     value=True,
 )
 
-attribute_media_1_id = str(uuid.uuid4())
+attribute_media_1_id = uuid.uuid4()
 attribute_media_1 = hari_uploader.HARIAttribute(
     id=attribute_media_1_id,
     name="area",
@@ -57,6 +58,7 @@ attribute_media_1 = hari_uploader.HARIAttribute(
 )
 media_1.add_attribute(attribute_media_1)
 media_object_1.add_attribute(attribute_object_1)
+media_object_1.set_object_category_subset_name("pedestrian")
 media_1.add_media_object(media_object_1)
 
 media_object_2 = hari_uploader.HARIMediaObject(
@@ -69,6 +71,7 @@ media_2 = hari_uploader.HARIMedia(
     back_reference="image 2",
     media_type=models.MediaType.IMAGE,
 )
+media_object_2.set_object_category_subset_name("wheel")
 media_2.add_media_object(media_object_2)
 
 media_3 = hari_uploader.HARIMedia(
@@ -84,10 +87,15 @@ media_object_3 = hari_uploader.HARIMediaObject(
         closed=False,
     ),
 )
+media_object_3.set_object_category_subset_name("road_marking")
 media_3.add_media_object(media_object_3)
 
 # 4. Set up the uploader and add the medias to it
-uploader = hari_uploader.HARIUploader(client=hari, dataset_id=dataset_id)
+uploader = hari_uploader.HARIUploader(
+    client=hari,
+    dataset_id=dataset_id,
+    object_categories={"pedestrian", "wheel", "road_marking"},
+)
 uploader.add_media(media_1, media_2, media_3)
 
 # 5. Trigger the upload process

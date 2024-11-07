@@ -562,7 +562,43 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-    ### media ###
+    def create_empty_subset(
+        self,
+        dataset_id: uuid.UUID,
+        subset_type: models.SubsetType,
+        subset_name: str,
+        object_category: bool | None = False,
+        visibility_status: models.VisibilityStatus | None = None,
+    ) -> str:
+        """creates a new empty subset and uploads it to the database
+
+        Args:
+            dataset_id: Dataset Id
+            subset_type: Type of the subset (media, media_object, instance, attribute)
+            subset_name: The name of the subset
+            object_category: True if the new subset shall be shown as a category for objects in HARI
+            visibility_status: Visibility status of the created subset
+
+        Returns:
+            The new subset id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        body = {}
+
+        return self._request(
+            "POST",
+            "/subsets",
+            params=self._pack(
+                locals(),
+            ),
+            json=body,
+            success_response_item_model=str,
+        )
+
+        ### media ###
+
     def create_media(
         self,
         dataset_id: uuid.UUID,
@@ -626,7 +662,7 @@ class HARIClient:
     def create_medias(
         self, dataset_id: uuid.UUID, medias: list[models.BulkMediaCreate]
     ) -> models.BulkResponse:
-        """Accepts multiple files, uploads them, and creates the medias in the db.
+        """Accepts multiple media files, uploads them, and creates the media entries in the db.
         The limit is 500 per call.
 
         Args:
@@ -1652,7 +1688,11 @@ class HARIClient:
         name: str,
         annotatable_id: str,
         value: models.typeT,
-        annotatable_type: models.DataBaseObjectType,
+        annotatable_type: typing.Literal[
+            models.DataBaseObjectType.MEDIA,
+            models.DataBaseObjectType.MEDIAOBJECT,
+            models.DataBaseObjectType.INSTANCE,
+        ],
         attribute_group: models.AttributeGroup = models.AttributeGroup.InitialAttribute,
         attribute_type: models.AttributeType | None = None,
         min: models.typeT | None = None,
@@ -1712,7 +1752,7 @@ class HARIClient:
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/attributes",
-            json=self._pack(locals(), ignore=["dataset_id"]),
+            json=self._pack(locals(), ignore=["dataset_id"], not_none=["question"]),
             success_response_item_model=models.Attribute,
         )
 
@@ -1779,8 +1819,6 @@ class HARIClient:
         attribute_id: str,
         annotatable_id: str,
         name: str | None = None,
-        annotatable_type: models.DataBaseObjectType | None = None,
-        attribute_group: models.AttributeGroup | None = None,
         value: models.typeT | None = None,
         min: models.typeT | None = None,
         max: models.typeT | None = None,
@@ -1807,13 +1845,12 @@ class HARIClient:
         """Updates the attribute with the given id.
 
         Args:
-            dataset_id: The dataset id
+            dataset_id: The dataset id the attribute belongs to
             attribute_id: The attribute id
+            annotatable_id: The annotatable id the attribute belongs to
+
             name: The name of the attribute
             value: The value of the attribute
-            annotatable_id: The annotatable id
-            annotatable_type: The annotatable type
-            attribute_group: The attribute group
             min: The min value
             max: The max value
             sum: The sum value
@@ -1847,7 +1884,9 @@ class HARIClient:
             "PATCH",
             f"/datasets/{dataset_id}/attributes/{attribute_id}",
             params={"annotatable_id": annotatable_id},
-            json=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            json=self._pack(
+                locals(), ignore=["dataset_id", "attribute_id", "annotatable_id"]
+            ),
             success_response_item_model=models.Attribute,
         )
 

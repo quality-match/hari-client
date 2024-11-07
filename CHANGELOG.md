@@ -1,7 +1,22 @@
-## [major.minor.patch] - YYYY-MM-DD
+## [major.minor.patch] - DD-MM-YYYY
+
+## [2.0.2] - 30.10.2024
+
+### Internal
+
+- added `bulk_operation_annotatable_id` presence validation for bulk media/media objects creation models [PR#36](https://github.com/quality-match/hari-client/pull/36)
+
+## [2.0.1] - 24.10.2024
+
+### Internal
+
+- updated create_subset endpoint used during object_category creation [PR#35](https://github.com/quality-match/hari-client/pull/35)
+
+## [2.0.0] - 23.10.2024
 
 ### New Features
 
+- added support for object categories [PR#26](https://github.com/quality-match/hari-client/pull/26)
 - added support for attributes bulk upload with hari-uploader [PR#17](https://github.com/quality-match/hari-client/pull/17)
 - added support for Attribute endpoints to client [PR#18](https://github.com/quality-match/hari-client/pull/18)
 
