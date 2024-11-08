@@ -1439,6 +1439,7 @@ class HARIClient:
         trace_id: uuid.UUID | None = None,
         max_size: tuple[int, int] | None = None,
         aspect_ratio: tuple[int, int] | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers the creation of thumbnails for a given dataset.
 
@@ -1448,6 +1449,7 @@ class HARIClient:
             trace_id: An id to trace the processing job(s). Is created by the user
             max_size: The maximum size of the thumbnails
             aspect_ratio: The aspect ratio of the thumbnails
+            force_recreate: If True already existing thumbnails will be recreated
 
         Raises:
             APIException: If the request fails.
@@ -1455,7 +1457,7 @@ class HARIClient:
         Returns:
             list[models.BaseProcessingJobMethod]: the methods being executed
         """
-        params = {"subset_id": subset_id}
+        params = {"subset_id": subset_id, "force_recreate": force_recreate}
 
         if trace_id is not None:
             params["trace_id"] = trace_id
@@ -1508,6 +1510,7 @@ class HARIClient:
         padding_minimum: int | None = None,
         max_size: tuple[int, int] | None = None,
         aspect_ratio: tuple[int, int] | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Creates the crops for a given dataset if the correct api key is provided in the
 
@@ -1519,6 +1522,7 @@ class HARIClient:
             padding_minimum: The minimum padding to add to the crops
             max_size: The max size of the crops
             aspect_ratio: The aspect ratio of the crops
+            force_recreate: If True already existing crops will be recreated
 
         Raises:
             APIException: If the request fails.
@@ -1526,7 +1530,7 @@ class HARIClient:
         Returns:
             list[models.BaseProcessingJobMethod]: The methods being executed
         """
-        params = {"subset_id": subset_id}
+        params = {"subset_id": subset_id, "force_recreate": force_recreate}
 
         if trace_id is not None:
             params["trace_id"] = trace_id
@@ -1540,13 +1544,17 @@ class HARIClient:
         )
 
     def trigger_metadata_rebuild_job(
-        self, dataset_ids: list[uuid.UUID], trace_id: uuid.UUID | None = None
+        self,
+        dataset_ids: list[uuid.UUID],
+        trace_id: uuid.UUID | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
 
         Args:
             dataset_ids: dataset_ids to rebuild metadata for max 10.
             trace_id: An id to trace the processing job
+            force_recreate: If True already existing crops and thumbnails will be rereated only available for certain user roles
 
         Returns:
             The methods being executed
@@ -1570,6 +1578,7 @@ class HARIClient:
         dataset_id: uuid.UUID,
         subset_id: uuid.UUID | None = None,
         trace_id: uuid.UUID | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
 
@@ -1577,11 +1586,12 @@ class HARIClient:
             dataset_id: dataset_id to rebuild metadata for
             subset_id: subset_id to rebuild metadata for
             trace_id: An id to trace the processing job
+            force_recreate: If True already existing crops and thumbnails will be rereated only available for certain user roles
 
         Returns:
             The methods being executed
         """
-        params = {}
+        params = {"force_recreate": force_recreate}
         if subset_id:
             params["subset_id"] = subset_id
         if trace_id:
