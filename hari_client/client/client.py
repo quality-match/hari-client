@@ -1456,6 +1456,9 @@ class HARIClient:
 
         Returns:
             list[models.BaseProcessingJobMethod]: the methods being executed
+
+        Restrictions:
+            This endpoint is restricted to qm internal users only.
         """
         params = {"subset_id": subset_id, "force_recreate": force_recreate}
 
@@ -1512,7 +1515,7 @@ class HARIClient:
         aspect_ratio: tuple[int, int] | None = None,
         force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
-        """Creates the crops for a given dataset if the correct api key is provided in the
+        """Creates the crops for a given dataset if the correct api key is provided in the request.
 
         Args:
             dataset_id: The dataset id
@@ -1529,6 +1532,9 @@ class HARIClient:
 
         Returns:
             list[models.BaseProcessingJobMethod]: The methods being executed
+
+        Restrictions:
+            This endpoint is restricted to qm internal users only.
         """
         params = {"subset_id": subset_id, "force_recreate": force_recreate}
 
@@ -1554,7 +1560,7 @@ class HARIClient:
         Args:
             dataset_ids: dataset_ids to rebuild metadata for max 10.
             trace_id: An id to trace the processing job
-            force_recreate: If True already existing crops and thumbnails will be rereated only available for certain user roles
+            force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
 
         Returns:
             The methods being executed
@@ -1586,7 +1592,7 @@ class HARIClient:
             dataset_id: dataset_id to rebuild metadata for
             subset_id: subset_id to rebuild metadata for
             trace_id: An id to trace the processing job
-            force_recreate: If True already existing crops and thumbnails will be rereated only available for certain user roles
+            force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
 
         Returns:
             The methods being executed
