@@ -305,28 +305,39 @@ class HARIClient:
             A list of MediaUploadUrlInfo objects.
 
         Raises:
-            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
+            UploadMediaFileExtensionNotIdentifiableError: if the file_extension of the provided file_paths couldn't be identified.
+            UploadNoMediaFileExtensionsIdentifiableError: if no file_extension at all could be identified.
         """
 
-        # validate that all files have the same file extension
-        file_extensions = set(
-            [pathlib.Path(file_path).suffix for file_path in file_paths]
-        )
-        if len(file_extensions) > 1:
-            raise errors.UploadingFilesWithDifferentFileExtensionsError(file_extensions)
+        # find all file extensions
+        files_by_file_extension: dict[str, list[str]] = {}
+        for file_path in file_paths:
+            file_extension = pathlib.Path(file_path).suffix
+            if file_extension == "":
+                raise errors.UploadMediaFileExtensionNotIdentifiableError(file_path)
+            if file_extension not in files_by_file_extension:
+                files_by_file_extension[file_extension] = []
+            files_by_file_extension[file_extension].append(file_path)
 
-        # 1. get presigned upload url for the files
-        presign_response = self.get_presigned_media_upload_url(
-            dataset_id=dataset_id,
-            file_extension=list(file_extensions)[0],
-            batch_size=len(file_paths),
-        )
+        if len(files_by_file_extension) == 0:
+            raise errors.UploadNoMediaFileExtensionsIdentifiableError()
 
-        # 2. upload the image
-        for idx, file_path in enumerate(file_paths):
-            self._upload_file(
-                file_path=file_path, upload_url=presign_response[idx].upload_url
+        for (
+            file_extension,
+            file_extension_file_paths,
+        ) in files_by_file_extension.items():
+            # 1. get presigned upload url for the files
+            presign_response = self.get_presigned_media_upload_url(
+                dataset_id=dataset_id,
+                file_extension=[file_extension],
+                batch_size=len(file_extension_file_paths),
             )
+
+            # 2. upload the image
+            for idx, file_path in enumerate(file_paths):
+                self._upload_file(
+                    file_path=file_path, upload_url=presign_response[idx].upload_url
+                )
 
         return presign_response
 
@@ -349,8 +360,9 @@ class HARIClient:
         license: str | None = None,
         owner: str | None = None,
         current_snapshot_id: int | None = None,
-        visibility_status: models.VisibilityStatus
-        | None = models.VisibilityStatus.VISIBLE,
+        visibility_status: (
+            models.VisibilityStatus | None
+        ) = models.VisibilityStatus.VISIBLE,
         data_root: str | None = "custom_upload",
         id: str | None = None,
     ) -> models.Dataset:
@@ -678,7 +690,8 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
+            UploadMediaFileExtensionNotIdentifiableError: if the file_extension of the provided file_paths couldn't be identified.
+            UploadNoMediaFileExtensionsIdentifiableError: if no file_extension at all could be identified.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
             MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
         """
@@ -987,9 +1000,11 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         name: str,
-        parameters: models.CropVisualisationConfigParameters
-        | models.TileVisualisationConfigParameters
-        | models.RenderedVisualisationConfigParameters,
+        parameters: (
+            models.CropVisualisationConfigParameters
+            | models.TileVisualisationConfigParameters
+            | models.RenderedVisualisationConfigParameters
+        ),
     ) -> models.VisualisationConfiguration:
         """Creates a new visualisation_config based on the provided parameters.
 
