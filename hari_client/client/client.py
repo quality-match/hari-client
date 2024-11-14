@@ -1536,12 +1536,18 @@ class HARIClient:
         )
 
     def trigger_metadata_rebuild_job(
-        self, dataset_ids: list[uuid.UUID], trace_id: uuid.UUID | None = None
+            self,
+            dataset_ids: list[uuid.UUID],
+            anonymize: bool = False,
+            calculate_histograms: bool = True,
+            trace_id: uuid.UUID | None = None
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
 
         Args:
             dataset_ids: dataset_ids to rebuild metadata for max 10.
+            anonymize: Anonymize the dataset if true. This will incur costs
+            calculate_histograms: Calculate histograms if true
             trace_id: An id to trace the processing job
 
         Returns:
@@ -1565,6 +1571,8 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         subset_id: uuid.UUID | None = None,
+        anonymize: bool = False,
+        calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
@@ -1572,12 +1580,17 @@ class HARIClient:
         Args:
             dataset_id: dataset_id to rebuild metadata for
             subset_id: subset_id to rebuild metadata for
+            anonymize: Anonymize the dataset if true. This will incur costs.
+            calculate_histograms: Calculate histograms if true.
             trace_id: An id to trace the processing job
 
         Returns:
             The methods being executed
         """
-        params = {}
+        params = {
+            "anonymize": anonymize,
+            "calculate_histograms": calculate_histograms,
+        }
         if subset_id:
             params["subset_id"] = subset_id
         if trace_id:

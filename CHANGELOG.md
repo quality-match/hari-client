@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+- added support for `anonymize` and `create_histograms` parameters to `trigger_metadata_rebuild_job` and `trigger_dataset_metadata_rebuild_job`
+
 ## [2.0.2] - 30.10.2024
 
 ### Internal
