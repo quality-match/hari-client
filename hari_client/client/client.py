@@ -1608,7 +1608,7 @@ class HARIClient:
         params = {
             "anonymize": anonymize,
             "calculate_histograms": calculate_histograms,
-            "force_recreate": force_recreate
+            "force_recreate": force_recreate,
         }
         if subset_id:
             params["subset_id"] = subset_id
