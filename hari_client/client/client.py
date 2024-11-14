@@ -18,10 +18,12 @@ T = typing.TypeVar("T")
 log = logger.setup_logger(__name__)
 
 
-class UUIDEncoder(json.JSONEncoder):
+class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, uuid.UUID):
             return str(obj)
+        elif isinstance(obj, datetime.datetime):
+            return obj.isoformat()
         return super().default(obj)
 
 
@@ -168,7 +170,9 @@ class HARIClient:
         full_url = f"{self.config.hari_api_base_url}{url}"
 
         if "json" in kwargs:
-            kwargs["json"] = json.loads(json.dumps(kwargs["json"], cls=UUIDEncoder))
+            kwargs["json"] = json.loads(
+                json.dumps(kwargs["json"], cls=CustomJSONEncoder)
+            )
 
         # do request and basic error handling
         response = self.session.request(method, full_url, **kwargs)
@@ -1435,6 +1439,7 @@ class HARIClient:
         trace_id: uuid.UUID | None = None,
         max_size: tuple[int, int] | None = None,
         aspect_ratio: tuple[int, int] | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers the creation of thumbnails for a given dataset.
 
@@ -1444,14 +1449,18 @@ class HARIClient:
             trace_id: An id to trace the processing job(s). Is created by the user
             max_size: The maximum size of the thumbnails
             aspect_ratio: The aspect ratio of the thumbnails
+            force_recreate: If True already existing thumbnails will be recreated
 
         Raises:
             APIException: If the request fails.
 
         Returns:
             list[models.BaseProcessingJobMethod]: the methods being executed
+
+        Restrictions:
+            This endpoint is restricted to qm internal users only.
         """
-        params = {"subset_id": subset_id}
+        params = {"subset_id": subset_id, "force_recreate": force_recreate}
 
         if trace_id is not None:
             params["trace_id"] = trace_id
@@ -1504,8 +1513,9 @@ class HARIClient:
         padding_minimum: int | None = None,
         max_size: tuple[int, int] | None = None,
         aspect_ratio: tuple[int, int] | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
-        """Creates the crops for a given dataset if the correct api key is provided in the
+        """Creates the crops for a given dataset if the correct api key is provided in the request.
 
         Args:
             dataset_id: The dataset id
@@ -1515,14 +1525,18 @@ class HARIClient:
             padding_minimum: The minimum padding to add to the crops
             max_size: The max size of the crops
             aspect_ratio: The aspect ratio of the crops
+            force_recreate: If True already existing crops will be recreated
 
         Raises:
             APIException: If the request fails.
 
         Returns:
             list[models.BaseProcessingJobMethod]: The methods being executed
+
+        Restrictions:
+            This endpoint is restricted to qm internal users only.
         """
-        params = {"subset_id": subset_id}
+        params = {"subset_id": subset_id, "force_recreate": force_recreate}
 
         if trace_id is not None:
             params["trace_id"] = trace_id
@@ -1536,11 +1550,12 @@ class HARIClient:
         )
 
     def trigger_metadata_rebuild_job(
-            self,
-            dataset_ids: list[uuid.UUID],
-            anonymize: bool = False,
-            calculate_histograms: bool = True,
-            trace_id: uuid.UUID | None = None
+        self,
+        dataset_ids: list[uuid.UUID],
+        anonymize: bool = False,
+        calculate_histograms: bool = True,
+        trace_id: uuid.UUID | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
 
@@ -1549,6 +1564,7 @@ class HARIClient:
             anonymize: Anonymize the dataset if true. This will incur costs
             calculate_histograms: Calculate histograms if true
             trace_id: An id to trace the processing job
+            force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
 
         Returns:
             The methods being executed
@@ -1574,6 +1590,7 @@ class HARIClient:
         anonymize: bool = False,
         calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
+        force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
 
@@ -1583,6 +1600,7 @@ class HARIClient:
             anonymize: Anonymize the dataset if true. This will incur costs.
             calculate_histograms: Calculate histograms if true.
             trace_id: An id to trace the processing job
+            force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
 
         Returns:
             The methods being executed
@@ -1590,6 +1608,7 @@ class HARIClient:
         params = {
             "anonymize": anonymize,
             "calculate_histograms": calculate_histograms,
+            "force_recreate": force_recreate
         }
         if subset_id:
             params["subset_id"] = subset_id
