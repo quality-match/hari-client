@@ -1,5 +1,21 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [2.1.0] - 11.11.2024
+
+### New Features
+
+- added support for `force_recreate` flag for these methods:
+  - `trigger_crops_creation_job`
+  - `trigger_thumbnails_creation_job`
+  - `trigger_dataset_metadata_rebuild_job`
+  - `trigger_metadata_rebuild_job`
+
+## [2.0.3] - 07.11.2024
+
+### Fixes
+
+- added support for serialization of `datetime` objects to the HARIClient. They're serialized to ISO-8601 strings now. [PR#38](https://github.com/quality-match/hari-client/pull/38)
+
 ## [2.0.2] - 30.10.2024
 
 ### Internal
