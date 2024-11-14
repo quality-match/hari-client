@@ -2,7 +2,9 @@
 
 ## [2.2.0] - 14.11.2024
 
-- added support for `anonymize` and `create_histograms` parameters to `trigger_metadata_rebuild_job` and `trigger_dataset_metadata_rebuild_job`
+### New Features
+
+- added support for `anonymize` and `calculate_histograms` parameters to `trigger_metadata_rebuild_job` and `trigger_dataset_metadata_rebuild_job`
 
 ## [2.1.0] - 11.11.2024
 
