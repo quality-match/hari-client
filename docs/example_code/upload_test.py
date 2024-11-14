@@ -9,8 +9,8 @@ from hari_client import models
 
 # This test should upload a specified amount of media and objects with initial attributes.
 n_media = 20 # Number of unique media to upload
-rep_media = 5 # Number of times each media is repeated
-n_objects = 4 # Number of objects per media
+rep_media = 250 # Number of times each media is repeated
+n_objects = 5 # Number of objects per media
 
 # The Config class will look for a .env file in your script's current working directory.
 # Copy the .env_example file as .env for that and store your HARI credentials in there.
@@ -21,7 +21,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="BB_load_test_client2", user_group="QA-devs")
+new_dataset = hari.create_dataset(name="BB_load_test_client5000_retry", user_group="QM-ops")
 print("Dataset created with id:", new_dataset.id)
 
 dataset_id = new_dataset.id
@@ -114,6 +114,24 @@ for i in range(n_media * rep_media):
     ))
     media_list[i].add_media_object(object4)
 
+    object5 = hari_uploader.HARIMediaObject(
+        back_reference=f"object_{i*n_objects+5}",
+        reference_data=models.BBox2DCenterPoint(
+            type=models.BBox2DType.BBOX2D_CENTER_POINT,
+            x=700.0,
+            y=806.0,
+            width=84.0,
+            height=62.0,
+        ),
+    )
+    object5.add_attribute(hari_uploader.HARIAttribute(
+        id=attribute_object_1_id,
+        name="initObjectAttribute",
+        attribute_type=models.AttributeType.Binary,
+        value=True,
+    ))
+    media_list[i].add_media_object(object5)
+
     media_list[i].add_attribute(hari_uploader.HARIAttribute(
         id=attribute_media_1_id,
         name="initMediaAttribute",
@@ -122,6 +140,7 @@ for i in range(n_media * rep_media):
     ))
 
 # 4. Set up the uploader and add the medias to it
+start = time.time()
 uploader = hari_uploader.HARIUploader(client=hari, dataset_id=dataset_id)
 uploader.add_media(*media_list)
 
@@ -152,13 +171,13 @@ if (
     sys.exit(1)
 
 # 6. Create a subset
-print("Creating new subset...")
-new_subset_id = hari.create_subset(
-    dataset_id=dataset_id,
-    subset_type=models.SubsetType.MEDIA_OBJECT,
-    subset_name="All media objects",
-)
-print(f"Created new subset with id {new_subset_id}")
+# print("Creating new subset...")
+# new_subset_id = hari.create_subset(
+#     dataset_id=dataset_id,
+#     subset_type=models.SubsetType.MEDIA_OBJECT,
+#     subset_name="All media objects",
+# )
+# print(f"Created new subset with id {new_subset_id}")
 
 # 7. Trigger metadata updates
 print("Triggering metadata updates...")
@@ -186,5 +205,6 @@ while jobs_are_still_running:
     if jobs_are_still_running:
         print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
         time.sleep(10)
-
+end = time.time()
+print(f"Upload took {end-start} seconds")
 print(f"metadata_rebuild jobs finished with status {job_statuses=}")

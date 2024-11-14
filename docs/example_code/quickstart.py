@@ -16,23 +16,23 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="BB_local_client", user_group="QM-ops")
-print("Dataset created with id:", new_dataset.id)
+# new_dataset = hari.create_dataset(name="BB_v9_client_test", user_group="QM-ops")
+# print("Dataset created with id:", new_dataset.id)
 
-dataset_id = new_dataset.id
+dataset_id = "65c5c83e-2d44-47df-a3a9-2c75cef7abf1"
 
 # 3. Set up your medias and all of their media objects and attributes.
 # In this example we use 3 images with 1 media object each.
 # The first media and media object have 1 attribute each.
 media_1 = hari_uploader.HARIMedia(
     # note: the file_path won't be saved in HARI, it's only used during uploading
-    file_path="images/image_1.jpg",
-    name="A busy street 1",
-    back_reference="image 1",
+    file_path="/Users/benjaminbentner/repos/hari-client/docs/example_code/images/image_1.jpg",
+    name="A busy street 4",
+    back_reference="image 4",
     media_type=models.MediaType.IMAGE,
 )
 media_object_1 = hari_uploader.HARIMediaObject(
-    back_reference="pedestrian_1",
+    back_reference="pedestrian_4",
     reference_data=models.BBox2DCenterPoint(
         type=models.BBox2DType.BBOX2D_CENTER_POINT,
         x=1400.0,
@@ -44,7 +44,7 @@ media_object_1 = hari_uploader.HARIMediaObject(
 attribute_object_1_id = uuid.uuid4()
 attribute_object_1 = hari_uploader.HARIAttribute(
     id=attribute_object_1_id,
-    name="Is this a human being?",
+    name="Is this a human being new?",
     attribute_type=models.AttributeType.Binary,
     value=True,
 )
@@ -52,7 +52,7 @@ attribute_object_1 = hari_uploader.HARIAttribute(
 attribute_media_1_id = uuid.uuid4()
 attribute_media_1 = hari_uploader.HARIAttribute(
     id=attribute_media_1_id,
-    name="area",
+    name="area new",
     attribute_type=models.AttributeType.Categorical,
     value=6912,
 )
@@ -61,42 +61,13 @@ media_object_1.add_attribute(attribute_object_1)
 media_object_1.set_object_category_subset_name("pedestrian")
 media_1.add_media_object(media_object_1)
 
-media_object_2 = hari_uploader.HARIMediaObject(
-    back_reference="motorcycle_wheel_1",
-    reference_data=models.Point2DXY(x=975.0, y=2900.0),
-)
-media_2 = hari_uploader.HARIMedia(
-    file_path="images/image_2.jpg",
-    name="A busy street 2",
-    back_reference="image 2",
-    media_type=models.MediaType.IMAGE,
-)
-media_object_2.set_object_category_subset_name("wheel")
-media_2.add_media_object(media_object_2)
-
-media_3 = hari_uploader.HARIMedia(
-    file_path="images/image_3.jpg",
-    name="A busy street 3",
-    back_reference="image 3",
-    media_type=models.MediaType.IMAGE,
-)
-media_object_3 = hari_uploader.HARIMediaObject(
-    back_reference="road marking",
-    reference_data=models.PolyLine2DFlatCoordinates(
-        coordinates=[1450, 1550, 1450, 1000],
-        closed=False,
-    ),
-)
-media_object_3.set_object_category_subset_name("road_marking")
-media_3.add_media_object(media_object_3)
-
 # 4. Set up the uploader and add the medias to it
 uploader = hari_uploader.HARIUploader(
     client=hari,
     dataset_id=dataset_id,
-    object_categories={"pedestrian", "wheel", "road_marking"},
+    object_categories={"pedestrian"},
 )
-uploader.add_media(media_1, media_2, media_3)
+uploader.add_media(media_1)
 
 # 5. Trigger the upload process
 upload_results = uploader.upload()
@@ -125,13 +96,13 @@ if (
     sys.exit(1)
 
 # 6. Create a subset
-print("Creating new subset...")
-new_subset_id = hari.create_subset(
-    dataset_id=dataset_id,
-    subset_type=models.SubsetType.MEDIA_OBJECT,
-    subset_name="All media objects",
-)
-print(f"Created new subset with id {new_subset_id}")
+# print("Creating new subset...")
+# new_subset_id = hari.create_subset(
+#     dataset_id=dataset_id,
+#     subset_type=models.SubsetType.MEDIA_OBJECT,
+#     subset_name="All media objects new",
+# )
+# print(f"Created new subset with id {new_subset_id}")
 
 # 7. Trigger metadata updates
 print("Triggering metadata updates...")
