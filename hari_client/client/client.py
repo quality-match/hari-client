@@ -1552,6 +1552,8 @@ class HARIClient:
     def trigger_metadata_rebuild_job(
         self,
         dataset_ids: list[uuid.UUID],
+        anonymize: bool = False,
+        calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
@@ -1559,6 +1561,8 @@ class HARIClient:
 
         Args:
             dataset_ids: dataset_ids to rebuild metadata for max 10.
+            anonymize: Anonymize the dataset if true. This will incur costs
+            calculate_histograms: Calculate histograms if true
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
 
@@ -1583,6 +1587,8 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         subset_id: uuid.UUID | None = None,
+        anonymize: bool = False,
+        calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
@@ -1591,13 +1597,19 @@ class HARIClient:
         Args:
             dataset_id: dataset_id to rebuild metadata for
             subset_id: subset_id to rebuild metadata for
+            anonymize: Anonymize the dataset if true. This will incur costs.
+            calculate_histograms: Calculate histograms if true.
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
 
         Returns:
             The methods being executed
         """
-        params = {"force_recreate": force_recreate}
+        params = {
+            "anonymize": anonymize,
+            "calculate_histograms": calculate_histograms,
+            "force_recreate": force_recreate,
+        }
         if subset_id:
             params["subset_id"] = subset_id
         if trace_id:
