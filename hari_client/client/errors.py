@@ -46,17 +46,10 @@ class MediaCreateMissingFilePathError(Exception):
         )
 
 
-class UploadMediaFileExtensionNotIdentifiableError(Exception):
+class MediaFileExtensionNotIdentifiedDuringUploadError(Exception):
     def __init__(self, file_path: str):
         super().__init__(
-            f"The media file extension of the provided file_path could not be identified: {file_path}"
-        )
-
-
-class UploadNoMediaFileExtensionsIdentifiableError(Exception):
-    def __init__(self):
-        super().__init__(
-            "No media file extensions could be identified. Double check the provided file_paths."
+            f"The media file extension of the provided file_path could not be identified when trying to upload the file: {file_path}"
         )
 
 

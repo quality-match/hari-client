@@ -61,6 +61,29 @@ def test_create_medias_with_different_file_extensions_works(test_client, mocker)
     assert request_spy.call_count == 1
 
 
+def test_create_medias_with_unidentifiable_file_extension(test_client):
+    # Arrange
+    client = test_client
+    media_create = models.MediaCreate(
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+        file_path="./my_test_media.jpg",
+    )
+    media_create_broken = models.MediaCreate(
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+        file_path="./my_test_media",
+    )
+
+    # Act + Assert
+    with pytest.raises(errors.MediaFileExtensionNotIdentifiedDuringUploadError):
+        client.create_medias(
+            dataset_id="1234", medias=[media_create, media_create_broken]
+        )
+
+
 def test_create_medias_with_too_many_objects(test_client):
     # Arrange
     client = test_client

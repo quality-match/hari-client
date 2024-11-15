@@ -314,13 +314,10 @@ class HARIClient:
         for file_path in file_paths:
             file_extension = pathlib.Path(file_path).suffix
             if file_extension == "":
-                raise errors.UploadMediaFileExtensionNotIdentifiableError(file_path)
+                raise errors.MediaFileExtensionNotIdentifiedDuringUploadError(file_path)
             if file_extension not in files_by_file_extension:
                 files_by_file_extension[file_extension] = []
             files_by_file_extension[file_extension].append(file_path)
-
-        if len(files_by_file_extension) == 0:
-            raise errors.UploadNoMediaFileExtensionsIdentifiableError()
 
         for (
             file_extension,
