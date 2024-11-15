@@ -1,3 +1,4 @@
+# This script was written with hari-client version 2.0.3
 import json
 import sys
 import time

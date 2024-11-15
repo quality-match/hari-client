@@ -4,6 +4,8 @@ The script `upload_new_data_to_existing_dataset.py` demonstrates how to upload n
 
 > :warning: <b>Disclaimer: In most cases it makes more sense to upload your data as a new dataset.</b>
 
+Note: The script was written with hari_client version 2.0.3.
+
 Things that are implemented in the script:
 
 - add one new media
