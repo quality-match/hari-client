@@ -319,6 +319,7 @@ class HARIClient:
                 files_by_file_extension[file_extension] = []
             files_by_file_extension[file_extension].append(file_path)
 
+        all_presign_responses = []
         for (
             file_extension,
             file_extension_file_paths,
@@ -329,6 +330,7 @@ class HARIClient:
                 file_extension=[file_extension],
                 batch_size=len(file_extension_file_paths),
             )
+            all_presign_responses.extend(presign_response)
 
             # 2. upload the image
             for idx, file_path in enumerate(file_extension_file_paths):
@@ -336,7 +338,7 @@ class HARIClient:
                     file_path=file_path, upload_url=presign_response[idx].upload_url
                 )
 
-        return presign_response
+        return all_presign_responses
 
     ### dataset ###
     def create_dataset(
