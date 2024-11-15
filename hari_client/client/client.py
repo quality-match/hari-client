@@ -334,7 +334,7 @@ class HARIClient:
             )
 
             # 2. upload the image
-            for idx, file_path in enumerate(file_paths):
+            for idx, file_path in enumerate(file_extension_file_paths):
                 self._upload_file(
                     file_path=file_path, upload_url=presign_response[idx].upload_url
                 )

@@ -19,9 +19,8 @@ def test_create_medias_with_missing_file_paths(test_client):
         client.create_medias(dataset_id="1234", medias=[media_create])
 
 
-def test_create_medias_with_different_file_extensions(test_client):
+def test_create_medias_with_different_file_extensions_works(test_client, mocker):
     # Arrange
-    client = test_client
     media_create_1 = models.MediaCreate(
         name="my test media 1",
         back_reference="my test media 1 backref",
@@ -34,10 +33,32 @@ def test_create_medias_with_different_file_extensions(test_client):
         media_type=models.MediaType.IMAGE,
         file_path="./my_test_media_2.png",
     )
+    mocker.patch.object(test_client, "_upload_file")
+    mocker.patch.object(
+        test_client,
+        "get_presigned_media_upload_url",
+        return_value=[mocker.MagicMock(), mocker.MagicMock()],
+    )
+    mocker.patch.object(test_client, "_request")
 
-    # Act + Assert
-    with pytest.raises(errors.UploadingFilesWithDifferentFileExtensionsError):
-        client.create_medias(dataset_id="1234", medias=[media_create_1, media_create_2])
+    get_presigned_media_upload_url_spy = mocker.spy(
+        test_client, "get_presigned_media_upload_url"
+    )
+    upload_file_spy = mocker.spy(test_client, "_upload_file")
+    request_spy = mocker.spy(test_client, "_request")
+
+    # Act
+    test_client.create_medias(
+        dataset_id="1234", medias=[media_create_1, media_create_2]
+    )
+
+    # Assert
+    # called twice, because every group of files with the same extension is uploaded in a separate batch
+    assert get_presigned_media_upload_url_spy.call_count == 2
+    # called once every file to upload (there are two files)
+    assert upload_file_spy.call_count == 2
+    # called once by create_medias. The call from get_presigned_media_upload_url is mocked out
+    assert request_spy.call_count == 1
 
 
 def test_create_medias_with_too_many_objects(test_client):
