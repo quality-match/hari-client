@@ -90,7 +90,7 @@ duplicate_medias = hari.get_medias(
         {
             "attribute": "back_reference",
             "query_operator": "in",
-            # add all back_references here that you're going to upload here
+            # add all back_references here that you're going to upload
             "value": [new_media.back_reference],
         }
     ),
@@ -103,13 +103,14 @@ if len(duplicate_medias) > 0:
     for back_reference in duplicate_back_references:
         print(f"  {back_reference}")
     sys.exit(1)
+
 duplicate_media_objects = hari.get_media_objects(
     dataset_id=dataset_id,
     query=json.dumps(
         {
             "attribute": "back_reference",
             "query_operator": "in",
-            # add all back_references here that you're going to upload here
+            # add all back_references here that you're going to upload
             "value": [new_media_object.back_reference],
         }
     ),
