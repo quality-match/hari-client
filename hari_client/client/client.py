@@ -1944,3 +1944,19 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
             success_response_item_model=str,
         )
+
+    def get_vis_configs(self, dataset_id: uuid.UUID,) -> list[models.VisualisationConfiguration]:
+        """
+        Retrieve the visualization configurations for a given dataset.
+
+        Args:
+            dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
+
+        Returns:
+            list[models.VisualisationConfiguration]: A list of visualization configuration objects.
+        """
+        return self._request(
+            method="GET",
+            path=f"/datasets/{dataset_id}/visualisationConfigs",
+            success_response_item_model=list[models.VisualisationConfiguration],
+        )
