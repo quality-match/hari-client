@@ -1046,6 +1046,35 @@ class AttributeResponse(BaseModel):
     )
 
 
+class AttributeMetadataResponse(BaseModel):
+    id: str | None = pydantic.Field(default=None, title="Id")
+    dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
+    tags: set[str] | None = pydantic.Field(default=set(), title="Tags")
+    timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
+    archived: bool | None = pydantic.Field(default=None, title="Archived")
+    name: str | None = pydantic.Field(default=None, title="Name")
+    question: str | None = pydantic.Field(default=None, title="Question")
+    subset_ids: set[str] = pydantic.Field(default=set(), title="Subset Ids")
+    attribute_type: AttributeType | None = pydantic.Field(
+        default=None, title="Attribute Type"
+    )
+    attribute_group: AttributeGroup | None = pydantic.Field(
+        default=None, title="Attribute Group"
+    )
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
+        default=None, title="Annotatable Type"
+    )
+    annotation_run_node_id: str | None = pydantic.Field(
+        default=None, title="Annotation Run Node ID"
+    )
+    annotation_run_id: str | None = pydantic.Field(
+        default=None, title="Annotation Run ID"
+    )
+    pipeline_project: dict | None = pydantic.Field(
+        default=None, title="Pipeline Project"
+    )
+
+
 class BulkAttributeCreate(AttributeCreate):
     pass
 

@@ -1945,7 +1945,60 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-    def get_vis_configs(self, dataset_id: uuid.UUID,) -> list[models.VisualisationConfiguration]:
+    def get_attribute_metadata(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+    ) -> list[models.AttributeMetadataResponse]:
+        """Returns all attributes of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            archived: True if archived attributes should be returned
+            query: A query to filter attributes
+
+         Returns:
+            A list of attributes
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeMetadata",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AttributeMetadataResponse],
+        )
+
+    def delete_attributeMetadata(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_id: str,
+    ) -> str | None:
+        """Archives an attribute including all AttributeValues.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_id: The ID of the attribute.
+
+        Returns:
+            The deleted attribute
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=(str | None),
+        )
+
+    def get_vis_configs(
+        self,
+        dataset_id: uuid.UUID,
+    ) -> list[models.VisualisationConfiguration]:
         """
         Retrieve the visualization configurations for a given dataset.
 
