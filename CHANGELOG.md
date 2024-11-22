@@ -8,6 +8,15 @@
   - `trigger_thumbnails_creation_job`
   - `trigger_dataset_metadata_rebuild_job`
   - `trigger_metadata_rebuild_job`
+- added scripts
+  - added script `delete_all_ai_attributes_from_dataset`
+  - added script `create_subsets_from_attribute`
+- extended client
+  - Get / Delete AttributeMetadata
+  - Get Visualization Configs
+
+### Fixes
+- correct typo in development installation guidelines
 
 ## [2.0.3] - 07.11.2024
 

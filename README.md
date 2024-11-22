@@ -25,6 +25,14 @@ Run the script from the `docs/example_code` directory.
 
 For more detailed documentation, including all available methods and their parameters, please refer to the official documentation https://docs.quality-match.com.
 
+## Scripts
+
+We provide in the folder `scripts` a collection of common use-cases for which the HARI client can be used.
+Please check here before you implement your on script since we might have you already covered.
+
+DISCLAIMER: This section is currently in development and is extended regularly.
+DISCLAIMER: The scripts are currently not quality controlled and thus may include deprecated code.
+
 ## Changelog
 
 See: [CHANGELOG.md](CHANGELOG.md)
