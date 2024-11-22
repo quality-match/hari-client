@@ -8,15 +8,15 @@
   - `trigger_thumbnails_creation_job`
   - `trigger_dataset_metadata_rebuild_job`
   - `trigger_metadata_rebuild_job`
-- added scripts
+- added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
   - added script `delete_all_ai_attributes_from_dataset`
   - added script `create_subsets_from_attribute`
-- extended client
+- extended client [PR#43](https://github.com/quality-match/hari-client/pull/43)
   - Get / Delete AttributeMetadata
   - Get Visualization Configs
 
 ### Fixes
-- correct typo in development installation guidelines
+- correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
 
 ## [2.0.3] - 07.11.2024
 
