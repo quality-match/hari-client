@@ -37,7 +37,7 @@ To set up your local development environment, follow these steps:
 - Setup a virtual environment with Python 3.11
 - Install the package in editable mode with the following command:
   ```bash
-  python -m pip install -e .[tests]
+  python -m pip install -e '.[tests]'
   ```
   - This also installs pytest and the [pre-commit](https://github.com/pre-commit/pre-commit) tool into the environment
 - Install the pre-commit hooks with the following command:
