@@ -11,7 +11,7 @@ from datetime import datetime
 
 # This test should upload a specified amount of media and objects with initial attributes.
 n_media = 20 # Number of unique media to upload
-rep_media = 50 # Number of times each media is repeated
+rep_media = 250 # Number of times each media is repeated
 n_objects = 5 # Number of objects per media
 
 # The Config class will look for a .env file in your script's current working directory.
@@ -23,7 +23,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="BB_load_test_client1000_18_11", user_group="QM-ops")
+new_dataset = hari.create_dataset(name="BB_load_test_client5000_25_11", user_group="QM-ops")
 print("Dataset created with id:", new_dataset.id)
 
 dataset_id = new_dataset.id
