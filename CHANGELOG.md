@@ -1,6 +1,6 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [2.1.0] - 2024-11-26
+## [2.1.0] - 26.11.2024
 
 ### New Features
 
