@@ -1,6 +1,6 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-### New Features
+### [2.1.0] - 2024-11-26
 
 - added support for `anonymize` and `calculate_histograms` parameters to `trigger_metadata_rebuild_job` and `trigger_dataset_metadata_rebuild_job`
 - added support for `force_recreate` flag for these methods:
