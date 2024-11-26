@@ -10,8 +10,8 @@ from hari_client import models
 from datetime import datetime
 
 # This test should upload a specified amount of media and objects with initial attributes.
-n_media = 20 # Number of unique media to upload
-rep_media = 250 # Number of times each media is repeated
+n_media = 1 # Number of unique media to upload
+rep_media = 1 # Number of times each media is repeated
 n_objects = 5 # Number of objects per media
 
 # The Config class will look for a .env file in your script's current working directory.
@@ -23,10 +23,11 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="BB_load_test_client5000_25_11", user_group="QM-ops")
-print("Dataset created with id:", new_dataset.id)
+# new_dataset = hari.create_dataset(name="BB_anonymization_test_1im_v10", user_group="QM-ops")
+# print("Dataset created with id:", new_dataset.id)
 
-dataset_id = new_dataset.id
+# dataset_id = new_dataset.id
+dataset_id = "ec3c4a21-fe84-4aff-91b4-75107c064977"
 
 # 3. Set up your medias and all of their media objects and attributes.
 media_list = []
@@ -50,7 +51,7 @@ for i in range(n_media * rep_media):
             type=models.BBox2DType.BBOX2D_CENTER_POINT,
             x=200.0,
             y=206.0,
-            width=84.0,
+            width=-1,
             height=62.0,
         ),
     )
@@ -69,7 +70,7 @@ for i in range(n_media * rep_media):
             x=500.0,
             y=906.0,
             width=84.0,
-            height=62.0,
+            height=-1,
         ),
     )
     object2.add_attribute(hari_uploader.HARIAttribute(
@@ -86,8 +87,8 @@ for i in range(n_media * rep_media):
             type=models.BBox2DType.BBOX2D_CENTER_POINT,
             x=700.0,
             y=906.0,
-            width=84.0,
-            height=62.0,
+            width=0,
+            height=0,
         ),
     )
     object3.add_attribute(hari_uploader.HARIAttribute(
@@ -104,8 +105,8 @@ for i in range(n_media * rep_media):
             type=models.BBox2DType.BBOX2D_CENTER_POINT,
             x=500.0,
             y=806.0,
-            width=84.0,
-            height=62.0,
+            width=-1,
+            height=-1,
         ),
     )
     object4.add_attribute(hari_uploader.HARIAttribute(
@@ -208,7 +209,7 @@ while jobs_are_still_running:
     )
     if jobs_are_still_running:
         print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
-        time.sleep(10)
+        time.sleep(2)
 end = time.time()
 print(f"Upload took {end-start} seconds")
 print(f"metadata_rebuild jobs finished with status {job_statuses=}")
