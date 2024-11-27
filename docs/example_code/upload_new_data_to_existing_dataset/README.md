@@ -2,7 +2,7 @@
 
 The script `upload_new_data_to_existing_dataset.py` demonstrates how to upload new data to an existing dataset that was previously created using the `quickstart.py` script.
 
-> :warning: <b>Disclaimer: In the case that you've already did a lot of work with your dataset with annotation runs, we recommend that you create a new dataset and upload your new data there in order to keep a better overview.</b>
+> :warning: <b>Disclaimer: In the case that you've already used your dataset for annotation runs, we recommend that you create a new dataset and upload your new data there in order to keep a better overview.</b>
 
 Note: The script was written with hari_client version 2.0.3.
 
