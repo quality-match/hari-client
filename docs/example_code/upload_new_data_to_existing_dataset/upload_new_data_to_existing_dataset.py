@@ -9,7 +9,7 @@ from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 
-# Set the dataset_id here
+# Set the dataset_id here to the id of a dataset you created with the quickstart.py example script
 dataset_id = uuid.UUID("YOUR_DATASET_ID")
 
 config = Config()
@@ -43,24 +43,20 @@ initial_attributes = hari.get_attributes(
 # It's intended by HARI that attributes with the same name should reuse the same id.
 # In case an attribute name is used for medias and media objects, the attribute id used
 # for the medias has to be different from the one used for the media objects.
-media_attribute_id_lookup: dict[str, uuid.UUID] = {}
 media_attribute_lookup: dict[str, models.AttributeResponse] = {}
-media_object_attribute_id_lookup: dict[str, uuid.UUID] = {}
 media_object_attribute_lookup: dict[str, models.AttributeResponse] = {}
 for attribute in initial_attributes:
     if attribute.annotatable_type == models.DataBaseObjectType.MEDIA:
-        if attribute.name not in media_attribute_id_lookup:
-            media_attribute_id_lookup[attribute.name] = attribute.id
+        if attribute.name not in media_attribute_lookup:
             media_attribute_lookup[attribute.name] = attribute
     elif attribute.annotatable_type == models.DataBaseObjectType.MEDIAOBJECT:
-        if attribute.name not in media_object_attribute_id_lookup:
-            media_object_attribute_id_lookup[attribute.name] = attribute.id
+        if attribute.name not in media_object_attribute_lookup:
             media_object_attribute_lookup[attribute.name] = attribute
 
 print(
     "Found attributes:\n"
-    f"  media_attribute_ids: {len(media_attribute_id_lookup)}\n"
-    f"  media_object_attribute_ids: {len(media_object_attribute_id_lookup)}"
+    f"  media_attributes: {len(media_attribute_lookup)}\n"
+    f"  media_object_attributes: {len(media_object_attribute_lookup)}"
 )
 
 # 2. Set up new medias, media objects and attributes
@@ -132,47 +128,53 @@ if len(duplicate_media_objects) > 0:
 new_media_object.set_object_category_subset_name("my_new_object_category")
 object_categories = {"my_new_object_category"}
 
-# add an already known initial attribute to the media and media object, and one new attribute to each
-# in the example case we know that the existing media attribute value type is number
+# Add an already known initial attribute to the media and media object.
+# In the example case we know that the existing media attribute value type is number.
+existing_media_attribute = list(media_attribute_lookup.values())[0]
 new_media.add_attribute(
     hari_uploader.HARIAttribute(
-        id=list(media_attribute_id_lookup.values())[0],
-        name=list(media_attribute_id_lookup.keys())[0],
-        attribute_type=list(media_attribute_lookup.values())[0].attribute_type,
+        id=existing_media_attribute.id,
+        name=existing_media_attribute.name,
+        attribute_type=existing_media_attribute.attribute_type,
         value=500,
     )
 )
-# the new attribute needs a new id
-# remember the new attribute id for potential later reuse
-media_attribute_id_lookup["new_media_attribute"] = uuid.uuid4()
+
+# Add one new attribute, it needs a new id.
+# Remember the new attribute for potential later reuse.
 new_media_attribute = hari_uploader.HARIAttribute(
-    id=media_attribute_id_lookup["new_media_attribute"],
+    id=uuid.uuid4(),
     name="new_media_attribute",
     value="hello_world",
 )
+media_attribute_lookup[new_media_attribute.name] = new_media_attribute
 new_media.add_attribute(new_media_attribute)
 
 # add attributes to the media object
 # in the example case we know that the existing media object attribute value type is boolean
+existing_media_object_attribute = list(media_object_attribute_lookup.values())[0]
 new_media_object.add_attribute(
     hari_uploader.HARIAttribute(
-        id=list(media_object_attribute_id_lookup.values())[0],
-        name=list(media_object_attribute_id_lookup.keys())[0],
-        attribute_type=list(media_object_attribute_lookup.values())[0].attribute_type,
+        id=existing_media_object_attribute.id,
+        name=existing_media_object_attribute.name,
+        attribute_type=existing_media_object_attribute.attribute_type,
         value=True,
     )
 )
 # the new attribute needs a new id
 # remember the new attribute id for potential later reuse
-media_object_attribute_id_lookup["new_media_object_attribute"] = uuid.uuid4()
 new_media_object_attribute = hari_uploader.HARIAttribute(
-    id=media_object_attribute_id_lookup["new_media_object_attribute"],
+    id=uuid.uuid4(),
     name="new_media_object_attribute",
     value=42,
 )
+media_object_attribute_lookup[
+    new_media_object_attribute.name
+] = new_media_object_attribute
 new_media_object.add_attribute(new_media_object_attribute)
 
-# 3. Set existing subset_id on the new media and media object
+# 3. Add the new media and media object to the existing subset by
+# appending the existing subset_id to the new media and media object "subset_ids" field.
 # In the example case we know there's a subset called "All media objects" (see quickstart.py).
 # We have to add its subset_id to the new media and the new media object.
 all_dataset_subsets = hari.get_subsets_for_dataset(dataset_id=dataset_id)

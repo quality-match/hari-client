@@ -2,7 +2,7 @@
 
 The script `upload_new_data_to_existing_dataset.py` demonstrates how to upload new data to an existing dataset that was previously created using the `quickstart.py` script.
 
-> :warning: <b>Disclaimer: In most cases it makes more sense to upload your data as a new dataset - especially when you've already done a lot of work with that dataset through annotation runs</b>
+> :warning: <b>Disclaimer: In the case that you've already did a lot of work with your dataset with annotation runs, we recommend that you create a new dataset and upload your new data there in order to keep a better overview.</b>
 
 Note: The script was written with hari_client version 2.0.3.
 
@@ -16,6 +16,7 @@ Things that are implemented in the script:
   - by reusing the existing attribute ids and attribute types
 - create a new media subset and a new media object subset with the new data, so that the new data can be easily identified in HARI
 - add the new media object to the existing `All media objects` subset
+  - in order to add a media or media object to an existing subset, you have to append the subset id to the media or media object's `subset_ids` field.
 
 ## What to change for your own dataset
 
