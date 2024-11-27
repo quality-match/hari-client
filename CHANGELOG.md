@@ -5,10 +5,11 @@
 - added repeats and possible values to all attribute models.
   - these fields, as well as frequency and can't solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47)
 
-## [2.1.0] - 11.11.2024
+## [2.1.0] - 26.11.2024
 
 ### New Features
 
+- added support for `anonymize` and `calculate_histograms` parameters to `trigger_metadata_rebuild_job` and `trigger_dataset_metadata_rebuild_job`
 - added support for `force_recreate` flag for these methods:
   - `trigger_crops_creation_job`
   - `trigger_thumbnails_creation_job`
