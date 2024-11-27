@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [2.1.0] - 26.11.2024
+
 ### New Features
 
 - added support for `anonymize` and `calculate_histograms` parameters to `trigger_metadata_rebuild_job` and `trigger_dataset_metadata_rebuild_job`
