@@ -1,5 +1,10 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Breaking Changes
+
+- added repeats and possible values to all attribute models.
+  - these fields, as well as frequency and can't solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47)
+
 ## [2.1.0] - 11.11.2024
 
 ### New Features
