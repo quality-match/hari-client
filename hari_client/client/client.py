@@ -305,8 +305,7 @@ class HARIClient:
             A list of MediaUploadUrlInfo objects.
 
         Raises:
-            UploadMediaFileExtensionNotIdentifiableError: if the file_extension of the provided file_paths couldn't be identified.
-            UploadNoMediaFileExtensionsIdentifiableError: if no file_extension at all could be identified.
+            MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
         # find all file extensions
@@ -689,10 +688,9 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            UploadMediaFileExtensionNotIdentifiableError: if the file_extension of the provided file_paths couldn't be identified.
-            UploadNoMediaFileExtensionsIdentifiableError: if no file_extension at all could be identified.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
             MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
+            MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
         if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
