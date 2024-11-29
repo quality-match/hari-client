@@ -1974,7 +1974,7 @@ class HARIClient:
     def delete_attributeMetadata(
         self,
         dataset_id: uuid.UUID,
-        attribute_id: str,
+        attribute_id: uuid.UUID,
     ) -> str | None:
         """Archives an attribute including all AttributeValues.
 

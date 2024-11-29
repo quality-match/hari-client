@@ -16,9 +16,9 @@ def delete_all_ai_attributes_from_dataset(
     Delete all AI-generated attributes (MlAnnotationAttribute) from a HARI dataset.
 
     Args:
-        hari (HARIClient): The HARI client instance used to interact with the HARI API.
-        dataset_id (str): The ID of the dataset from which to delete attributes.
-        delete (bool): Flag indicating whether to actually delete the attributes (True) or just display them (False).
+        hari: The HARI client instance used to interact with the HARI API.
+        dataset_id: The ID of the dataset from which to delete attributes.
+        delete: Flag indicating whether to actually delete the attributes (True) or just display them (False).
     """
 
     dataset_id = UUID(dataset_id)

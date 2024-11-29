@@ -1,6 +1,5 @@
 import argparse
 import json
-from typing import List
 from uuid import UUID
 
 from hari_client import Config
@@ -17,10 +16,10 @@ def create_subsets_for_attribute(
     Disclaimer: This function only works for MediaObjects subsets. It uses the first visualization config by default.
 
     Args:
-        hari (HARIClient): API Client
-        dataset_id (str): The ID of the dataset to work on.
-        attribute_id (str): The ID of the attribute to query.
-        prefix (str): A prefix to add to subset names for better sorting.
+        hari: API Client
+        dataset_id: The ID of the dataset to work on.
+        attribute_id : The ID of the attribute to query.
+        prefix: A prefix to add to subset names for better sorting.
     """
 
     dataset_id = UUID(dataset_id)
@@ -39,7 +38,7 @@ def create_subsets_for_attribute(
 
     # 3. Extract needed subsets.
     # Collect all unique labels from the attribute frequencies.
-    labels: List[str] = list(
+    labels: list[str] = list(
         set(
             [
                 label
@@ -53,9 +52,9 @@ def create_subsets_for_attribute(
 
     # 4. Create subsets.
     # Retrieve available visualization configurations for the dataset.
-    visconfigs: List[models.VisualisationConfiguration] = hari.get_vis_configs(
-        dataset_id
-    )
+    visconfigs: list[
+        models.VisualisationConfiguration
+    ] = hari.get_visualisation_configs(dataset_id)
     if not visconfigs:
         print("No visualization configurations found for the dataset.")
         return
