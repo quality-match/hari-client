@@ -1971,7 +1971,7 @@ class HARIClient:
             success_response_item_model=list[models.AttributeMetadataResponse],
         )
 
-    def delete_attributeMetadata(
+    def delete_attribute_metadata(
         self,
         dataset_id: uuid.UUID,
         attribute_id: uuid.UUID,
@@ -1995,7 +1995,7 @@ class HARIClient:
             success_response_item_model=(str | None),
         )
 
-    def get_vis_configs(
+    def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
     ) -> list[models.VisualisationConfiguration]:
