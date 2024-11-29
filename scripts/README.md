@@ -16,5 +16,6 @@ Below you can find a description of the different available scripts.
 ### Subsets
 
 - `create_subsets_from_attribute.py` Creates subsets in a HARI dataset based on all aggregated values of an attribute.
-  - Call with: `python --dataset_id <Dataset ID> --attribute_id <Attribute ID> --prefix <PREFIX>`
-  - Example: `python --dataset_id 12345678-aaaa-bbbb-cccc-123456789de --attribute_id 12345678-aaaa-bbbb-cccc-123456789de --prefix testing`
+  This can for example be used if a second nano task should only be executed on a specific aggregrated value of the previous task.
+    - Call with: `python --dataset_id <Dataset ID> --attribute_id <Attribute ID> --prefix <PREFIX>`
+    - Example: `python --dataset_id 12345678-aaaa-bbbb-cccc-123456789de --attribute_id 12345678-aaaa-bbbb-cccc-123456789de --prefix testing`
