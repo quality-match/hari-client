@@ -101,7 +101,7 @@ if __name__ == "__main__":
         "-a",
         "--attribute_id",
         type=str,
-        help="Attribute ID which should be transformed into ",
+        help="Attribute ID for which each distinct aggregate value should be transformed into a subset.",
         required=True,
     )
     parser.add_argument(
