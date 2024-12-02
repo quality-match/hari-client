@@ -989,6 +989,7 @@ class Attribute(BaseModel):
     question: str | None = None
     ml_predictions: dict[str, float] | None = None
     ml_probability_distributions: dict[str, float] | None = None
+    cant_solve_ratio: float | None = None
     repeats: int | None = None
     possible_values: list[str | int | float | bool] | None = None
 
@@ -1047,6 +1048,10 @@ class AttributeResponse(BaseModel):
         description="A point estimate for the probability associated with each category"
         ", obtained from the full Dirichlet distribution predicted by the"
         " model.",
+    )
+    cant_solve_ratio: float | None = pydantic.Field(
+        default=None,
+        title="Can't Solve Ratio",
     )
     repeats: int | None = pydantic.Field(
         default=None,
