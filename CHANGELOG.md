@@ -1,5 +1,8 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New Features
+- added cant solve ratio to all attribute models. [PR#47](https://github.com/quality-match/hari-client/pull/47)
+
 ### Breaking Changes
 
 - added repeats and possible values to all attribute models.
