@@ -1,12 +1,28 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
 ### New Features
+
 - added cant solve ratio to all attribute models. [PR#47](https://github.com/quality-match/hari-client/pull/47)
+- added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42)
+- added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
+  - added script `create_subsets_from_attribute`
+- added client endpoint methods [PR#43](https://github.com/quality-match/hari-client/pull/43)
+  - get_attribute_metadata
+  - delete_attribute_metadata
+  - get_visualisation_configs
+
+### Fixes
+
+- correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
 
 ### Breaking Changes
 
 - added repeats and possible values to all attribute models.
-  - these fields, as well as frequency and can't solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47)
+  - these fields, as well as frequency and cant_solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47)
+
+### Internal
+
+- introduced `any_response_type = str | int | float | list | dict | None` in models so that endpoints with response schema `any` can be parsed correctly [PR#43](https://github.com/quality-match/hari-client/pull/43)
 
 ## [2.1.0] - 26.11.2024
 
@@ -18,15 +34,6 @@
   - `trigger_thumbnails_creation_job`
   - `trigger_dataset_metadata_rebuild_job`
   - `trigger_metadata_rebuild_job`
-- added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
-  - added script `delete_all_ai_attributes_from_dataset`
-  - added script `create_subsets_from_attribute`
-- extended client [PR#43](https://github.com/quality-match/hari-client/pull/43)
-  - Get / Delete AttributeMetadata
-  - Get Visualization Configs
-
-### Fixes
-- correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
 
 ## [2.0.3] - 07.11.2024
 
