@@ -25,6 +25,14 @@ Run the script from the `docs/example_code` directory.
 
 For more detailed documentation, including all available methods and their parameters, please refer to the official documentation https://docs.quality-match.com.
 
+## Scripts
+
+We provide in the folder `scripts` a collection of common use-cases for which the HARI client can be used.
+Please check here before you implement your on script since we might have you already covered.
+
+DISCLAIMER: This section is currently in development and is extended regularly.
+DISCLAIMER: The scripts are currently not quality controlled and thus may include deprecated code.
+
 ## Changelog
 
 See: [CHANGELOG.md](CHANGELOG.md)
@@ -37,7 +45,7 @@ To set up your local development environment, follow these steps:
 - Setup a virtual environment with Python 3.11
 - Install the package in editable mode with the following command:
   ```bash
-  python -m pip install -e .[tests]
+  python -m pip install -e '.[tests]'
   ```
   - This also installs pytest and the [pre-commit](https://github.com/pre-commit/pre-commit) tool into the environment
 - Install the pre-commit hooks with the following command:
