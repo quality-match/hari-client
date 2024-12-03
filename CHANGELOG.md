@@ -5,8 +5,8 @@
 
 ### Breaking Changes
 
-- added repeats and possible values to all attribute models.
-  - these fields, as well as frequency and can't solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47)
+- added repeats and possible values to all attribute models and methods.
+  - these fields, as well as frequency and can't solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47) [PR#48](https://github.com/quality-match/hari-client/pull/48)
 
 ## [2.1.0] - 26.11.2024
 
