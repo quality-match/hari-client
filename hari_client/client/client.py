@@ -1757,6 +1757,8 @@ class HARIClient:
         cumulated_frequency: typing.Any | None = None,
         frequency: dict[str, int] | None = None,
         question: str | None = None,
+        repeats: int | None = None,
+        possible_values: list[str | int | float | bool] | None = None,
     ) -> models.Attribute:
         """Create an attribute for a dataset.
 
@@ -1789,6 +1791,8 @@ class HARIClient:
             question: The question value
             archived: The archived value
             range: The range value
+            possible_values: The possible values for the given attribute
+            repeats: The number of times the attribute was annotated
 
         Returns:
             The created attribute.
