@@ -14,6 +14,13 @@
 ### Fixes
 
 - correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
+- `query` argument of multiple methods is now serialized properly to fit the fastapi expection of a query parameter array [PR#49](https://github.com/quality-match/hari-client/pull/47)
+  - get_medias
+  - get_media_count
+  - get_media_objects
+  - get_media_object_count
+  - get_attributes
+  - get_attribute_metadata
 
 ### Breaking Changes
 
