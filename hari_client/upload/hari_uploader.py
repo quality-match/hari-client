@@ -3,10 +3,10 @@ import typing
 import uuid
 
 import pydantic
-import tqdm
 from pydantic import model_validator
 
 from hari_client import HARIClient
+from hari_client import HARIUploaderConfig
 from hari_client import models
 from hari_client.utils import logger
 
@@ -157,6 +157,7 @@ class HARIUploader:
         self.client: HARIClient = client
         self.dataset_id: uuid.UUID = dataset_id
         self.object_categories = object_categories or set()
+        self._config: HARIUploaderConfig = self.client.config.hari_uploader
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
@@ -383,10 +384,11 @@ class HARIUploader:
         media_upload_responses: list[models.BulkResponse] = []
         media_object_upload_responses: list[models.BulkResponse] = []
         attribute_upload_responses: list[models.BulkResponse] = []
-        progressbar = tqdm.tqdm(desc="HARI Media Upload", total=len(self._medias))
 
-        for idx in range(0, len(self._medias), HARIClient.BULK_UPLOAD_LIMIT):
-            medias_to_upload = self._medias[idx : idx + HARIClient.BULK_UPLOAD_LIMIT]
+        for idx in range(0, len(self._medias), self._config.media_upload_batch_size):
+            medias_to_upload = self._medias[
+                idx : idx + self._config.media_upload_batch_size
+            ]
             (
                 media_response,
                 media_object_responses,
@@ -452,8 +454,10 @@ class HARIUploader:
         self, attributes: list[HARIAttribute]
     ) -> list[models.BulkResponse]:
         attributes_upload_responses: list[models.BulkResponse] = []
-        for idx in range(0, len(attributes), HARIClient.BULK_UPLOAD_LIMIT):
-            attributes_to_upload = attributes[idx : idx + HARIClient.BULK_UPLOAD_LIMIT]
+        for idx in range(0, len(attributes), self._config.attribute_upload_batch_size):
+            attributes_to_upload = attributes[
+                idx : idx + self._config.attribute_upload_batch_size
+            ]
             response = self._upload_attribute_batch(
                 attributes_to_upload=attributes_to_upload
             )
@@ -464,9 +468,11 @@ class HARIUploader:
         self, media_objects: list[HARIMediaObject]
     ) -> list[models.BulkResponse]:
         media_object_upload_responses: list[models.BulkResponse] = []
-        for idx in range(0, len(media_objects), HARIClient.BULK_UPLOAD_LIMIT):
+        for idx in range(
+            0, len(media_objects), self._config.media_object_upload_batch_size
+        ):
             media_objects_to_upload = media_objects[
-                idx : idx + HARIClient.BULK_UPLOAD_LIMIT
+                idx : idx + self._config.media_object_upload_batch_size
             ]
             response = self._upload_media_object_batch(
                 media_objects_to_upload=media_objects_to_upload

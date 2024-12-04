@@ -1,4 +1,11 @@
+import pydantic
 import pydantic_settings
+
+
+class HARIUploaderConfig(pydantic.BaseModel):
+    media_upload_batch_size: int = pydantic.Field(default=30, ge=1, le=500)
+    media_object_upload_batch_size: int = pydantic.Field(default=500, ge=1, le=500)
+    attribute_upload_batch_size: int = pydantic.Field(default=500, ge=1, le=500)
 
 
 class Config(pydantic_settings.BaseSettings):
@@ -25,7 +32,7 @@ class Config(pydantic_settings.BaseSettings):
     """
 
     model_config = pydantic_settings.SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8"
+        env_file=".env", env_file_encoding="utf-8", env_nested_delimiter="__"
     )
 
     hari_api_base_url: str = "https://bbb.qm-annotations.com"
@@ -33,3 +40,5 @@ class Config(pydantic_settings.BaseSettings):
     hari_auth_url: str = "https://auth.quality-match.com/auth"
     hari_username: str
     hari_password: str
+
+    hari_uploader: HARIUploaderConfig = HARIUploaderConfig()

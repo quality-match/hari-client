@@ -689,7 +689,7 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
 
 def test_hari_uploader_upload_without_specified_object_categories(mock_client):
     # Arrange
-    uploader = hari_uploader.HARIUploader(mock_client, dataset_id=uuid.UUID(int=0))
+    uploader = hari_uploader.HARIUploader(mock_client[0], dataset_id=uuid.UUID(int=0))
     media_object_1 = hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
     )
