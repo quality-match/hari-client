@@ -10,6 +10,12 @@
   - get_attribute_metadata
   - delete_attribute_metadata
   - get_visualisation_configs
+- batch sizes for bulk uploads are configurable and the default for media upload was reduced to 30 [PR#50](https://github.com/quality-match/hari-client/pull/50)
+  - see the `.env_example` for how to set the batch sizes with your .env file.
+  - defaults:
+    - media upload: 30 (was 500 previously)
+    - media object upload: 500 (as before)
+    - attribute upload: 500 (as before)
 
 ### Fixes
 
