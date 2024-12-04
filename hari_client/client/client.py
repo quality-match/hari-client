@@ -305,30 +305,39 @@ class HARIClient:
             A list of MediaUploadUrlInfo objects.
 
         Raises:
-            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
+            MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
-        # validate that all files have the same file extension
-        file_extensions = set(
-            [pathlib.Path(file_path).suffix for file_path in file_paths]
-        )
-        if len(file_extensions) > 1:
-            raise errors.UploadingFilesWithDifferentFileExtensionsError(file_extensions)
+        # find all file extensions
+        files_by_file_extension: dict[str, list[str]] = {}
+        for file_path in file_paths:
+            file_extension = pathlib.Path(file_path).suffix
+            if file_extension == "":
+                raise errors.MediaFileExtensionNotIdentifiedDuringUploadError(file_path)
+            if file_extension not in files_by_file_extension:
+                files_by_file_extension[file_extension] = []
+            files_by_file_extension[file_extension].append(file_path)
 
-        # 1. get presigned upload url for the files
-        presign_response = self.get_presigned_media_upload_url(
-            dataset_id=dataset_id,
-            file_extension=list(file_extensions)[0],
-            batch_size=len(file_paths),
-        )
-
-        # 2. upload the image
-        for idx, file_path in enumerate(file_paths):
-            self._upload_file(
-                file_path=file_path, upload_url=presign_response[idx].upload_url
+        all_presign_responses = []
+        for (
+            file_extension,
+            file_extension_file_paths,
+        ) in files_by_file_extension.items():
+            # 1. get presigned upload url for the files
+            presign_response = self.get_presigned_media_upload_url(
+                dataset_id=dataset_id,
+                file_extension=[file_extension],
+                batch_size=len(file_extension_file_paths),
             )
+            all_presign_responses.extend(presign_response)
 
-        return presign_response
+            # 2. upload the image
+            for idx, file_path in enumerate(file_extension_file_paths):
+                self._upload_file(
+                    file_path=file_path, upload_url=presign_response[idx].upload_url
+                )
+
+        return all_presign_responses
 
     ### dataset ###
     def create_dataset(
@@ -349,8 +358,9 @@ class HARIClient:
         license: str | None = None,
         owner: str | None = None,
         current_snapshot_id: int | None = None,
-        visibility_status: models.VisibilityStatus
-        | None = models.VisibilityStatus.VISIBLE,
+        visibility_status: (
+            models.VisibilityStatus | None
+        ) = models.VisibilityStatus.VISIBLE,
         data_root: str | None = "custom_upload",
         id: str | None = None,
     ) -> models.Dataset:
@@ -678,9 +688,9 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
-            UploadingFilesWithDifferentFileExtensionsError: if the file extensions of the files are different.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
             MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
+            MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
         if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
@@ -987,9 +997,11 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         name: str,
-        parameters: models.CropVisualisationConfigParameters
-        | models.TileVisualisationConfigParameters
-        | models.RenderedVisualisationConfigParameters,
+        parameters: (
+            models.CropVisualisationConfigParameters
+            | models.TileVisualisationConfigParameters
+            | models.RenderedVisualisationConfigParameters
+        ),
     ) -> models.VisualisationConfiguration:
         """Creates a new visualisation_config based on the provided parameters.
 
@@ -1745,6 +1757,8 @@ class HARIClient:
         cumulated_frequency: typing.Any | None = None,
         frequency: dict[str, int] | None = None,
         question: str | None = None,
+        repeats: int | None = None,
+        possible_values: list[str | int | float | bool] | None = None,
     ) -> models.Attribute:
         """Create an attribute for a dataset.
 
@@ -1777,6 +1791,8 @@ class HARIClient:
             question: The question value
             archived: The archived value
             range: The range value
+            possible_values: The possible values for the given attribute
+            repeats: The number of times the attribute was annotated
 
         Returns:
             The created attribute.
@@ -1943,4 +1959,73 @@ class HARIClient:
             f"/datasets/{dataset_id}/attributes/{attribute_id}",
             params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
             success_response_item_model=str,
+        )
+
+    def get_attribute_metadata(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+    ) -> list[models.AttributeMetadataResponse]:
+        """Returns all attributes of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            archived: True if archived attributes should be returned
+            query: A query to filter attributes
+
+         Returns:
+            A list of attributes
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeMetadata",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AttributeMetadataResponse],
+        )
+
+    def delete_attribute_metadata(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_id: uuid.UUID,
+    ) -> models.any_response_type:
+        """Archives an attribute including all AttributeValues.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_id: The ID of the attribute.
+
+        Returns:
+            Nothing
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=models.any_response_type,
+        )
+
+    def get_visualisation_configs(
+        self,
+        dataset_id: uuid.UUID,
+    ) -> list[models.VisualisationConfiguration]:
+        """
+        Retrieve the visualization configurations for a given dataset.
+
+        Args:
+            dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
+
+        Returns:
+            list[models.VisualisationConfiguration]: A list of visualization configuration objects.
+        """
+        return self._request(
+            method="GET",
+            path=f"/datasets/{dataset_id}/visualisationConfigs",
+            success_response_item_model=list[models.VisualisationConfiguration],
         )

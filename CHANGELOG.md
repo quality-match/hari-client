@@ -2,6 +2,32 @@
 
 ### New Features
 
+- added cant solve ratio to all attribute models. [PR#47](https://github.com/quality-match/hari-client/pull/47)
+- added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42)
+- added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
+  - added script `create_subsets_from_attribute`
+- added client endpoint methods [PR#43](https://github.com/quality-match/hari-client/pull/43)
+  - get_attribute_metadata
+  - delete_attribute_metadata
+  - get_visualisation_configs
+
+### Fixes
+
+- correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
+
+### Breaking Changes
+
+- added repeats and possible values to all attribute models and methods.
+  - these fields, as well as frequency and cant_solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47) [PR#48](https://github.com/quality-match/hari-client/pull/48)
+
+### Internal
+
+- introduced `any_response_type = str | int | float | list | dict | None` in models so that endpoints with response schema `any` can be parsed correctly [PR#43](https://github.com/quality-match/hari-client/pull/43)
+
+## [2.1.0] - 26.11.2024
+
+### New Features
+
 - added support for `anonymize` and `calculate_histograms` parameters to `trigger_metadata_rebuild_job` and `trigger_dataset_metadata_rebuild_job`
 - added support for `force_recreate` flag for these methods:
   - `trigger_crops_creation_job`
