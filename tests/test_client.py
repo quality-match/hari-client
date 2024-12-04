@@ -257,6 +257,8 @@ def test_trigger_metadata_rebuild_validation_for_dataset_ids_list(test_client):
 @pytest.mark.parametrize(
     "query, expected",
     [
+        # None stays None
+        (None, None),
         # single stringified QueryParameter
         (
             json.dumps(

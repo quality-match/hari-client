@@ -141,9 +141,10 @@ def handle_union_parsing(item, union_type):
 def _serialize_query_list_for_request(
     query: models.QueryList | list[str] | str | None,
 ) -> list[str] | None:
-    """Serialize a QueryList to a list of strings that can be used as a list query parameter in the HARIClient::_request method.
-    In the future only a QueryList should be supported, but due to existing workarounds, this method also supports those workarounds.
-    You can pass a single already serialized QueryParameter and LogicParameter object (serialized with json.dumps), or a list of them.
+    """Serializes a variable of type QueryList to a list[str]. This list can be passed to the HARIClient::_request method as a query parameter and it will handle
+    formatting it as a query parameter array.
+    Note that in the future only QueryList will be supported. For now other types are supported due to existing workarounds.
+    The workarounds are: passing a single already serialized QueryParameter/LogicParameter object (serialized with json.dumps), or a list of them.
 
     Args:
         query: The QueryList to serialize
