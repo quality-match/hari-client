@@ -14,7 +14,7 @@
 ### Fixes
 
 - correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
-- `query` argument of multiple methods is now serialized properly to fit the backend's implementation of a query parameter array [PR#49](https://github.com/quality-match/hari-client/pull/47)
+- `query` argument of multiple methods is now serialized properly to fit the backend's implementation of a query parameter array [PR#49](https://github.com/quality-match/hari-client/pull/49)
   - get_medias
   - get_media_count
   - get_media_objects
