@@ -4,6 +4,7 @@ import pathlib
 import types
 import typing
 import uuid
+import warnings
 
 import pydantic
 import requests
@@ -12,6 +13,7 @@ from hari_client.client import errors
 from hari_client.config import config
 from hari_client.models import models
 from hari_client.utils import logger
+
 
 T = typing.TypeVar("T")
 
@@ -134,6 +136,46 @@ def handle_union_parsing(item, union_type):
         response_model=union_type,
         message=f"Failed to parse item into one of the union types {union_type}. {item=}",
     )
+
+
+def _serialize_query_list_for_request(
+    query: models.QueryList | list[str] | str | None,
+) -> list[str] | None:
+    """Serialize a QueryList to a list of strings that can be used as a list query parameter in the HARIClient::_request method.
+    In the future only a QueryList should be supported, but due to existing workarounds, this method also supports those workarounds.
+    You can pass a single already serialized QueryParameter and LogicParameter object (serialized with json.dumps), or a list of them.
+
+    Args:
+        query: The QueryList to serialize
+    """
+    if query is None:
+        return None
+
+    if isinstance(query, list):
+        serialized_query = []
+        for x in query:
+            if isinstance(x, models.QueryParameter) or isinstance(
+                x, models.LogicParameter
+            ):
+                serialized_query.append(json.dumps(x.model_dump()))
+            elif isinstance(x, str):
+                serialized_query.append(x)
+                msg = (
+                    "Argument's 'query' content was detected to be a string, but should be QueryParameter or LogicParameter."
+                    + " Support for this behavior will be removed in a future release."
+                )
+                warnings.warn(msg)
+                log.warning(msg)
+        query = serialized_query
+    elif isinstance(query, str):
+        msg = (
+            "Argument 'query' was passed as a string, but should be passed as a QueryList (list of QueryParameter or LogicParameter objects)."
+            + " Support for this behavior will be removed in a future release."
+        )
+        warnings.warn(msg)
+        log.warning(msg)
+
+    return query
 
 
 class HARIClient:
@@ -832,6 +874,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
+        query = _serialize_query_list_for_request(query)
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/medias",
@@ -986,6 +1031,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
+        query = _serialize_query_list_for_request(query)
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/medias:count",
@@ -1317,6 +1365,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
+        query = _serialize_query_list_for_request(query)
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/mediaObjects",
@@ -1384,6 +1435,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
+        query = _serialize_query_list_for_request(query)
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/mediaObjects:count",
@@ -1831,6 +1885,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
+        query = _serialize_query_list_for_request(query)
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/attributes",
@@ -1980,6 +2037,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
+        query = _serialize_query_list_for_request(query)
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/attributeMetadata",

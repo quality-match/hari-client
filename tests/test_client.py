@@ -1,3 +1,4 @@
+import json
 import uuid
 
 import pytest
@@ -5,6 +6,7 @@ import pytest
 from hari_client import errors
 from hari_client import HARIClient
 from hari_client import models
+from hari_client.client import client
 
 
 def test_create_medias_with_missing_file_paths(test_client):
@@ -250,3 +252,109 @@ def test_trigger_metadata_rebuild_validation_for_dataset_ids_list(test_client):
         client.trigger_metadata_rebuild_job(
             dataset_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
         )
+
+
+@pytest.mark.parametrize(
+    "query, expected",
+    [
+        # single stringified QueryParameter
+        (
+            json.dumps(
+                {
+                    "attribute": "attribute_group",
+                    "query_operator": "==",
+                    "value": models.AttributeGroup.InitialAttribute,
+                }
+            ),
+            '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
+        ),
+        # list of two stringified QueryParameters
+        (
+            [
+                json.dumps(
+                    {
+                        "attribute": "attribute_group",
+                        "query_operator": "==",
+                        "value": models.AttributeGroup.InitialAttribute,
+                    }
+                ),
+                json.dumps(
+                    {
+                        "attribute": "id",
+                        "query_operator": "==",
+                        "value": "banana",
+                    }
+                ),
+            ],
+            [
+                '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
+                '{"attribute": "id", "query_operator": "==", "value": "banana"}',
+            ],
+        ),
+        # QueryList with one QueryParameter
+        (
+            [
+                models.QueryParameter(
+                    attribute="attribute_group",
+                    query_operator="==",
+                    value=models.AttributeGroup.InitialAttribute,
+                )
+            ],
+            [
+                '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}'
+            ],
+        ),
+        # QueryList with two QueryParameters
+        (
+            [
+                models.QueryParameter(
+                    attribute="attribute_group",
+                    query_operator="==",
+                    value=models.AttributeGroup.InitialAttribute,
+                ),
+                models.QueryParameter(
+                    attribute="id",
+                    query_operator="==",
+                    value="banana",
+                ),
+            ],
+            [
+                '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
+                '{"attribute": "id", "query_operator": "==", "value": "banana"}',
+            ],
+        ),
+        # QueryList with one LogicParameter that contains two QueryParameters
+        (
+            [
+                models.LogicParameter(
+                    operator="and",
+                    queries=[
+                        models.QueryParameter(
+                            attribute="attribute_group",
+                            query_operator="==",
+                            value=models.AttributeGroup.InitialAttribute,
+                        ),
+                        models.QueryParameter(
+                            attribute="id",
+                            query_operator="==",
+                            value="banana",
+                        ),
+                    ],
+                )
+            ],
+            [
+                '{"operator": "and", "queries": [{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"},'
+                + ' {"attribute": "id", "query_operator": "==", "value": "banana"}]}'
+            ],
+        ),
+    ],
+)
+def test_querylist_is_serialized_correctly(query, expected):
+    # Arrange + Act
+    serialized = client._serialize_query_list_for_request(query)
+
+    # Assert
+    assert expected == serialized
+    if isinstance(serialized, list):
+        for serialized_str_entry, expected_str_entry in zip(serialized, expected):
+            assert serialized_str_entry == expected_str_entry
