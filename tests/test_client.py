@@ -259,6 +259,25 @@ def test_trigger_metadata_rebuild_validation_for_dataset_ids_list(test_client):
     [
         # None stays None
         ({"query": None, "other": None}, {"query": None, "other": None}),
+        # multiple typical query parameters (not related to QueryList)
+        (
+            {
+                "limit": 100,
+                "offset": 5.45,
+                "with_filter": True,
+                "id": "abcd-0123",
+                "my_none": None,
+                "my_list": [0, 1, 2, "three", 4.5, None, False, True],
+            },
+            {
+                "limit": 100,
+                "offset": 5.45,
+                "with_filter": True,
+                "id": "abcd-0123",
+                "my_none": None,
+                "my_list": [0, 1, 2, "three", 4.5, None, False, True],
+            },
+        ),
         # single stringified QueryParameter
         (
             {
