@@ -389,10 +389,10 @@ class HARIUploader:
             raise HARIUniqueAttributesLimitExceeded(
                 f"You are trying to upload too many attributes for one dataset: {len(self._unique_attribute_ids)}, "
                 f"the limit is {MAX_ATTR_COUNT}. "
-                f"Please make sure to reuse attribute ids you've already generated "
-                f"for attributes that have the same name and annotatable type and and should be shared between annotatables. "
-                f"See how to create an attribute properly here: "
-                f"https://docs.quality-match.com/hari_client/step_by_step/#step-6-create-an-attribute-on-the-image-or-geometry . "
+                "Please make sure to reuse attribute ids you've already generated "
+                "for attributes that have the same name and annotatable type, and should be shared between annotatables. "
+                "See how attributes work in HARI here: "
+                f"https://docs.quality-match.com/hari_client/faq/#how-do-attributes-work-in-hari."
             )
 
         self._handle_object_categories()
