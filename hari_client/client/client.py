@@ -2084,6 +2084,11 @@ class HARIClient:
 
         Args:
             dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
+            archived: Whether to include archived VisualisationConfigs (default: False)
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            limit: How many visualisation_configs to return
+            skip: How many visualisation_configs to skip
 
         Returns:
             list[models.VisualisationConfiguration]: A list of visualization configuration objects.
@@ -2091,5 +2096,6 @@ class HARIClient:
         return self._request(
             method="GET",
             path=f"/datasets/{dataset_id}/visualisationConfigs",
+            params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
         )
