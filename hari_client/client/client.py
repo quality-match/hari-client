@@ -138,45 +138,52 @@ def handle_union_parsing(item, union_type):
     )
 
 
-def _serialize_query_list_for_request(
-    query: models.QueryList | list[str] | str | None,
-) -> list[str] | None:
-    """Serializes a variable of type QueryList to a list[str]. This list can be passed to the HARIClient::_request method as a query parameter and it will handle
-    formatting it as a query parameter array.
-    Note that in the future only QueryList will be supported. For now other types are supported due to existing workarounds.
-    The workarounds are: passing a single already serialized QueryParameter/LogicParameter object (serialized with json.dumps), or a list of them.
+def _prepare_request_query_params(
+    params: dict[str, typing.Any]
+) -> dict[str, typing.Any]:
+    """Prepares query parameters for the request modules `request` method.
+    Handled cases:
+      - parameter value is a list of pydantic models.
+        - Serializes a query param value of type list[pydantic.BaseModel] to a list[str]. Lists are formatted by the `request` method as `?my_list=value_1&my_list=value_2&my_list=value_3...`,
+        but it doesn't automatically serialize a list of pydantic models, so we have to handle this here.
+        This method contains a workaround for the param "query". It's expected type is QueryList.
+            - The workarounds are: passing a single already serialized QueryParameter/LogicParameter object (serialized with json.dumps), or a list of them.
+            - Note that in the future only QueryList will be supported for query. For now other types are supported due to existing workarounds.
 
     Args:
-        query: The QueryList to serialize
+        params: The query parameters that should be added to the request.
+
+    Returns:
+        The query parameters dictionary with properly serialized values.
     """
-    if query is None:
-        return None
+    params_copy = {}
 
-    if isinstance(query, list):
-        serialized_query = []
-        for x in query:
-            if isinstance(x, models.QueryParameter) or isinstance(
-                x, models.LogicParameter
-            ):
-                serialized_query.append(json.dumps(x.model_dump()))
-            elif isinstance(x, str):
-                serialized_query.append(x)
-                msg = (
-                    "Argument's 'query' content was detected to be a string, but should be QueryParameter or LogicParameter."
-                    + " Support for this behavior will be removed in a future release."
-                )
-                warnings.warn(msg)
-                log.warning(msg)
-        query = serialized_query
-    elif isinstance(query, str):
-        msg = (
-            "Argument 'query' was passed as a string, but should be passed as a QueryList (list of QueryParameter or LogicParameter objects)."
-            + " Support for this behavior will be removed in a future release."
-        )
-        warnings.warn(msg)
-        log.warning(msg)
+    for param_name, param_value in params.items():
+        params_copy[param_name] = param_value
 
-    return query
+        if isinstance(param_value, list):
+            param_value_copy = []
+            for item in param_value:
+                if isinstance(item, pydantic.BaseModel):
+                    param_value_copy.append(json.dumps(item.model_dump()))
+                elif param_name == "query" and isinstance(item, str):
+                    param_value_copy.append(item)
+                    msg = (
+                        "Argument's 'query' content was detected to be a string, but should be QueryParameter or LogicParameter."
+                        + " Support for this behavior will be removed in a future release."
+                    )
+                    warnings.warn(msg)
+                else:
+                    param_value_copy.append(item)
+            params_copy[param_name] = param_value_copy
+        elif param_name == "query" and isinstance(param_value, str):
+            msg = (
+                "Argument 'query' was passed as a string, but should be passed as a QueryList (list of QueryParameter or LogicParameter objects)."
+                + " Support for this behavior will be removed in a future release."
+            )
+            warnings.warn(msg)
+
+    return params_copy
 
 
 class HARIClient:
@@ -216,6 +223,9 @@ class HARIClient:
             kwargs["json"] = json.loads(
                 json.dumps(kwargs["json"], cls=CustomJSONEncoder)
             )
+
+        if "params" in kwargs:
+            kwargs["params"] = _prepare_request_query_params(kwargs["params"])
 
         # do request and basic error handling
         response = self.session.request(method, full_url, **kwargs)
@@ -876,8 +886,6 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        query = _serialize_query_list_for_request(query)
-
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/medias",
@@ -1032,8 +1040,6 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-
-        query = _serialize_query_list_for_request(query)
 
         return self._request(
             "GET",
@@ -1367,8 +1373,6 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        query = _serialize_query_list_for_request(query)
-
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/mediaObjects",
@@ -1436,8 +1440,6 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-
-        query = _serialize_query_list_for_request(query)
 
         return self._request(
             "GET",
@@ -1887,8 +1889,6 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        query = _serialize_query_list_for_request(query)
-
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/attributes",
@@ -2038,8 +2038,6 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-
-        query = _serialize_query_list_for_request(query)
 
         return self._request(
             "GET",

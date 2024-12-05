@@ -255,108 +255,131 @@ def test_trigger_metadata_rebuild_validation_for_dataset_ids_list(test_client):
 
 
 @pytest.mark.parametrize(
-    "query, expected",
+    "params, expected",
     [
         # None stays None
-        (None, None),
+        ({"query": None, "other": None}, {"query": None, "other": None}),
         # single stringified QueryParameter
         (
-            json.dumps(
-                {
-                    "attribute": "attribute_group",
-                    "query_operator": "==",
-                    "value": models.AttributeGroup.InitialAttribute,
-                }
-            ),
-            '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
-        ),
-        # list of two stringified QueryParameters
-        (
-            [
-                json.dumps(
+            {
+                "query": json.dumps(
                     {
                         "attribute": "attribute_group",
                         "query_operator": "==",
                         "value": models.AttributeGroup.InitialAttribute,
                     }
-                ),
-                json.dumps(
-                    {
-                        "attribute": "id",
-                        "query_operator": "==",
-                        "value": "banana",
-                    }
-                ),
-            ],
-            [
-                '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
-                '{"attribute": "id", "query_operator": "==", "value": "banana"}',
-            ],
+                )
+            },
+            {
+                "query": '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}'
+            },
+        ),
+        # list of two stringified QueryParameters
+        (
+            {
+                "query": [
+                    json.dumps(
+                        {
+                            "attribute": "attribute_group",
+                            "query_operator": "==",
+                            "value": models.AttributeGroup.InitialAttribute,
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "attribute": "id",
+                            "query_operator": "==",
+                            "value": "banana",
+                        }
+                    ),
+                ]
+            },
+            {
+                "query": [
+                    '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
+                    '{"attribute": "id", "query_operator": "==", "value": "banana"}',
+                ]
+            },
         ),
         # QueryList with one QueryParameter
         (
-            [
-                models.QueryParameter(
-                    attribute="attribute_group",
-                    query_operator="==",
-                    value=models.AttributeGroup.InitialAttribute,
-                )
-            ],
-            [
-                '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}'
-            ],
+            {
+                "query": [
+                    models.QueryParameter(
+                        attribute="attribute_group",
+                        query_operator="==",
+                        value=models.AttributeGroup.InitialAttribute,
+                    )
+                ]
+            },
+            {
+                "query": [
+                    '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}'
+                ]
+            },
         ),
         # QueryList with two QueryParameters
         (
-            [
-                models.QueryParameter(
-                    attribute="attribute_group",
-                    query_operator="==",
-                    value=models.AttributeGroup.InitialAttribute,
-                ),
-                models.QueryParameter(
-                    attribute="id",
-                    query_operator="==",
-                    value="banana",
-                ),
-            ],
-            [
-                '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
-                '{"attribute": "id", "query_operator": "==", "value": "banana"}',
-            ],
+            {
+                "query": [
+                    models.QueryParameter(
+                        attribute="attribute_group",
+                        query_operator="==",
+                        value=models.AttributeGroup.InitialAttribute,
+                    ),
+                    models.QueryParameter(
+                        attribute="id",
+                        query_operator="==",
+                        value="banana",
+                    ),
+                ]
+            },
+            {
+                "query": [
+                    '{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"}',
+                    '{"attribute": "id", "query_operator": "==", "value": "banana"}',
+                ]
+            },
         ),
         # QueryList with one LogicParameter that contains two QueryParameters
         (
-            [
-                models.LogicParameter(
-                    operator="and",
-                    queries=[
-                        models.QueryParameter(
-                            attribute="attribute_group",
-                            query_operator="==",
-                            value=models.AttributeGroup.InitialAttribute,
-                        ),
-                        models.QueryParameter(
-                            attribute="id",
-                            query_operator="==",
-                            value="banana",
-                        ),
-                    ],
-                )
-            ],
-            [
-                '{"operator": "and", "queries": [{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"},'
-                + ' {"attribute": "id", "query_operator": "==", "value": "banana"}]}'
-            ],
+            {
+                "query": [
+                    models.LogicParameter(
+                        operator="and",
+                        queries=[
+                            models.QueryParameter(
+                                attribute="attribute_group",
+                                query_operator="==",
+                                value=models.AttributeGroup.InitialAttribute,
+                            ),
+                            models.QueryParameter(
+                                attribute="id",
+                                query_operator="==",
+                                value="banana",
+                            ),
+                        ],
+                    )
+                ]
+            },
+            {
+                "query": [
+                    '{"operator": "and", "queries": [{"attribute": "attribute_group", "query_operator": "==", "value": "initial_attribute"},'
+                    + ' {"attribute": "id", "query_operator": "==", "value": "banana"}]}'
+                ]
+            },
         ),
     ],
 )
-def test_querylist_is_serialized_correctly(query, expected):
+def test_request_query_params_are_prepared_correctly(params, expected):
     # Arrange + Act
-    serialized = client._serialize_query_list_for_request(query)
+    prepared_params = client._prepare_request_query_params(params)
 
     # Assert
-    assert expected == serialized
-    if isinstance(serialized, list):
-        for serialized_str_entry, expected_str_entry in zip(serialized, expected):
-            assert serialized_str_entry == expected_str_entry
+    assert expected == prepared_params
+    for param_name, param_value in expected.items():
+        if isinstance(param_value, list):
+            for prepared_param_value, expected_param_value in zip(
+                prepared_params[param_name], param_value
+            ):
+                assert expected_param_value == prepared_param_value
