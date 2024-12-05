@@ -16,6 +16,10 @@
     - media upload: 30 (was 500 previously)
     - media object upload: 500 (as before)
     - attribute upload: 500 (as before)
+- instead of a single progressbar, the hari_uploader shows three separate ones [PR#50](https://github.com/quality-match/hari-client/pull/50)
+  - media
+  - media object
+  - attributes
 
 ### Fixes
 
