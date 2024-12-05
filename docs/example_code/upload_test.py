@@ -10,8 +10,8 @@ from hari_client import models
 from datetime import datetime
 
 # This test should upload a specified amount of media and objects with initial attributes.
-n_media = 1 # Number of unique media to upload
-rep_media = 1 # Number of times each media is repeated
+n_media = 20 # Number of unique media to upload
+rep_media = 250 # Number of times each media is repeated
 n_objects = 5 # Number of objects per media
 
 # The Config class will look for a .env file in your script's current working directory.
@@ -23,11 +23,11 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-# new_dataset = hari.create_dataset(name="BB_anonymization_test_1im_v10", user_group="QM-ops")
-# print("Dataset created with id:", new_dataset.id)
+new_dataset = hari.create_dataset(name="BB_load_test_5k", user_group="QM-ops")
+print("Dataset created with id:", new_dataset.id)
 
-# dataset_id = new_dataset.id
-dataset_id = "ec3c4a21-fe84-4aff-91b4-75107c064977"
+dataset_id = new_dataset.id
+# dataset_id = "ec3c4a21-fe84-4aff-91b4-75107c064977"
 
 # 3. Set up your medias and all of their media objects and attributes.
 media_list = []
