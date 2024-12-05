@@ -2073,6 +2073,11 @@ class HARIClient:
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        limit: int | None = None,
+        skip: int | None = None,
     ) -> list[models.VisualisationConfiguration]:
         """
         Retrieve the visualization configurations for a given dataset.
