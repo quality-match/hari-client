@@ -19,6 +19,7 @@
 
 - added repeats and possible values to all attribute models and methods.
   - these fields, as well as frequency and cant_solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47) [PR#48](https://github.com/quality-match/hari-client/pull/48)
+- added a limit for the number of unique attributes that can be created for the whole dataset/upload. [PR#51](https://github.com/quality-match/hari-client/pull/51)
 
 ### Internal
 
