@@ -1071,7 +1071,7 @@ def test_hari_uploader_unique_attributes_number_limit_error(
         uploader.add_media(media)
 
     # Assert
-    with pytest.raises(hari_uploader.HARIAttributesUploadError) as e:
+    with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
         uploader.upload()
     assert (
         f"You are trying to upload too many attributes for one dataset: {expected_attr_cnt}"
