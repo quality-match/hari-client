@@ -44,15 +44,15 @@ media_object_1 = hari_uploader.HARIMediaObject(
 attribute_object_1_id = uuid.uuid4()
 attribute_object_1 = hari_uploader.HARIAttribute(
     id=attribute_object_1_id,
-    name="Who is in the box?",
-    value="human",
+    name="is_walking",
+    value=True,
 )
 
 attribute_media_1_id = uuid.uuid4()
 attribute_media_1 = hari_uploader.HARIAttribute(
     id=attribute_media_1_id,
-    name="Are there any pedestrians?",
-    value="no",
+    name="weather_condition",
+    value="sunny",
 )
 media_1.add_attribute(attribute_media_1)
 media_object_1.add_attribute(attribute_object_1)
