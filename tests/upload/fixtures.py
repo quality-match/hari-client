@@ -9,9 +9,7 @@ from hari_client import models
 
 
 @pytest.fixture()
-def mock_client(
-    test_client, mocker
-) -> tuple[hari_uploader.HARIUploader, HARIClient, dict[str, str]]:
+def mock_client(test_client, mocker) -> typing.Generator[HARIClient, list[str], None]:
     """Sets up a basic uploader using object_categories
     Mocks the create_subset method to return random subset ids in lexicographical order
     returns
