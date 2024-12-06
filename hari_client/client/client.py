@@ -141,7 +141,7 @@ def handle_union_parsing(item, union_type):
 def _prepare_request_query_params(
     params: dict[str, typing.Any]
 ) -> dict[str, typing.Any]:
-    """Prepares query parameters for the request modules `request` method.
+    """Prepares query parameters for the request module's `request` method.
     Handled cases:
       - parameter value is a list of pydantic models.
         - Serializes a query param value of type list[pydantic.BaseModel] to a list[str]. Lists are formatted by the `request` method as `?my_list=value_1&my_list=value_2&my_list=value_3...`,
