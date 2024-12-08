@@ -45,7 +45,6 @@ attribute_object_1_id = uuid.uuid4()
 attribute_object_1 = hari_uploader.HARIAttribute(
     id=attribute_object_1_id,
     name="Is this a human being?",
-    attribute_type=models.AttributeType.Binary,
     value=True,
 )
 
@@ -53,7 +52,6 @@ attribute_media_1_id = uuid.uuid4()
 attribute_media_1 = hari_uploader.HARIAttribute(
     id=attribute_media_1_id,
     name="area",
-    attribute_type=models.AttributeType.Categorical,
     value=6912,
 )
 media_1.add_attribute(attribute_media_1)
