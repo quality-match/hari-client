@@ -23,7 +23,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="BB_load_test_5k", user_group="QM-ops")
+new_dataset = hari.create_dataset(name="BB_load_test_5k_again_09_12", user_group="QM-ops")
 print("Dataset created with id:", new_dataset.id)
 
 dataset_id = new_dataset.id
@@ -51,7 +51,7 @@ for i in range(n_media * rep_media):
             type=models.BBox2DType.BBOX2D_CENTER_POINT,
             x=200.0,
             y=206.0,
-            width=-1,
+            width=40,
             height=62.0,
         ),
     )
@@ -70,7 +70,7 @@ for i in range(n_media * rep_media):
             x=500.0,
             y=906.0,
             width=84.0,
-            height=-1,
+            height=30,
         ),
     )
     object2.add_attribute(hari_uploader.HARIAttribute(
@@ -87,8 +87,8 @@ for i in range(n_media * rep_media):
             type=models.BBox2DType.BBOX2D_CENTER_POINT,
             x=700.0,
             y=906.0,
-            width=0,
-            height=0,
+            width=10,
+            height=10,
         ),
     )
     object3.add_attribute(hari_uploader.HARIAttribute(
@@ -105,8 +105,8 @@ for i in range(n_media * rep_media):
             type=models.BBox2DType.BBOX2D_CENTER_POINT,
             x=500.0,
             y=806.0,
-            width=-1,
-            height=-1,
+            width=20,
+            height=20,
         ),
     )
     object4.add_attribute(hari_uploader.HARIAttribute(
