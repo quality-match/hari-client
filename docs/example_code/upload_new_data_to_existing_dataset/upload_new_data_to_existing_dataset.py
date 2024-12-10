@@ -129,14 +129,14 @@ new_media_object.set_object_category_subset_name("my_new_object_category")
 object_categories = {"my_new_object_category"}
 
 # Add an already known initial attribute to the media and media object.
-# In the example case we know that the existing media attribute value type is number.
+# In the example case we know that the existing media attribute value type is string.
 existing_media_attribute = list(media_attribute_lookup.values())[0]
 new_media.add_attribute(
     hari_uploader.HARIAttribute(
         id=existing_media_attribute.id,
         name=existing_media_attribute.name,
         attribute_type=existing_media_attribute.attribute_type,
-        value=500,
+        value="sunny",
     )
 )
 
