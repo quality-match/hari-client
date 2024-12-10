@@ -41,9 +41,9 @@ To be able to use the hari-client, you need to provide your HARI credentials:
 You can configure the bath size that's used to upload medias, media objects and attributes.
 If you're experiencing timeout problems, we recommend reducing the media upload batch size.
 
-- `HARI_UPLOADER\_\_MEDIA_UPLOAD_BATCH_SIZE`
-- `HARI_UPLOADER\_\_MEDIA_OBJECT_UPLOAD_BATCH_SIZE`
-- `HARI_UPLOADER\_\_ATTRIBUTE_UPLOAD_BATCH_SIZE`
+- `HARI_UPLOADER__MEDIA_UPLOAD_BATCH_SIZE`
+- `HARI_UPLOADER__MEDIA_OBJECT_UPLOAD_BATCH_SIZE`
+- `HARI_UPLOADER__ATTRIBUTE_UPLOAD_BATCH_SIZE`
 
 ## Documentation
 
