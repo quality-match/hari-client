@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="hari_client",
-    version="2.1.0",
+    version="3.0.0",
     description="A Python client for the HARI API",
     author="Quality Match GmbH",
     author_email="info@quality-match.com",
