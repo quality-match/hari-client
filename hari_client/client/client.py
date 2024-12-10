@@ -258,14 +258,11 @@ class HARIClient:
 
         return {k: locals_[k] for k in local_vars if k not in ["self", "kwargs"]}
 
-    def _upload_file(self, file_path: str, upload_url: str) -> None:
-        with open(file_path, "rb") as fp:
-            response = requests.put(upload_url, data=fp)
-            response.raise_for_status()
-
-    def _upload_file_with_retries(
-        self, session: requests.Session, file_path: str, upload_url: str
+    def _upload_file(
+        self, file_path: str, upload_url: str, session: requests.Session = None
     ) -> None:
+        if session is None:
+            session = requests.Session()
         with open(file_path, "rb") as fp:
             response = session.put(upload_url, data=fp)
             response.raise_for_status()
@@ -326,6 +323,32 @@ class HARIClient:
                 files_by_file_extension[file_extension] = []
             files_by_file_extension[file_extension].append(file_path)
 
+        # set up the session with retry mechanism
+        session = requests.Session()
+        # due to the SSLEOFError obscuring the underlying error response from the cloud provider, we don't know
+        # which status code to retry on. Therefore we retry on every 5xx codes, as well as the
+        # two default 4xx codes.
+        retries = adapters.Retry(
+            total=5,
+            backoff_factor=0.1,
+            status_forcelist=[
+                413,
+                429,
+                503,
+                500,
+                501,
+                502,
+                504,
+                505,
+                506,
+                507,
+                508,
+                510,
+                511,
+            ],
+        )
+        session.mount("https://", adapters.HTTPAdapter(max_retries=retries))
+
         all_presign_responses = []
         for (
             file_extension,
@@ -340,32 +363,8 @@ class HARIClient:
             all_presign_responses.extend(presign_response)
 
             # 2. upload the image
-            session = requests.Session()
-            # due to the SSLEOFError obscuring the underlying error response from the cloud provider, we don't know
-            # which status code to retry on. Therefore we retry on every 5xx codes, as well as the
-            # two default 4xx codes.
-            retries = adapters.Retry(
-                total=5,
-                backoff_factor=0.1,
-                status_forcelist=[
-                    413,
-                    429,
-                    503,
-                    500,
-                    501,
-                    502,
-                    504,
-                    505,
-                    506,
-                    507,
-                    508,
-                    510,
-                    511,
-                ],
-            )
-            session.mount("https://", adapters.HTTPAdapter(max_retries=retries))
             for idx, file_path in enumerate(file_extension_file_paths):
-                self._upload_file_with_retries(
+                self._upload_file(
                     session=session,
                     file_path=file_path,
                     upload_url=presign_response[idx].upload_url,

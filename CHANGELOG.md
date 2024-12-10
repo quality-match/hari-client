@@ -17,11 +17,12 @@
 ### Internal
 
 - introduced `any_response_type = str | int | float | list | dict | None` in models so that endpoints with response schema `any` can be parsed correctly [PR#43](https://github.com/quality-match/hari-client/pull/43)
-- use `requests.Session` with retry strategy to upload medias in create_medias [#PR53](https://github.com/quality-match/hari-client/pull/53)
+- use `requests.Session` with retry strategy to upload medias in `_upload_media_files_with_presigned_urls` (used by the method `create_medias`) [#PR53](https://github.com/quality-match/hari-client/pull/53)
 
 ## [3.0.0] - 06.12.2024
 
 ### New Features
+
 - added cant solve ratio to all attribute models. [PR#47](https://github.com/quality-match/hari-client/pull/47)
 
 ### Breaking Changes
