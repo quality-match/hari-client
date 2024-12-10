@@ -7,6 +7,7 @@ import uuid
 
 import pydantic
 import requests
+from requests import adapters
 
 from hari_client.client import errors
 from hari_client.config import config
@@ -262,6 +263,13 @@ class HARIClient:
             response = requests.put(upload_url, data=fp)
             response.raise_for_status()
 
+    def _upload_file_with_retries(
+        self, session: requests.Session, file_path: str, upload_url: str
+    ) -> None:
+        with open(file_path, "rb") as fp:
+            response = session.put(upload_url, data=fp)
+            response.raise_for_status()
+
     def _upload_visualisation_file_with_presigned_url(
         self, dataset_id: uuid.UUID, visualisation_config_id: str, file_path: str
     ) -> models.VisualisationUploadUrlInfo:
@@ -332,9 +340,35 @@ class HARIClient:
             all_presign_responses.extend(presign_response)
 
             # 2. upload the image
+            session = requests.Session()
+            # due to the SSLEOFError obscuring the underlying error response from the cloud provider, we don't know
+            # which status code to retry on. Therefore we retry on every 5xx codes, as well as the
+            # two default 4xx codes.
+            retries = adapters.Retry(
+                total=5,
+                backoff_factor=0.1,
+                status_forcelist=[
+                    413,
+                    429,
+                    503,
+                    500,
+                    501,
+                    502,
+                    504,
+                    505,
+                    506,
+                    507,
+                    508,
+                    510,
+                    511,
+                ],
+            )
+            session.mount("https://", adapters.HTTPAdapter(max_retries=retries))
             for idx, file_path in enumerate(file_extension_file_paths):
-                self._upload_file(
-                    file_path=file_path, upload_url=presign_response[idx].upload_url
+                self._upload_file_with_retries(
+                    session=session,
+                    file_path=file_path,
+                    upload_url=presign_response[idx].upload_url,
                 )
 
         return all_presign_responses

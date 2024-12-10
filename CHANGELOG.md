@@ -17,6 +17,7 @@
 ### Internal
 
 - introduced `any_response_type = str | int | float | list | dict | None` in models so that endpoints with response schema `any` can be parsed correctly [PR#43](https://github.com/quality-match/hari-client/pull/43)
+- use `requests.Session` with retry strategy to upload medias in create_medias [#PR53](https://github.com/quality-match/hari-client/pull/53)
 
 ## [3.0.0] - 06.12.2024
 
