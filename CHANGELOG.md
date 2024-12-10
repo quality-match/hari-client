@@ -28,6 +28,7 @@
 ## [3.0.0] - 06.12.2024
 
 ### New Features
+
 - added cant solve ratio to all attribute models. [PR#47](https://github.com/quality-match/hari-client/pull/47)
 
 ### Breaking Changes
