@@ -9,10 +9,27 @@
   - get_attribute_metadata
   - delete_attribute_metadata
   - get_visualisation_configs
+- batch sizes for bulk uploads are configurable and the default for media upload was reduced to 30 [PR#50](https://github.com/quality-match/hari-client/pull/50)
+  - see the `.env_example` for how to set the batch sizes with your .env file.
+  - defaults:
+    - media upload: 30 (was 500 previously)
+    - media object upload: 500 (as before)
+    - attribute upload: 500 (as before)
+- instead of a single progressbar, the hari_uploader shows three separate ones [PR#50](https://github.com/quality-match/hari-client/pull/50)
+  - media
+  - media object
+  - attributes
 
 ### Fixes
 
 - correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
+- `query` argument of multiple methods is now serialized properly to fit the backend's implementation of a query parameter array [PR#49](https://github.com/quality-match/hari-client/pull/49)
+  - get_medias
+  - get_media_count
+  - get_media_objects
+  - get_media_object_count
+  - get_attributes
+  - get_attribute_metadata
 
 ### Internal
 

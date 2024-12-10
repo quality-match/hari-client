@@ -21,6 +21,30 @@ You can find the referenced images here: `docs/example_code/images/`.
 Copy the `docs/example_code/.env_example` file to `docs/example_code/.env` and fill in your HARI credentials there.
 Run the script from the `docs/example_code` directory.
 
+## Configuration
+
+This section describes the available configuration options for the hari-client.
+You can find all available environment variables in the `docs/example_code/.env_example` file.
+The optional environment variables are commented out.
+
+### Required
+
+To be able to use the hari-client, you need to provide your HARI credentials:
+
+- `HARI_USERNAME`
+- `HARI_PASSWORD`
+
+### HARI Uploader configuration
+
+#### Upload batch sizes
+
+You can configure the bath size that's used to upload medias, media objects and attributes.
+If you're experiencing timeout problems, we recommend reducing the media upload batch size.
+
+- `HARI_UPLOADER__MEDIA_UPLOAD_BATCH_SIZE`
+- `HARI_UPLOADER__MEDIA_OBJECT_UPLOAD_BATCH_SIZE`
+- `HARI_UPLOADER__ATTRIBUTE_UPLOAD_BATCH_SIZE`
+
 ## Documentation
 
 For more detailed documentation, including all available methods and their parameters, please refer to the official documentation https://docs.quality-match.com.

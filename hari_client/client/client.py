@@ -4,6 +4,7 @@ import pathlib
 import types
 import typing
 import uuid
+import warnings
 
 import pydantic
 import requests
@@ -13,6 +14,7 @@ from hari_client.client import errors
 from hari_client.config import config
 from hari_client.models import models
 from hari_client.utils import logger
+
 
 T = typing.TypeVar("T")
 
@@ -137,6 +139,54 @@ def handle_union_parsing(item, union_type):
     )
 
 
+def _prepare_request_query_params(
+    params: dict[str, typing.Any]
+) -> dict[str, typing.Any]:
+    """Prepares query parameters for the request module's `request` method.
+    Handled cases:
+      - parameter value is a list of pydantic models.
+        - Serializes a query param value of type list[pydantic.BaseModel] to a list[str]. Lists are formatted by the `request` method as `?my_list=value_1&my_list=value_2&my_list=value_3...`,
+        but it doesn't automatically serialize a list of pydantic models, so we have to handle this here.
+        This method contains a workaround for the param "query". It's expected type is QueryList.
+            - The workarounds are: passing a single already serialized QueryParameter/LogicParameter object (serialized with json.dumps), or a list of them.
+            - Note that in the future only QueryList will be supported for query. For now other types are supported due to existing workarounds.
+
+    Args:
+        params: The query parameters that should be added to the request.
+
+    Returns:
+        The query parameters dictionary with properly serialized values.
+    """
+    params_copy = {}
+
+    for param_name, param_value in params.items():
+        params_copy[param_name] = param_value
+
+        if isinstance(param_value, list):
+            param_value_copy = []
+            for item in param_value:
+                if isinstance(item, pydantic.BaseModel):
+                    param_value_copy.append(json.dumps(item.model_dump()))
+                elif param_name == "query" and isinstance(item, str):
+                    param_value_copy.append(item)
+                    msg = (
+                        "Argument's 'query' content was detected to be a string, but should be QueryParameter or LogicParameter."
+                        + " Support for this behavior will be removed in a future release."
+                    )
+                    warnings.warn(msg)
+                else:
+                    param_value_copy.append(item)
+            params_copy[param_name] = param_value_copy
+        elif param_name == "query" and isinstance(param_value, str):
+            msg = (
+                "Argument 'query' was passed as a string, but should be passed as a QueryList (list of QueryParameter or LogicParameter objects)."
+                + " Support for this behavior will be removed in a future release."
+            )
+            warnings.warn(msg)
+
+    return params_copy
+
+
 class HARIClient:
     BULK_UPLOAD_LIMIT = 500
 
@@ -174,6 +224,9 @@ class HARIClient:
             kwargs["json"] = json.loads(
                 json.dumps(kwargs["json"], cls=CustomJSONEncoder)
             )
+
+        if "params" in kwargs:
+            kwargs["params"] = _prepare_request_query_params(kwargs["params"])
 
         # do request and basic error handling
         response = self.session.request(method, full_url, **kwargs)
@@ -865,6 +918,7 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/medias",
@@ -1019,6 +1073,7 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/medias:count",
@@ -1350,6 +1405,7 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/mediaObjects",
@@ -1417,6 +1473,7 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/mediaObjects:count",
@@ -1864,6 +1921,7 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/attributes",
@@ -2013,6 +2071,7 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/attributeMetadata",
@@ -2047,12 +2106,22 @@ class HARIClient:
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        limit: int | None = None,
+        skip: int | None = None,
     ) -> list[models.VisualisationConfiguration]:
         """
         Retrieve the visualization configurations for a given dataset.
 
         Args:
             dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
+            archived: Whether to include archived VisualisationConfigs (default: False)
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            limit: How many visualisation_configs to return
+            skip: How many visualisation_configs to skip
 
         Returns:
             list[models.VisualisationConfiguration]: A list of visualization configuration objects.
@@ -2060,5 +2129,6 @@ class HARIClient:
         return self._request(
             method="GET",
             path=f"/datasets/{dataset_id}/visualisationConfigs",
+            params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
         )
