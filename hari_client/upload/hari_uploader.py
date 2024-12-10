@@ -12,6 +12,9 @@ from hari_client.utils import logger
 
 log = logger.setup_logger(__name__)
 
+# the maximum attributes number for the whole dataset/upload
+MAX_ATTR_COUNT = 1000
+
 
 class HARIAttribute(models.BulkAttributeCreate):
     # overwrites the annotatable_id and _type fields to not be required,
@@ -81,6 +84,10 @@ class HARIMediaObjectUploadError(Exception):
 
 
 class HARIMediaObjectUnknownObjectCategorySubsetNameError(Exception):
+    pass
+
+
+class HARIUniqueAttributesLimitExceeded(Exception):
     pass
 
 
@@ -165,6 +172,7 @@ class HARIUploader:
         self._attribute_cnt: int = 0
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         self._object_category_subsets: dict[str, str] = {}
+        self._unique_attribute_ids: set[uuid.UUID] = set()
 
     # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
     # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
@@ -194,6 +202,9 @@ class HARIUploader:
 
             self._medias.append(media)
             self._attribute_cnt += len(media.attributes)
+            for attr in media.attributes:
+                self._unique_attribute_ids.add(attr.id)
+
             # check and remember media object back_references
             for media_object in media.media_objects:
                 if media_object.back_reference in self._media_object_back_references:
@@ -207,6 +218,8 @@ class HARIUploader:
                     self._media_object_back_references.add(media_object.back_reference)
                 self._media_object_cnt += 1
                 self._attribute_cnt += len(media_object.attributes)
+                for attr in media_object.attributes:
+                    self._unique_attribute_ids.add(attr.id)
 
     def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
         self._object_category_subsets[object_category] = subset_id
@@ -372,6 +385,16 @@ class HARIUploader:
                 "before calling HARIUploader::upload()."
             )
             return None
+
+        if len(self._unique_attribute_ids) > MAX_ATTR_COUNT:
+            raise HARIUniqueAttributesLimitExceeded(
+                f"You are trying to upload too many attributes for one dataset: {len(self._unique_attribute_ids)}, "
+                f"the limit is {MAX_ATTR_COUNT}. "
+                "Please make sure to reuse attribute ids you've already generated "
+                "for attributes that have the same name and annotatable type, and should be shared between annotatables. "
+                "See how attributes work in HARI here: "
+                f"https://docs.quality-match.com/hari_client/faq/#how-do-attributes-work-in-hari."
+            )
 
         self._handle_object_categories()
 
