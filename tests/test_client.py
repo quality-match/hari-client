@@ -35,7 +35,7 @@ def test_create_medias_with_different_file_extensions_works(test_client, mocker)
         media_type=models.MediaType.IMAGE,
         file_path="./my_test_media_2.png",
     )
-    mocker.patch.object(test_client, "_upload_file")
+    mocker.patch.object(test_client, "_upload_file_with_retries")
     mocker.patch.object(
         test_client,
         "get_presigned_media_upload_url",
@@ -46,7 +46,7 @@ def test_create_medias_with_different_file_extensions_works(test_client, mocker)
     get_presigned_media_upload_url_spy = mocker.spy(
         test_client, "get_presigned_media_upload_url"
     )
-    upload_file_spy = mocker.spy(test_client, "_upload_file")
+    upload_file_spy = mocker.spy(test_client, "_upload_file_with_retries")
     request_spy = mocker.spy(test_client, "_request")
 
     # Act
@@ -175,7 +175,7 @@ def test_upload_media_files_with_presigned_urls_with_multiple_file_extensions(
     test_client, mocker
 ):
     # Arrange
-    mocker.patch.object(test_client, "_upload_file")
+    mocker.patch.object(test_client, "_upload_file_with_retries")
     # there are two different file extensions in the test with two files each so two presigned urls are returned
     # for every call
     mocker.patch.object(
@@ -183,7 +183,7 @@ def test_upload_media_files_with_presigned_urls_with_multiple_file_extensions(
         "get_presigned_media_upload_url",
         return_value=[mocker.MagicMock(), mocker.MagicMock()],
     )
-    upload_file_spy = mocker.spy(test_client, "_upload_file")
+    upload_file_spy = mocker.spy(test_client, "_upload_file_with_retries")
     get_presigned_media_upload_url_spy = mocker.spy(
         test_client, "get_presigned_media_upload_url"
     )
@@ -205,7 +205,7 @@ def test_upload_media_files_with_presigned_urls_with_single_file_extension(
     test_client, mocker
 ):
     # Arrange
-    mocker.patch.object(test_client, "_upload_file")
+    mocker.patch.object(test_client, "_upload_file_with_retries")
     # there's only one file extension in the test with four files so four presigned urls are returned
     # for the call
     mocker.patch.object(
@@ -218,7 +218,7 @@ def test_upload_media_files_with_presigned_urls_with_single_file_extension(
             mocker.MagicMock(),
         ],
     )
-    upload_file_spy = mocker.spy(test_client, "_upload_file")
+    upload_file_spy = mocker.spy(test_client, "_upload_file_with_retries")
     get_presigned_media_upload_url_spy = mocker.spy(
         test_client, "get_presigned_media_upload_url"
     )
