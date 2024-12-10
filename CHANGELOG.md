@@ -2,7 +2,6 @@
 
 ### New Features
 
-- added cant solve ratio to all attribute models. [PR#47](https://github.com/quality-match/hari-client/pull/47)
 - added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42)
 - added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
   - added script `create_subsets_from_attribute`
@@ -10,20 +9,43 @@
   - get_attribute_metadata
   - delete_attribute_metadata
   - get_visualisation_configs
+- batch sizes for bulk uploads are configurable and the default for media upload was reduced to 30 [PR#50](https://github.com/quality-match/hari-client/pull/50)
+  - see the `.env_example` for how to set the batch sizes with your .env file.
+  - defaults:
+    - media upload: 30 (was 500 previously)
+    - media object upload: 500 (as before)
+    - attribute upload: 500 (as before)
+- instead of a single progressbar, the hari_uploader shows three separate ones [PR#50](https://github.com/quality-match/hari-client/pull/50)
+  - media
+  - media object
+  - attributes
 
 ### Fixes
 
 - correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
+- `query` argument of multiple methods is now serialized properly to fit the backend's implementation of a query parameter array [PR#49](https://github.com/quality-match/hari-client/pull/49)
+  - get_medias
+  - get_media_count
+  - get_media_objects
+  - get_media_object_count
+  - get_attributes
+  - get_attribute_metadata
+
+### Internal
+
+- introduced `any_response_type = str | int | float | list | dict | None` in models so that endpoints with response schema `any` can be parsed correctly [PR#43](https://github.com/quality-match/hari-client/pull/43)
+
+## [3.0.0] - 06.12.2024
+
+### New Features
+
+- added cant solve ratio to all attribute models. [PR#47](https://github.com/quality-match/hari-client/pull/47)
 
 ### Breaking Changes
 
 - added repeats and possible values to all attribute models and methods.
   - these fields, as well as frequency and cant_solves are required for annotation attributes of type Binary and Categorical. [PR#47](https://github.com/quality-match/hari-client/pull/47) [PR#48](https://github.com/quality-match/hari-client/pull/48)
 - added a limit for the number of unique attributes that can be created for the whole dataset/upload. [PR#51](https://github.com/quality-match/hari-client/pull/51)
-
-### Internal
-
-- introduced `any_response_type = str | int | float | list | dict | None` in models so that endpoints with response schema `any` can be parsed correctly [PR#43](https://github.com/quality-match/hari-client/pull/43)
 
 ## [2.1.0] - 26.11.2024
 

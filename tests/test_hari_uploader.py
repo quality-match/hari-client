@@ -410,9 +410,17 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
     attribute_media_id = uuid.uuid4()
     attribute_media_object_id = uuid.uuid4()
 
-    # 1100 medias --> 3 batches
-    # 2200 media_objects --> 5 batches
-    # 6600 attributes --> 14 batches
+    uploader._config.media_upload_batch_size = 100
+    uploader._config.media_object_upload_batch_size = 150
+    uploader._config.attribute_upload_batch_size = 100
+    # Amount of batches according to the batch size configuration:
+    # 1100 medias--> 11 batches
+    # 2200 media_objects --> 22 batches
+    #   - two media objects per media --> two media object batches per media batch
+    # 6600 attributes --> 66 batches
+    #   - 2 attributes per media
+    #   - 2 attributes per media object and two media objects per media
+    #   - --> 6 attribute batches per media batch
     for i in range(1100):
         media = hari_uploader.HARIMedia(
             name=f"my image {i}",
@@ -447,38 +455,25 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
 
     # Assert
     # check every batch upload method's call
-    assert media_spy.call_count == 3
+    assert media_spy.call_count == 11
     media_calls = media_spy.call_args_list
-    assert len(media_calls[0].kwargs["medias_to_upload"]) == 500
-    assert len(media_calls[1].kwargs["medias_to_upload"]) == 500
-    assert len(media_calls[2].kwargs["medias_to_upload"]) == 100
+    for i in range(11):
+        assert len(media_calls[i].kwargs["medias_to_upload"]) == 100
     assert len(uploader._medias) == 1100
 
-    assert media_object_spy.call_count == 5
+    assert media_object_spy.call_count == 22
     media_object_calls = media_object_spy.call_args_list
-    assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[1].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[2].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[3].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[4].kwargs["media_objects_to_upload"]) == 200
+    for i in range(22):
+        if i % 2 == 0:
+            assert len(media_object_calls[i].kwargs["media_objects_to_upload"]) == 150
+        else:
+            assert len(media_object_calls[i].kwargs["media_objects_to_upload"]) == 50
     assert uploader._media_object_cnt == 2200
 
-    assert attribute_spy.call_count == 14
+    assert attribute_spy.call_count == 66
     attribute_calls = attribute_spy.call_args_list
-    assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[1].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[2].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[3].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[4].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[5].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[6].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[7].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[8].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[9].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[10].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[11].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[12].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[13].kwargs["attributes_to_upload"]) == 100
+    for i in range(66):
+        assert len(attribute_calls[i].kwargs["attributes_to_upload"]) == 100
     assert uploader._attribute_cnt == 6600
 
 
@@ -674,7 +669,7 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
 
 def test_hari_uploader_upload_without_specified_object_categories(mock_client):
     # Arrange
-    uploader = hari_uploader.HARIUploader(mock_client, dataset_id=uuid.UUID(int=0))
+    uploader = hari_uploader.HARIUploader(mock_client[0], dataset_id=uuid.UUID(int=0))
     media_object_1 = hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
     )
