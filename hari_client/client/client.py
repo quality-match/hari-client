@@ -387,10 +387,10 @@ class HARIClient:
             status_forcelist=[
                 413,
                 429,
-                503,
                 500,
                 501,
                 502,
+                503,
                 504,
                 505,
                 506,
