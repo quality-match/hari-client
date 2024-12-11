@@ -352,7 +352,7 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         file_paths: list[str],
-    ) -> list[models.MediaUploadUrlInfo]:
+    ) -> dict[str, models.MediaUploadUrlInfo]:
         """Creates a presigned S3 upload url for every media file and uploads them.
 
         Args:
@@ -365,6 +365,9 @@ class HARIClient:
         Raises:
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
+
+        # the response dict
+        presign_response_by_file_path: dict[str, models.MediaUploadUrlInfo] = {}
 
         # find all file extensions
         files_by_file_extension: dict[str, list[str]] = {}
@@ -402,7 +405,6 @@ class HARIClient:
         )
         session.mount("https://", adapters.HTTPAdapter(max_retries=retries))
 
-        all_presign_responses = []
         for (
             file_extension,
             file_extension_file_paths,
@@ -413,17 +415,18 @@ class HARIClient:
                 file_extension=[file_extension],
                 batch_size=len(file_extension_file_paths),
             )
-            all_presign_responses.extend(presign_response)
 
             # 2. upload the image
             for idx, file_path in enumerate(file_extension_file_paths):
+                # TODO: what if multiple medias use the same file_path? --> would break here
+                presign_response_by_file_path[file_path] = presign_response[idx]
                 self._upload_file(
                     session=session,
                     file_path=file_path,
                     upload_url=presign_response[idx].upload_url,
                 )
 
-        return all_presign_responses
+        return presign_response_by_file_path
 
     ### dataset ###
     def create_dataset(
@@ -797,9 +800,10 @@ class HARIClient:
 
         # 2. parse medias to dicts and set their media_urls
         media_dicts = []
-        for idx, media in enumerate(medias):
+        for media in medias:
+            # TODO: what if multiple medias use the same file_path? --> would break here
+            media.media_url = media_upload_responses[media.file_path].media_url
             media_dicts.append(media.model_dump())
-            media_dicts[idx]["media_url"] = media_upload_responses[idx].media_url
 
         # 3. create the medias in HARI
         return self._request(
