@@ -8,6 +8,7 @@ import warnings
 
 import pydantic
 import requests
+from requests import adapters
 
 from hari_client.client import errors
 from hari_client.config import config
@@ -310,9 +311,13 @@ class HARIClient:
 
         return {k: locals_[k] for k in local_vars if k not in ["self", "kwargs"]}
 
-    def _upload_file(self, file_path: str, upload_url: str) -> None:
+    def _upload_file(
+        self, file_path: str, upload_url: str, session: requests.Session = None
+    ) -> None:
+        if session is None:
+            session = requests.Session()
         with open(file_path, "rb") as fp:
-            response = requests.put(upload_url, data=fp)
+            response = session.put(upload_url, data=fp)
             response.raise_for_status()
 
     def _upload_visualisation_file_with_presigned_url(
@@ -371,6 +376,32 @@ class HARIClient:
                 files_by_file_extension[file_extension] = []
             files_by_file_extension[file_extension].append(file_path)
 
+        # set up the session with retry mechanism
+        session = requests.Session()
+        # due to the SSLEOFError obscuring the underlying error response from the cloud provider, we don't know
+        # which status code to retry on. Therefore we retry on every 5xx codes, as well as the
+        # two default 4xx codes.
+        retries = adapters.Retry(
+            total=5,
+            backoff_factor=0.1,
+            status_forcelist=[
+                413,
+                429,
+                500,
+                501,
+                502,
+                503,
+                504,
+                505,
+                506,
+                507,
+                508,
+                510,
+                511,
+            ],
+        )
+        session.mount("https://", adapters.HTTPAdapter(max_retries=retries))
+
         all_presign_responses = []
         for (
             file_extension,
@@ -387,7 +418,9 @@ class HARIClient:
             # 2. upload the image
             for idx, file_path in enumerate(file_extension_file_paths):
                 self._upload_file(
-                    file_path=file_path, upload_url=presign_response[idx].upload_url
+                    session=session,
+                    file_path=file_path,
+                    upload_url=presign_response[idx].upload_url,
                 )
 
         return all_presign_responses
