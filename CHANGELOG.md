@@ -20,6 +20,10 @@
   - media object
   - attributes
 
+### Breaking Changes
+
+- added a limit for the number of unique attributes that can be created for the whole dataset/upload. [PR#51](https://github.com/quality-match/hari-client/pull/51)
+
 ### Fixes
 
 - correct typo in development installation guidelines [PR#43](https://github.com/quality-match/hari-client/pull/43)
