@@ -351,30 +351,35 @@ class HARIClient:
     def _upload_media_files_with_presigned_urls(
         self,
         dataset_id: uuid.UUID,
-        file_paths: list[str],
-    ) -> list[models.MediaUploadUrlInfo]:
+        file_paths: dict[int, str],
+    ) -> dict[int, models.MediaUploadUrlInfo]:
         """Creates a presigned S3 upload url for every media file and uploads them.
 
         Args:
             dataset_id: The dataset id
-            file_paths: The paths to the files to upload. All files have to have the same file extension.
+            file_paths: A dict with paths to the files to upload. Keys represent the order of file_paths.
+                The returned dict with MediaUploadUrlInfo objects maintains the same order.
+                All files have to have the same file extension.
 
         Returns:
-            A list of MediaUploadUrlInfo objects.
+            A dict of MediaUploadUrlInfo objects. The keys represent the order of input file_paths.
 
         Raises:
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
+        # the response dict
+        presign_response_by_file_path_idx: dict[int, models.MediaUploadUrlInfo] = {}
+
         # find all file extensions
-        files_by_file_extension: dict[str, list[str]] = {}
-        for file_path in file_paths:
+        files_by_file_extension: dict[str, list[tuple[int, str]]] = {}
+        for idx, file_path in file_paths.items():
             file_extension = pathlib.Path(file_path).suffix
             if file_extension == "":
                 raise errors.MediaFileExtensionNotIdentifiedDuringUploadError(file_path)
             if file_extension not in files_by_file_extension:
                 files_by_file_extension[file_extension] = []
-            files_by_file_extension[file_extension].append(file_path)
+            files_by_file_extension[file_extension].append((idx, file_path))
 
         # set up the session with retry mechanism
         session = requests.Session()
@@ -402,28 +407,29 @@ class HARIClient:
         )
         session.mount("https://", adapters.HTTPAdapter(max_retries=retries))
 
-        all_presign_responses = []
         for (
             file_extension,
             file_extension_file_paths,
         ) in files_by_file_extension.items():
             # 1. get presigned upload url for the files
-            presign_response = self.get_presigned_media_upload_url(
+            presign_response_batch = self.get_presigned_media_upload_url(
                 dataset_id=dataset_id,
-                file_extension=[file_extension],
+                file_extension=file_extension,
                 batch_size=len(file_extension_file_paths),
             )
-            all_presign_responses.extend(presign_response)
 
             # 2. upload the image
             for idx, file_path in enumerate(file_extension_file_paths):
+                presign_response_by_file_path_idx[
+                    file_path[0]
+                ] = presign_response_batch[idx]
                 self._upload_file(
                     session=session,
-                    file_path=file_path,
-                    upload_url=presign_response[idx].upload_url,
+                    file_path=file_path[1],
+                    upload_url=presign_response_batch[idx].upload_url,
                 )
 
-        return all_presign_responses
+        return presign_response_by_file_path_idx
 
     ### dataset ###
     def create_dataset(
@@ -743,7 +749,7 @@ class HARIClient:
 
         # 1. upload file
         media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths=[file_path]
+            dataset_id, file_paths={0: file_path}
         )
         media_url = media_upload_responses[0].media_url
 
@@ -785,21 +791,21 @@ class HARIClient:
             )
 
         # 1. upload files
-        file_paths = []
-        for media in medias:
+        file_paths: dict[int, str] = {}
+        for idx, media in enumerate(medias):
             if not media.file_path:
                 raise errors.MediaCreateMissingFilePathError(media)
-            file_paths.append(media.file_path)
+            file_paths[idx] = media.file_path
 
         media_upload_responses = self._upload_media_files_with_presigned_urls(
             dataset_id, file_paths=file_paths
         )
 
-        # 2. parse medias to dicts and set their media_urls
+        # 2. set media_urls on medias and parse them to dicts
         media_dicts = []
         for idx, media in enumerate(medias):
+            media.media_url = media_upload_responses[idx].media_url
             media_dicts.append(media.model_dump())
-            media_dicts[idx]["media_url"] = media_upload_responses[idx].media_url
 
         # 3. create the medias in HARI
         return self._request(
