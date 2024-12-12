@@ -102,7 +102,7 @@ class AttributeValidationInconsistentValueTypeError(Exception):
     ):
         message = (
             f"Found multiple value types {found_value_types} for attribute {attribute_name} with {annotatable_type=}."
-            + " Make sure every attribute with the same name and attribute type has the same value type."
+            + " Make sure every attribute with the same name and annotatable type has the same value type."
         )
         super().__init__(message)
 
