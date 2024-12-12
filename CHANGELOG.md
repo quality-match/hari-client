@@ -2,7 +2,7 @@
 
 ### New Features
 
-- added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42)
+- added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42), [PR#54](https://github.com/quality-match/hari-client/pull/54)
 - added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
   - added script `create_subsets_from_attribute`
 - added client endpoint methods [PR#43](https://github.com/quality-match/hari-client/pull/43)
