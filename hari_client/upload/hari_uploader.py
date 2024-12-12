@@ -8,6 +8,7 @@ import tqdm
 from hari_client import HARIClient
 from hari_client import HARIUploaderConfig
 from hari_client import models
+from hari_client import validation
 from hari_client.utils import logger
 
 log = logger.setup_logger(__name__)
@@ -204,6 +205,9 @@ class HARIUploader:
             self._attribute_cnt += len(media.attributes)
             for attr in media.attributes:
                 self._unique_attribute_ids.add(attr.id)
+                # annotatable_type is optional for a HARIAttribute, but can already be set here
+                if not attr.annotatable_type:
+                    attr.annotatable_type = models.DataBaseObjectType.MEDIA
 
             # check and remember media object back_references
             for media_object in media.media_objects:
@@ -220,6 +224,9 @@ class HARIUploader:
                 self._attribute_cnt += len(media_object.attributes)
                 for attr in media_object.attributes:
                     self._unique_attribute_ids.add(attr.id)
+                    # annotatable_type is optional for a HARIAttribute, but can already be set here
+                    if not attr.annotatable_type:
+                        attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
         self._object_category_subsets[object_category] = subset_id
@@ -368,6 +375,21 @@ class HARIUploader:
         )
         self._assign_object_category_subsets()
 
+    def validate_all_attributes(self) -> None:
+        """Validates all attributes of medias and media objects.
+
+        Raises:
+            AttributeValidationInconsistentValueTypeError: If the value type for an attribute is inconsistent.
+            AttributeValidationInconsistentListElementValueTypesError: If the elements in a list attribute value have mixed value types.
+            AttributeValidationIdNotReusedError: If another attribute with the same name and attribute type has a different id.
+        """
+        all_attributes = []
+        for media in self._medias:
+            all_attributes.extend(media.attributes)
+            for media_object in media.media_objects:
+                all_attributes.extend(media_object.attributes)
+        validation.validate_initial_attributes(all_attributes)
+
     def upload(
         self,
     ) -> HARIUploadResults | None:
@@ -395,6 +417,8 @@ class HARIUploader:
                 "See how attributes work in HARI here: "
                 f"https://docs.quality-match.com/hari_client/faq/#how-do-attributes-work-in-hari."
             )
+
+        self.validate_all_attributes()
 
         self._handle_object_categories()
 

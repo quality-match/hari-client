@@ -586,9 +586,13 @@ class VisualisationConfiguration(BaseModel):
     timestamp: str = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=False, title="Archived")
     name: str = pydantic.Field(title="Name")
-    parameters: CropVisualisationConfigParameters | LidarVideoVisualisationConfigParameters | LidarVideoStackedVisualisationConfigParameters | TileVisualisationConfigParameters | RenderedVisualisationConfigParameters = pydantic.Field(
-        title="CropVisualisationConfigParameters"
-    )
+    parameters: (
+        CropVisualisationConfigParameters
+        | LidarVideoVisualisationConfigParameters
+        | LidarVideoStackedVisualisationConfigParameters
+        | TileVisualisationConfigParameters
+        | RenderedVisualisationConfigParameters
+    ) = pydantic.Field(title="CropVisualisationConfigParameters")
     subset_ids: list = pydantic.Field(title="Subset Ids")
 
 
