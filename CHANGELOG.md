@@ -2,6 +2,7 @@
 
 ### New Features
 
+- added a limit for the number of unique attributes that can be created for the whole dataset/upload. [PR#51](https://github.com/quality-match/hari-client/pull/51)
 - added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42), [PR#54](https://github.com/quality-match/hari-client/pull/54)
 - added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
   - added script `create_subsets_from_attribute`
@@ -19,10 +20,6 @@
   - media
   - media object
   - attributes
-
-### Breaking Changes
-
-- added a limit for the number of unique attributes that can be created for the whole dataset/upload. [PR#51](https://github.com/quality-match/hari-client/pull/51)
 
 ### Fixes
 
