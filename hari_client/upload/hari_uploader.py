@@ -448,22 +448,74 @@ class HARIUploader:
             attributes_upload_responses,
         )
 
-    def _upload_attributes_in_batches(
+    def upload_only_media_objects(
+        self, media_objects: list[HARIMediaObject]
+    ) -> list[models.BulkResponse]:
+        """
+        Upload only media objects in batches, displaying a progress bar.
+        WARNING: This function does to provide upload checks.
+
+        :param media_objects: A list of HARIMediaObject instances to be uploaded.
+        :return: A list of BulkResponse objects representing the result of each batch upload.
+        """
+        return self._upload_media_objects_in_batches(
+            media_objects, show_progressbar=True
+        )
+
+    def upload_only_attributes(
         self, attributes: list[HARIAttribute]
     ) -> list[models.BulkResponse]:
+        """
+        Upload only attributes in batches, displaying a progress bar.
+        WARNING: This function does to provide upload checks.
+
+        :param attributes: A list of HARIAttribute instances to be uploaded.
+        :return: A list of BulkResponse objects representing the result of each batch upload.
+        """
+        return self._upload_attributes_in_batches(attributes, show_progressbar=True)
+
+    def _upload_attributes_in_batches(
+        self, attributes: list[HARIAttribute], show_progressbar: bool = False
+    ) -> list[models.BulkResponse]:
+        """
+        Upload attributes in batches to the HARI system.
+
+        :param attributes: A list of HARIAttribute instances to be uploaded.
+        :param show_progressbar: If True, display a tqdm progress bar.
+        :return: A list of BulkResponse objects for each batch upload.
+        """
         attributes_upload_responses: list[models.BulkResponse] = []
+
+        if show_progressbar:
+            progressbar = tqdm(desc="HARI Attributes Upload", total=len(attributes))
+
         for idx in range(0, len(attributes), HARIClient.BULK_UPLOAD_LIMIT):
             attributes_to_upload = attributes[idx : idx + HARIClient.BULK_UPLOAD_LIMIT]
             response = self._upload_attribute_batch(
                 attributes_to_upload=attributes_to_upload
             )
+            if show_progressbar:
+                progressbar.update(len(attributes_to_upload))
             attributes_upload_responses.append(response)
         return attributes_upload_responses
 
     def _upload_media_objects_in_batches(
-        self, media_objects: list[HARIMediaObject]
+        self, media_objects: list[HARIMediaObject], show_progressbar=False
     ) -> list[models.BulkResponse]:
+        """
+        Upload media objects in batches to the HARI system.
+
+        :param media_objects: A list of HARIMediaObject instances to be uploaded.
+        :param show_progressbar: If True, display a tqdm progress bar.
+        :return: A list of BulkResponse objects for each batch upload.
+        """
         media_object_upload_responses: list[models.BulkResponse] = []
+
+        if show_progressbar:
+            progressbar = tqdm(
+                desc="HARI Media Objects Upload", total=len(media_objects)
+            )
+
         for idx in range(0, len(media_objects), HARIClient.BULK_UPLOAD_LIMIT):
             media_objects_to_upload = media_objects[
                 idx : idx + HARIClient.BULK_UPLOAD_LIMIT
@@ -471,6 +523,8 @@ class HARIUploader:
             response = self._upload_media_object_batch(
                 media_objects_to_upload=media_objects_to_upload
             )
+            if show_progressbar:
+                progressbar.update(len(media_objects_to_upload))
             media_object_upload_responses.append(response)
         return media_object_upload_responses
 
