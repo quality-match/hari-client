@@ -2133,8 +2133,8 @@ class HARIClient:
             list[models.VisualisationConfiguration]: A list of visualization configuration objects.
         """
         return self._request(
-            method="GET",
-            path=f"/datasets/{dataset_id}/visualisationConfigs",
+            "GET",
+            f"/datasets/{dataset_id}/visualisationConfigs",
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
         )
