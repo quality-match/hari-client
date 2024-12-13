@@ -5,7 +5,7 @@
 - added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42), [PR#54](https://github.com/quality-match/hari-client/pull/54)
 - added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
   - added script `create_subsets_from_attribute`
-- added client endpoint methods [PR#43](https://github.com/quality-match/hari-client/pull/43)
+- added client endpoint methods [PR#43](https://github.com/quality-match/hari-client/pull/43) [PR#56](https://github.com/quality-match/hari-client/pull/56)
   - get_attribute_metadata
   - delete_attribute_metadata
   - get_visualisation_configs
