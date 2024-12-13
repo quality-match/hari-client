@@ -9,7 +9,8 @@ from hari_client import Config
 from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
-from scripts.trigger_metadata_rebuild import trigger_metadata_rebuild
+from hari_client.utils.upload import check_and_create_dataset
+from hari_client.utils.upload import check_and_upload_dataset
 
 
 def load_data(filename: str):
@@ -59,11 +60,12 @@ def load_data(filename: str):
     )
 
 
-def upload_coco_like_dataset(hari, dataset_name, images_dir, annotations_file):
-    dataset = hari.create_dataset(name=dataset_name, user_group=None)
-    dataset_id = dataset.id
-
-    print(f"Creating dataset with id {dataset_id}")
+def upload_coco_like_dataset(
+    hari, dataset_name, images_dir, annotations_file, user_group, is_anonymized
+):
+    dataset_id = check_and_create_dataset(
+        hari, dataset_name, user_group, is_anonymized=is_anonymized
+    )
 
     # We create identities for the attributes that we
     #   want to assign to the objects
@@ -124,47 +126,12 @@ def upload_coco_like_dataset(hari, dataset_name, images_dir, annotations_file):
                 )
             )
 
-    uploader = hari_uploader.HARIUploader(
-        client=hari, dataset_id=dataset_id, object_categories=set(data.supercategories)
+    check_and_upload_dataset(
+        hari,
+        dataset_id,
+        object_categories=set(data.supercategories),
+        medias=list(medias.values()),
     )
-
-    for _, media in medias.items():
-        uploader.add_media(media)
-
-    upload_results = uploader.upload()
-
-    # Inspect upload results
-    print(f"media upload status: {upload_results.medias.status.value}")
-    print(f"media upload summary\n  {upload_results.medias.summary}")
-
-    print(f"media object upload status: {upload_results.media_objects.status.value}")
-    print(f"media object upload summary\n  {upload_results.media_objects.summary}")
-
-    print(f"attribute upload status: {upload_results.attributes.status.value}")
-    print(f"attribute upload summary\n  {upload_results.attributes.summary}")
-
-    if (
-        upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
-        or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
-        or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
-    ):
-        print(
-            "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
-        )
-        print(f"media upload details: {upload_results.medias.results}")
-        print(f"media objects upload details: {upload_results.media_objects.results}")
-        print(f"attributes upload details: {upload_results.attributes.results}")
-        return None
-
-    new_subset_id = hari.create_subset(
-        dataset_id=dataset_id,
-        subset_type=models.SubsetType.MEDIA_OBJECT,
-        subset_name="All media objects",
-    )
-    print(f"Created new subset with id {new_subset_id}")
-
-    # Trigger metadata updates
-    trigger_metadata_rebuild(hari, dataset_id=dataset_id, subset_id=new_subset_id)
 
 
 if __name__ == "__main__":
@@ -208,5 +175,15 @@ if __name__ == "__main__":
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # Call the main function.
-    upload_coco_like_dataset(hari, dataset_name, images_dir, annotations_file)
+    # Call the main function
+    # Make sure that your data is anonymized before you mark it as such
+    # If your data is not anonymized please contact us for further support.
+    # TODO what is a good default user group, how should a customer select it
+    upload_coco_like_dataset(
+        hari,
+        dataset_name,
+        images_dir,
+        annotations_file,
+        user_group=None,
+        is_anonymized=True,
+    )
