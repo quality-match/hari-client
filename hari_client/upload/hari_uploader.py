@@ -485,22 +485,19 @@ class HARIUploader:
         :return: A list of BulkResponse objects for each batch upload.
         """
         attributes_upload_responses: list[models.BulkResponse] = []
-
-        if show_progressbar:
-            progressbar = tqdm(desc="HARI Attributes Upload", total=len(attributes))
-
-        for idx in range(0, len(attributes), HARIClient.BULK_UPLOAD_LIMIT):
-            attributes_to_upload = attributes[idx : idx + HARIClient.BULK_UPLOAD_LIMIT]
+        for idx in range(0, len(attributes), self._config.attribute_upload_batch_size):
+            attributes_to_upload = attributes[
+                idx : idx + self._config.attribute_upload_batch_size
+            ]
             response = self._upload_attribute_batch(
                 attributes_to_upload=attributes_to_upload
             )
-            if show_progressbar:
-                progressbar.update(len(attributes_to_upload))
             attributes_upload_responses.append(response)
+            self._attribute_upload_progress.update(len(attributes_to_upload))
         return attributes_upload_responses
 
     def _upload_media_objects_in_batches(
-        self, media_objects: list[HARIMediaObject], show_progressbar=False
+        self, media_objects: list[HARIMediaObject]
     ) -> list[models.BulkResponse]:
         """
         Upload media objects in batches to the HARI system.
@@ -510,22 +507,17 @@ class HARIUploader:
         :return: A list of BulkResponse objects for each batch upload.
         """
         media_object_upload_responses: list[models.BulkResponse] = []
-
-        if show_progressbar:
-            progressbar = tqdm(
-                desc="HARI Media Objects Upload", total=len(media_objects)
-            )
-
-        for idx in range(0, len(media_objects), HARIClient.BULK_UPLOAD_LIMIT):
+        for idx in range(
+            0, len(media_objects), self._config.media_object_upload_batch_size
+        ):
             media_objects_to_upload = media_objects[
-                idx : idx + HARIClient.BULK_UPLOAD_LIMIT
+                idx : idx + self._config.media_object_upload_batch_size
             ]
             response = self._upload_media_object_batch(
                 media_objects_to_upload=media_objects_to_upload
             )
-            if show_progressbar:
-                progressbar.update(len(media_objects_to_upload))
             media_object_upload_responses.append(response)
+            self._media_object_upload_progress.update(len(media_objects_to_upload))
         return media_object_upload_responses
 
     def _upload_attribute_batch(

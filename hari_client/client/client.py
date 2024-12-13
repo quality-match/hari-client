@@ -1964,6 +1964,7 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/attributeMetadata",
@@ -1975,7 +1976,7 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         attribute_id: uuid.UUID,
-    ) -> str | None:
+    ) -> models.any_response_type:
         """Archives an attribute including all AttributeValues.
 
         Args:
@@ -1983,7 +1984,7 @@ class HARIClient:
             attribute_id: The ID of the attribute.
 
         Returns:
-            The deleted attribute
+            Nothing
 
         Raises:
             APIException: If the request fails.
@@ -1992,18 +1993,28 @@ class HARIClient:
             "DELETE",
             f"/datasets/{dataset_id}/attributeMetadata/{attribute_id}",
             params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
-            success_response_item_model=(str | None),
+            success_response_item_model=models.any_response_type,
         )
 
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        limit: int | None = None,
+        skip: int | None = None,
     ) -> list[models.VisualisationConfiguration]:
         """
         Retrieve the visualization configurations for a given dataset.
 
         Args:
             dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
+            archived: Whether to include archived VisualisationConfigs (default: False)
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            limit: How many visualisation_configs to return
+            skip: How many visualisation_configs to skip
 
         Returns:
             list[models.VisualisationConfiguration]: A list of visualization configuration objects.
@@ -2011,5 +2022,6 @@ class HARIClient:
         return self._request(
             method="GET",
             path=f"/datasets/{dataset_id}/visualisationConfigs",
+            params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
         )

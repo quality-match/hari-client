@@ -26,9 +26,7 @@ def test_add_media(mock_uploader_for_object_category_validation):
                 hari_uploader.HARIAttribute(
                     id=uuid.uuid4(),
                     name="my attribute 1",
-                    attribute_type=models.AttributeType.Categorical,
                     value="value 1",
-                    attribute_group=models.AttributeGroup.InitialAttribute,
                 )
             ],
         )
@@ -248,9 +246,7 @@ def test_update_hari_attribute_media_ids(mock_uploader_for_object_category_valid
     shared_attribute = hari_uploader.HARIAttribute(
         id=uuid.uuid4(),
         name="my attribute 1",
-        attribute_type=models.AttributeType.Categorical,
         value="value 1",
-        attribute_group=models.AttributeGroup.InitialAttribute,
     )
     media_1 = hari_uploader.HARIMedia(
         name="my image 1",
@@ -271,9 +267,7 @@ def test_update_hari_attribute_media_ids(mock_uploader_for_object_category_valid
         hari_uploader.HARIAttribute(
             id=uuid.uuid4(),
             name="my attribute 2",
-            attribute_type=models.AttributeType.Categorical,
             value="value 2",
-            attribute_group=models.AttributeGroup.InitialAttribute,
         )
     )
     uploader.add_media(media_2)
@@ -338,9 +332,7 @@ def test_update_hari_attribute_media_object_ids(
     shared_attribute_object_1 = hari_uploader.HARIAttribute(
         id=uuid.uuid4(),
         name="Is human?",
-        attribute_type=models.AttributeType.Categorical,
         value="yes",
-        attribute_group=models.AttributeGroup.InitialAttribute,
     )
     media_object_1.add_attribute(shared_attribute_object_1)
     media_1.add_media_object(media_object_1)
@@ -365,9 +357,7 @@ def test_update_hari_attribute_media_object_ids(
     attribute_object_2 = hari_uploader.HARIAttribute(
         id=uuid.uuid4(),
         name="Is human?",
-        attribute_type=models.AttributeType.Categorical,
         value="yes",
-        attribute_group=models.AttributeGroup.InitialAttribute,
     )
     media_object_2.add_attribute(shared_attribute_object_1)
     media_object_2.add_attribute(attribute_object_2)
@@ -417,9 +407,20 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
     # Arrange
     uploader, media_spy, media_object_spy, attribute_spy = mock_uploader_for_batching
 
-    # 1100 medias --> 3 batches
-    # 2200 media_objects --> 5 batches
-    # 6600 attributes --> 14 batches
+    attribute_media_id = uuid.uuid4()
+    attribute_media_object_id = uuid.uuid4()
+
+    uploader._config.media_upload_batch_size = 100
+    uploader._config.media_object_upload_batch_size = 150
+    uploader._config.attribute_upload_batch_size = 100
+    # Amount of batches according to the batch size configuration:
+    # 1100 medias--> 11 batches
+    # 2200 media_objects --> 22 batches
+    #   - two media objects per media --> two media object batches per media batch
+    # 6600 attributes --> 66 batches
+    #   - 2 attributes per media
+    #   - 2 attributes per media object and two media objects per media
+    #   - --> 6 attribute batches per media batch
     for i in range(1100):
         media = hari_uploader.HARIMedia(
             name=f"my image {i}",
@@ -434,21 +435,17 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             media.add_media_object(media_object)
             media.add_attribute(
                 hari_uploader.HARIAttribute(
-                    id=uuid.uuid4(),
+                    id=attribute_media_id,
                     name=f"attr_{i}_{k}",
-                    attribute_type=models.AttributeType.Categorical,
                     value=f"value_{i}_{k}",
-                    attribute_group=models.AttributeGroup.InitialAttribute,
                 )
             )
             for l in range(2):
                 media_object.add_attribute(
                     hari_uploader.HARIAttribute(
-                        id=uuid.uuid4(),
+                        id=attribute_media_object_id,
                         name=f"attr_{i}_{k}_{l}",
-                        attribute_type=models.AttributeType.Categorical,
                         value=f"value_{i}_{k}_{l}",
-                        attribute_group=models.AttributeGroup.InitialAttribute,
                     )
                 )
         uploader.add_media(media)
@@ -458,38 +455,25 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
 
     # Assert
     # check every batch upload method's call
-    assert media_spy.call_count == 3
+    assert media_spy.call_count == 11
     media_calls = media_spy.call_args_list
-    assert len(media_calls[0].kwargs["medias_to_upload"]) == 500
-    assert len(media_calls[1].kwargs["medias_to_upload"]) == 500
-    assert len(media_calls[2].kwargs["medias_to_upload"]) == 100
+    for i in range(11):
+        assert len(media_calls[i].kwargs["medias_to_upload"]) == 100
     assert len(uploader._medias) == 1100
 
-    assert media_object_spy.call_count == 5
+    assert media_object_spy.call_count == 22
     media_object_calls = media_object_spy.call_args_list
-    assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[1].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[2].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[3].kwargs["media_objects_to_upload"]) == 500
-    assert len(media_object_calls[4].kwargs["media_objects_to_upload"]) == 200
+    for i in range(22):
+        if i % 2 == 0:
+            assert len(media_object_calls[i].kwargs["media_objects_to_upload"]) == 150
+        else:
+            assert len(media_object_calls[i].kwargs["media_objects_to_upload"]) == 50
     assert uploader._media_object_cnt == 2200
 
-    assert attribute_spy.call_count == 14
+    assert attribute_spy.call_count == 66
     attribute_calls = attribute_spy.call_args_list
-    assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[1].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[2].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[3].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[4].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[5].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[6].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[7].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[8].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[9].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[10].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[11].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[12].kwargs["attributes_to_upload"]) == 500
-    assert len(attribute_calls[13].kwargs["attributes_to_upload"]) == 100
+    for i in range(66):
+        assert len(attribute_calls[i].kwargs["attributes_to_upload"]) == 100
     assert uploader._attribute_cnt == 6600
 
 
@@ -530,9 +514,7 @@ def test_hari_uploader_creates_single_batch_correctly(
                 hari_uploader.HARIAttribute(
                     id=uuid.uuid4(),
                     name=f"attr_{i}_{k}",
-                    attribute_type=models.AttributeType.Categorical,
                     value=f"value_{i}_{k}",
-                    attribute_group=models.AttributeGroup.InitialAttribute,
                 )
             )
             for l in range(2):
@@ -540,9 +522,7 @@ def test_hari_uploader_creates_single_batch_correctly(
                     hari_uploader.HARIAttribute(
                         id=uuid.uuid4(),
                         name=f"attr_{i}_{k}_{l}",
-                        attribute_type=models.AttributeType.Categorical,
                         value=f"value_{i}_{k}_{l}",
-                        attribute_group=models.AttributeGroup.InitialAttribute,
                     )
                 )
 
@@ -689,7 +669,7 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
 
 def test_hari_uploader_upload_without_specified_object_categories(mock_client):
     # Arrange
-    uploader = hari_uploader.HARIUploader(mock_client, dataset_id=uuid.UUID(int=0))
+    uploader = hari_uploader.HARIUploader(mock_client[0], dataset_id=uuid.UUID(int=0))
     media_object_1 = hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
     )
@@ -1042,3 +1022,53 @@ def test_merge_bulk_responses(
         assert actual_result.item_id == expected_result.item_id
         assert actual_result.back_reference == expected_result.back_reference
         assert actual_result.status == expected_result.status
+
+
+def test_hari_uploader_unique_attributes_number_limit_error(
+    mock_uploader_for_bulk_operation_annotatable_id_setter,
+):
+    # Arrange
+    uploader, id_setter_spy = mock_uploader_for_bulk_operation_annotatable_id_setter
+
+    expected_attr_cnt = 0
+    # Act
+    for i in range(100):
+        media = hari_uploader.HARIMedia(
+            name="my image",
+            media_type=models.MediaType.IMAGE,
+            back_reference=f"img_{i}",
+        )
+        for j in range(5):
+            attribute_media_id = uuid.uuid4()
+            attribute_media = hari_uploader.HARIAttribute(
+                id=attribute_media_id,
+                name="area",
+                value=6912,
+            )
+            media.add_attribute(attribute_media)
+            expected_attr_cnt += 1
+
+        media_object = hari_uploader.HARIMediaObject(
+            source=models.DataSource.REFERENCE,
+            back_reference=f"img_{i}_obj_{i}",
+        )
+        media.add_media_object(media_object)
+        for k in range(10):
+            attribute_object_id = uuid.uuid4()
+            attribute_object = hari_uploader.HARIAttribute(
+                id=attribute_object_id,
+                name="Is this a human being?",
+                value=True,
+            )
+            media_object.add_attribute(attribute_object)
+            expected_attr_cnt += 1
+
+        uploader.add_media(media)
+
+    # Assert
+    with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
+        uploader.upload()
+    assert (
+        f"You are trying to upload too many attributes for one dataset: {expected_attr_cnt}"
+        in str(e.value)
+    )

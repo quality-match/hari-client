@@ -57,6 +57,18 @@ def test_parse_response_model_works_with_none():
     assert response is None
 
 
+@pytest.mark.parametrize(
+    "response_data",
+    ["", "banana", 0, 5, 5.66, [], ["x"], {}, {"x": "y"}, None],
+)
+def test_parse_response_model_works_with_definition_of_any(response_data):
+    response = _parse_response_model(
+        response_data=response_data, response_model=models.any_response_type
+    )
+    assert response == response_data
+    assert type(response) == type(response_data)
+
+
 def test_parse_response_model_works_with_pydantic_models():
     response = _parse_response_model(
         response_data=TestObject1, response_model=SimpleModel1
