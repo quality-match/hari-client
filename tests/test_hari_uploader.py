@@ -1068,10 +1068,8 @@ def test_hari_uploader_unique_attributes_number_limit_error(
     # Assert
     with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
         uploader.upload()
-    assert (
-        f"You are trying to upload too many attributes for one dataset: {expected_attr_cnt}"
-        in str(e.value)
-    )
+    assert e.value.existing_attributes_number == 0
+    assert e.value.new_attributes_number == expected_attr_cnt
 
 
 def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attributes(
@@ -1101,6 +1099,7 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
     mock_attribute_metadata.append(
         models.AttributeMetadataResponse(id=str(uuid.UUID(int=0)))
     )
+    # rewrite the get_attribute_metadata return value
     uploader.client.get_attribute_metadata = (
         lambda *args, **kwargs: mock_attribute_metadata
     )
@@ -1131,9 +1130,8 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
     # Act + Assert
     with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
         uploader.upload()
+    assert e.value.new_attributes_number == new_attrs_number
+    assert e.value.existing_attributes_number == len(mock_attribute_metadata)
     assert (
-        f"You are trying to upload too many attributes for one dataset: {new_attrs_number}, "
-        f"and there are already {len(mock_attribute_metadata)} attributes uploaded. "
-        f"The intended number of all attributes would be 1001, "
-        f"when the limit is {hari_uploader.MAX_ATTR_COUNT}. " in str(e.value)
-    )
+        e.value.intended_attributes_number == 1001
+    )  # (1000 existing + 2 new) - 1 new that collides with existing
