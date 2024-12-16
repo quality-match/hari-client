@@ -2087,30 +2087,6 @@ class HARIClient:
             success_response_item_model=list[models.AttributeMetadataResponse],
         )
 
-    def delete_attribute_metadata(
-        self,
-        dataset_id: uuid.UUID,
-        attribute_id: uuid.UUID,
-    ) -> models.any_response_type:
-        """Archives an attribute including all AttributeValues.
-
-        Args:
-            dataset_id: The ID of the dataset.
-            attribute_id: The ID of the attribute.
-
-        Returns:
-            Nothing
-
-        Raises:
-            APIException: If the request fails.
-        """
-        return self._request(
-            "DELETE",
-            f"/datasets/{dataset_id}/attributeMetadata/{attribute_id}",
-            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
-            success_response_item_model=models.any_response_type,
-        )
-
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
