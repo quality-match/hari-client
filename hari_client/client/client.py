@@ -2064,15 +2064,17 @@ class HARIClient:
         archived: bool | None = False,
         query: models.QueryList | None = None,
     ) -> list[models.AttributeMetadataResponse]:
-        """Returns all attributes of a dataset
+        """Returns all attribute metadata of a dataset.
 
         Args:
             dataset_id: The dataset id
-            archived: True if archived attributes should be returned
-            query: A query to filter attributes
+            archived: if True, archived attribute metadata will be returned,
+                    if False, only non-archived attribute metadata will be returned
+                    if None, all attribute metadata will be returned
+            query: A query to filter attribute metadata
 
          Returns:
-            A list of attributes
+            A list of attribute metadata
 
         Raises:
             APIException: If the request fails.
