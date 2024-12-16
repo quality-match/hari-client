@@ -2068,9 +2068,9 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: if True, archived attribute metadata will be returned,
-                    if False, only non-archived attribute metadata will be returned
-                    if None, all attribute metadata will be returned
+            archived: if True, only archived attribute metadata are returned
+                    if False, only non-archived attribute metadata are returned
+                    if None, all attribute metadata are returned
             query: A query to filter attribute metadata
 
          Returns:
