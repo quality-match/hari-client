@@ -6,9 +6,8 @@
 - added support for mixed file extensions in `create_medias` [PR#42](https://github.com/quality-match/hari-client/pull/42), [PR#54](https://github.com/quality-match/hari-client/pull/54)
 - added scripts [PR#43](https://github.com/quality-match/hari-client/pull/43)
   - added script `create_subsets_from_attribute`
-- added client endpoint methods [PR#43](https://github.com/quality-match/hari-client/pull/43) [PR#56](https://github.com/quality-match/hari-client/pull/56)
+- added new client endpoint methods [PR#43](https://github.com/quality-match/hari-client/pull/43) [PR#56](https://github.com/quality-match/hari-client/pull/56)
   - get_attribute_metadata
-  - delete_attribute_metadata
   - get_visualisation_configs
 - batch sizes for bulk uploads are configurable and the default for media upload was reduced to 30 [PR#50](https://github.com/quality-match/hari-client/pull/50)
   - see the `.env_example` for how to set the batch sizes with your .env file.
