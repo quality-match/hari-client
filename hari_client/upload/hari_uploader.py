@@ -408,6 +408,10 @@ class HARIUploader:
         Returns:
             HARIUploadResults | None: All upload results and summaries for the
             upload of medias and media_objects, or None if nothing was uploaded
+
+        Raises:
+            HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids
+            exceeds the limit of MAX_ATTR_COUNT per dataset.
         """
 
         if len(self._medias) == 0:
