@@ -37,11 +37,22 @@ def test_create_medias_with_different_file_extensions_works(test_client, mocker)
         media_type=models.MediaType.IMAGE,
         file_path="./my_test_media_2.png",
     )
+    media_create_3 = models.MediaCreate(
+        name="my test media 3",
+        back_reference="my test media 3 backref",
+        media_type=models.MediaType.IMAGE,
+        file_path="./my_test_media_3.jpg",
+    )
     mocker.patch.object(test_client, "_upload_file")
     mocker.patch.object(
         test_client,
         "get_presigned_media_upload_url",
-        return_value=[mocker.MagicMock(), mocker.MagicMock()],
+        side_effect=[
+            # first call: the two jpg files for media_create_1 and media_create_3
+            [mocker.MagicMock(media_url="url_1"), mocker.MagicMock(media_url="url_3")],
+            # second call: the png file for media_create_2
+            [mocker.MagicMock(media_url="url_2")],
+        ],
     )
     mocker.patch.object(test_client, "_request")
 
@@ -53,16 +64,32 @@ def test_create_medias_with_different_file_extensions_works(test_client, mocker)
 
     # Act
     test_client.create_medias(
-        dataset_id="1234", medias=[media_create_1, media_create_2]
+        dataset_id="1234", medias=[media_create_1, media_create_2, media_create_3]
     )
 
     # Assert
     # called twice, because every group of files with the same extension is uploaded in a separate batch
     assert get_presigned_media_upload_url_spy.call_count == 2
-    # called once every file to upload (there are two files)
-    assert upload_file_spy.call_count == 2
+    # called once every file to upload (there are three files)
+    assert upload_file_spy.call_count == 3
     # called once by create_medias. The call from get_presigned_media_upload_url is mocked out
     assert request_spy.call_count == 1
+
+    # check that each media received the correct url
+    assert media_create_1.media_url == "url_1"
+    assert media_create_2.media_url == "url_2"
+    assert media_create_3.media_url == "url_3"
+
+    # check order of _upload_file calls
+    assert (
+        upload_file_spy.call_args_list[0].kwargs["file_path"] == "./my_test_media_1.jpg"
+    )
+    assert (
+        upload_file_spy.call_args_list[1].kwargs["file_path"] == "./my_test_media_3.jpg"
+    )
+    assert (
+        upload_file_spy.call_args_list[2].kwargs["file_path"] == "./my_test_media_2.png"
+    )
 
 
 def test_create_medias_with_unidentifiable_file_extension(test_client):
@@ -180,27 +207,64 @@ def test_upload_media_files_with_presigned_urls_with_multiple_file_extensions(
     mocker.patch.object(test_client, "_upload_file")
     # there are two different file extensions in the test with two files each so two presigned urls are returned
     # for every call
+    file_paths = {
+        0: "./my_test_media_1.jpg",
+        1: "./my_test_media_2.png",
+        2: "./my_test_media_3.jpg",
+        3: "./my_test_media_4.png",
+    }
+
+    def get_presigned_media_upload_url_side_effect_function(
+        dataset_id, file_extension, batch_size
+    ):
+        response = []
+        for i in range(batch_size):
+            # creates idx 1, 2 in the first call, and 3, 4 in the second call of the method
+            idx = i + get_presigned_media_upload_url_spy.call_count
+            if get_presigned_media_upload_url_spy.call_count > 1:
+                idx += 1
+            response.append(
+                models.MediaUploadUrlInfo(
+                    media_id=f"id_{idx}",
+                    media_url=f"media_url_{idx}{file_extension}",
+                    upload_url=f"upload_url_{idx}",
+                )
+            )
+
+        return response
+
     mocker.patch.object(
         test_client,
         "get_presigned_media_upload_url",
-        return_value=[mocker.MagicMock(), mocker.MagicMock()],
+        side_effect=get_presigned_media_upload_url_side_effect_function,
     )
     upload_file_spy = mocker.spy(test_client, "_upload_file")
     get_presigned_media_upload_url_spy = mocker.spy(
         test_client, "get_presigned_media_upload_url"
     )
+
+    # Act
     presign_responses = test_client._upload_media_files_with_presigned_urls(
         dataset_id=uuid.uuid4(),
-        file_paths=[
-            "./my_test_media_1.jpg",
-            "./my_test_media_2.png",
-            "./my_test_media_3.jpg",
-            "./my_test_media_4.png",
-        ],
+        file_paths=file_paths,
     )
+
+    # Assert
     assert upload_file_spy.call_count == 4
     assert get_presigned_media_upload_url_spy.call_count == 2
     assert len(presign_responses) == 4
+
+    # the order of file_paths is the same as the order of presign_responses
+    # but the _upload_file method is called in a different order, because of the
+    # different file extensions
+    assert presign_responses[0].media_url.endswith("1.jpg")
+    assert upload_file_spy.call_args_list[0].kwargs["file_path"] == file_paths[0]
+    assert presign_responses[1].media_url.endswith("3.png")
+    assert upload_file_spy.call_args_list[1].kwargs["file_path"] == file_paths[2]
+    assert presign_responses[2].media_url.endswith("2.jpg")
+    assert upload_file_spy.call_args_list[2].kwargs["file_path"] == file_paths[1]
+    assert presign_responses[3].media_url.endswith("4.png")
+    assert upload_file_spy.call_args_list[3].kwargs["file_path"] == file_paths[3]
 
 
 def test_upload_media_files_with_presigned_urls_with_single_file_extension(
@@ -213,12 +277,12 @@ def test_upload_media_files_with_presigned_urls_with_single_file_extension(
     mocker.patch.object(
         test_client,
         "get_presigned_media_upload_url",
-        return_value=[
-            mocker.MagicMock(),
-            mocker.MagicMock(),
-            mocker.MagicMock(),
-            mocker.MagicMock(),
-        ],
+        return_value={
+            0: mocker.MagicMock(),
+            1: mocker.MagicMock(),
+            2: mocker.MagicMock(),
+            3: mocker.MagicMock(),
+        },
     )
     upload_file_spy = mocker.spy(test_client, "_upload_file")
     get_presigned_media_upload_url_spy = mocker.spy(
@@ -226,12 +290,12 @@ def test_upload_media_files_with_presigned_urls_with_single_file_extension(
     )
     presign_responses = test_client._upload_media_files_with_presigned_urls(
         dataset_id=uuid.uuid4(),
-        file_paths=[
-            "./my_test_media_1.jpg",
-            "./my_test_media_2.jpg",
-            "./my_test_media_3.jpg",
-            "./my_test_media_4.jpg",
-        ],
+        file_paths={
+            0: "./my_test_media_1.jpg",
+            1: "./my_test_media_2.jpg",
+            2: "./my_test_media_3.jpg",
+            3: "./my_test_media_4.jpg",
+        },
     )
     assert upload_file_spy.call_count == 4
     assert get_presigned_media_upload_url_spy.call_count == 1
