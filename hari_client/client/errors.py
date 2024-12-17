@@ -118,6 +118,19 @@ class AttributeValidationInconsistentListElementValueTypesError(Exception):
         super().__init__(message)
 
 
+class AttributeValidationInconsistentListElementValueTypesMultipleAttributesError(
+    Exception
+):
+    def __init__(
+        self, attribute_name: str, annotatable_type: str, found_value_types: list[str]
+    ):
+        message = (
+            f"Found multiple instances of attribute {attribute_name} with {annotatable_type=} with inconsistent list element value types {found_value_types}."
+            + " Make sure every instance of this attribute uses the same list element value types."
+        )
+        super().__init__(message)
+
+
 class AttributeValidationIdNotReusedError(Exception):
     def __init__(
         self, attribute_name: str, annotatable_type: str, found_ids: list[str]

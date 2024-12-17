@@ -381,6 +381,7 @@ class HARIUploader:
         Raises:
             AttributeValidationInconsistentValueTypeError: If the value type for an attribute is inconsistent.
             AttributeValidationInconsistentListElementValueTypesError: If the elements in a list attribute value have mixed value types.
+            AttributeValidationInconsistentListElementValueTypesMultipleAttributesError: If multiple list attributes have inconsistent element value types.
             AttributeValidationIdNotReusedError: If another attribute with the same name and attribute type has a different id.
         """
         all_attributes = []
@@ -388,7 +389,7 @@ class HARIUploader:
             all_attributes.extend(media.attributes)
             for media_object in media.media_objects:
                 all_attributes.extend(media_object.attributes)
-        validation.validate_initial_attributes(all_attributes)
+        validation.validate_attributes(all_attributes)
 
     def upload(
         self,

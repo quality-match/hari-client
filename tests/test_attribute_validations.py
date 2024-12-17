@@ -42,7 +42,7 @@ _some_uuids = [uuid.uuid4() for _ in range(10)]
                 name="a",
                 annotatable_id="media_1",
                 annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=None,
+                value="banana",
             ),
         ],
         [
@@ -61,6 +61,13 @@ _some_uuids = [uuid.uuid4() for _ in range(10)]
                 value=False,
             ),
             models.AttributeCreate(
+                id=_some_uuids[0],
+                name="a",
+                annotatable_id="media_1",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
+                value=None,
+            ),
+            models.AttributeCreate(
                 id=_some_uuids[1],
                 name="b",
                 annotatable_id="media_object_0",
@@ -77,9 +84,9 @@ _some_uuids = [uuid.uuid4() for _ in range(10)]
         ],
     ],
 )
-def test_initial_attribute_validation_inconsistent_value_type(attributes):
+def test_attribute_validation_inconsistent_value_type(attributes):
     with pytest.raises(errors.AttributeValidationInconsistentValueTypeError):
-        validation.validate_initial_attributes(attributes)
+        validation.validate_attributes(attributes)
 
 
 @pytest.mark.parametrize(
@@ -126,53 +133,123 @@ def test_initial_attribute_validation_inconsistent_value_type(attributes):
         ],
     ],
 )
-def test_initial_attribute_validation_id_not_reused(attributes):
+def test_attribute_validation_id_not_reused(attributes):
     with pytest.raises(errors.AttributeValidationIdNotReusedError):
-        validation.validate_initial_attributes(attributes)
+        validation.validate_attributes(attributes)
 
 
 @pytest.mark.parametrize(
-    "attributes",
+    "attributes, expected_exception",
     [
-        [
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_0",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=[7, 8, 2, 1, 0],
-            ),
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_1",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=[5, 3, "seven", 4, 42],
-            ),
-        ],
-        [
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_object_0",
-                annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
-                value=[7, 8, 2, 1, 0],
-            ),
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_object_1",
-                annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
-                value=[5, True, 4, 42],
-            ),
-        ],
+        (
+            [
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_1",
+                    annotatable_type=models.DataBaseObjectType.MEDIA,
+                    value=[5, 3, "seven", 4, 42],
+                ),
+            ],
+            errors.AttributeValidationInconsistentListElementValueTypesError,
+        ),
+        (
+            [
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_1",
+                    annotatable_type=models.DataBaseObjectType.MEDIA,
+                    value=[5, 3, False, 4, 42],
+                ),
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_0",
+                    annotatable_type=models.DataBaseObjectType.MEDIA,
+                    value=[7, 8, 2, 1, 0],
+                ),
+            ],
+            errors.AttributeValidationInconsistentListElementValueTypesError,
+        ),
+        (
+            [
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_object_0",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=[None, 7, 8, 2, 1, 0],
+                ),
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_object_1",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=["5", "hello_world", None, "banana"],
+                ),
+            ],
+            errors.AttributeValidationInconsistentListElementValueTypesMultipleAttributesError,
+        ),
+        (
+            [
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_object_0",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=[],
+                ),
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_object_1",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=["5", "hello_world", None, "banana"],
+                ),
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_object_1",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=[True, False, None, True],
+                ),
+            ],
+            errors.AttributeValidationInconsistentListElementValueTypesMultipleAttributesError,
+        ),
+        (
+            [
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_object_0",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=[True, False, False],
+                ),
+                models.AttributeCreate(
+                    id=_some_uuids[1],
+                    name="a",
+                    annotatable_id="media_object_2",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=["5", "hello_world", None, "banana"],
+                ),
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_object_1",
+                    annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+                    value=[True, False, None, True],
+                ),
+            ],
+            errors.AttributeValidationInconsistentListElementValueTypesMultipleAttributesError,
+        ),
     ],
 )
-def test_initial_attribute_validation_inconsistent_list_element_value_types(attributes):
-    with pytest.raises(
-        errors.AttributeValidationInconsistentListElementValueTypesError
-    ):
-        validation.validate_initial_attributes(attributes)
+def test_attribute_validation_inconsistent_list_element_value_types(
+    attributes, expected_exception
+):
+    with pytest.raises(expected_exception):
+        validation.validate_attributes(attributes)
 
 
 @pytest.mark.parametrize(
@@ -214,7 +291,7 @@ def test_initial_attribute_validation_inconsistent_list_element_value_types(attr
         ),
     ],
 )
-def test_initial_attribute_validation_is_used_in_hari_uploader(
+def test_attribute_validation_is_used_in_hari_uploader(
     media_attributes,
     media_object_attributes,
     expected_exception_to_raise,
