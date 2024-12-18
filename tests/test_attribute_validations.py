@@ -160,6 +160,18 @@ def test_attribute_validation_id_not_reused(attributes):
                     name="a",
                     annotatable_id="media_1",
                     annotatable_type=models.DataBaseObjectType.MEDIA,
+                    value=[5, 3, 4.666, 42],
+                ),
+            ],
+            None,
+        ),
+        (
+            [
+                models.AttributeCreate(
+                    id=_some_uuids[0],
+                    name="a",
+                    annotatable_id="media_1",
+                    annotatable_type=models.DataBaseObjectType.MEDIA,
                     value=[5, 3, False, 4, 42],
                 ),
                 models.AttributeCreate(
@@ -248,8 +260,11 @@ def test_attribute_validation_id_not_reused(attributes):
 def test_attribute_validation_inconsistent_list_element_value_types(
     attributes, expected_exception
 ):
-    with pytest.raises(expected_exception):
+    if expected_exception is None:
         validation.validate_attributes(attributes)
+    else:
+        with pytest.raises(expected_exception):
+            validation.validate_attributes(attributes)
 
 
 @pytest.mark.parametrize(

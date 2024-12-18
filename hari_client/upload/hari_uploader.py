@@ -376,14 +376,7 @@ class HARIUploader:
         self._assign_object_category_subsets()
 
     def validate_all_attributes(self) -> None:
-        """Validates all attributes of medias and media objects.
-
-        Raises:
-            AttributeValidationInconsistentValueTypeError: If the value type for an attribute is inconsistent.
-            AttributeValidationInconsistentListElementValueTypesError: If the elements in a list attribute value have mixed value types.
-            AttributeValidationInconsistentListElementValueTypesMultipleAttributesError: If multiple list attributes have inconsistent element value types.
-            AttributeValidationIdNotReusedError: If another attribute with the same name and attribute type has a different id.
-        """
+        """Validates all attributes of medias and media objects."""
         all_attributes = []
         for media in self._medias:
             all_attributes.extend(media.attributes)
