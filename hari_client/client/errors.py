@@ -137,6 +137,6 @@ class AttributeValidationIdNotReusedError(Exception):
     ):
         message = (
             f"Found multiple ids {found_ids} for the same attribute name {attribute_name} with {annotatable_type=}."
-            + " Make sure every attribute with the same name and attribute type is using the same id."
+            + " Make sure every attribute with the same name and annotatable type is using the same id."
         )
         super().__init__(message)

@@ -35,6 +35,38 @@ _some_uuids = [uuid.uuid4() for _ in range(10)]
                 name="a",
                 annotatable_id="media_0",
                 annotatable_type=models.DataBaseObjectType.MEDIA,
+                value=[5],
+            ),
+            models.AttributeCreate(
+                id=_some_uuids[0],
+                name="a",
+                annotatable_id="media_1",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
+                value="7",
+            ),
+        ],
+        [
+            models.AttributeCreate(
+                id=_some_uuids[0],
+                name="a",
+                annotatable_id="media_0",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
+                value=[],
+            ),
+            models.AttributeCreate(
+                id=_some_uuids[0],
+                name="a",
+                annotatable_id="media_1",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
+                value="7",
+            ),
+        ],
+        [
+            models.AttributeCreate(
+                id=_some_uuids[0],
+                name="a",
+                annotatable_id="media_0",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
                 value=True,
             ),
             models.AttributeCreate(
@@ -271,7 +303,7 @@ def test_attribute_validation_id_not_reused(attributes):
                     value=[True, False, False],
                 ),
                 models.AttributeCreate(
-                    id=_some_uuids[1],
+                    id=_some_uuids[0],
                     name="a",
                     annotatable_id="media_object_2",
                     annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
@@ -399,3 +431,183 @@ def test_attribute_validation_is_used_in_hari_uploader(
         media_object_attributes[1].annotatable_type
         == models.DataBaseObjectType.MEDIAOBJECT
     )
+
+
+def test_attribute_validations_successful_case():
+    attributes = [
+        # numeric attribute
+        models.AttributeCreate(
+            id=_some_uuids[0],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_1",
+            name="my_number",
+            value=42,
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[0],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_2",
+            name="my_number",
+            value=43.643,
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[0],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_3",
+            name="my_number",
+            value=None,
+        ),
+        # string attribute
+        models.AttributeCreate(
+            id=_some_uuids[1],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_1",
+            name="my_string",
+            value="hello",
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[1],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_2",
+            name="my_string",
+            value="world",
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[1],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_3",
+            name="my_string",
+            value=None,
+        ),
+        # boolean attribute
+        models.AttributeCreate(
+            id=_some_uuids[2],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_1",
+            name="my_boolean",
+            value=True,
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[2],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_2",
+            name="my_boolean",
+            value=False,
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[2],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_3",
+            name="my_boolean",
+            value=None,
+        ),
+        # numeric list attribute
+        models.AttributeCreate(
+            id=_some_uuids[3],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_1",
+            name="my_numeric_list",
+            value=[0, 1, 2, 2.55],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[3],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_2",
+            name="my_numeric_list",
+            value=[3.5, 4, None, 5],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[3],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_3",
+            name="my_numeric_list",
+            value=None,
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[3],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_4",
+            name="my_numeric_list",
+            value=[None],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[3],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_5",
+            name="my_numeric_list",
+            value=[],
+        ),
+        # boolean list attribute
+        models.AttributeCreate(
+            id=_some_uuids[4],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_1",
+            name="my_boolean_list",
+            value=[True, False, False],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[4],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_2",
+            name="my_boolean_list",
+            value=[None, False, None, None],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[4],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_3",
+            name="my_boolean_list",
+            value=None,
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[4],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_4",
+            name="my_boolean_list",
+            value=[None],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[4],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_5",
+            name="my_boolean_list",
+            value=[],
+        ),
+        # string list attribute
+        models.AttributeCreate(
+            id=_some_uuids[5],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_1",
+            name="my_string_list",
+            value=["hello", None, "world"],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[5],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_2",
+            name="my_string_list",
+            value=["0", "1", "5.33", None, "banana"],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[5],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_3",
+            name="my_string_list",
+            value=None,
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[5],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_4",
+            name="my_string_list",
+            value=[None],
+        ),
+        models.AttributeCreate(
+            id=_some_uuids[5],
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+            annotatable_id="media_5",
+            name="my_string_list",
+            value=[],
+        ),
+    ]
+    validation.validate_attributes(attributes)

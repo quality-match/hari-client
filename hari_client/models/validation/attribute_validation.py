@@ -19,6 +19,7 @@ def validate_attributes(
             - Exceptions:
                 - The value `None` isn't taken into account when value type consistency is checked.
                 - Numeric types (int, float) are treated as the same value type can be mixed
+                - An empty list is always allowed when the expected value type is list
 
     Args:
         attributes: List of attributes to validate.
@@ -65,13 +66,13 @@ class AttributeConsistencyValidator:
     def validate_attributes(self) -> None:
         """Validates that attributes in a list have consistent value types and ids."""
         for attribute in self.attributes:
+            self._check_attribute_id_usage(attribute)
+
             value_type = self._check_value_type(attribute)
 
             # None values automatically pass the value type consistency check
             if value_type != "NoneType":
                 self._check_list_elements_value_types(attribute, value_type)
-
-            self._check_attribute_id_usage(attribute)
 
     def _check_value_type(self, attribute: models.AttributeCreate) -> str:
         value_type = _get_value_type_for_comparison(attribute.value)
@@ -111,12 +112,15 @@ class AttributeConsistencyValidator:
                 found_list_element_value_types.add(element_value_type)
 
         # check list element value type consistency within the attribute
-        if len(found_list_element_value_types) > 1:
+        if len(found_list_element_value_types) == 0:
+            return
+        elif len(found_list_element_value_types) > 1:
             raise errors.AttributeValidationInconsistentListElementValueTypesError(
                 attribute_name=attribute.name,
                 annotatable_type=attribute.annotatable_type,
                 found_value_types=found_list_element_value_types,
             )
+
         # check list element value type consistency across attributes
         attribute_list_element_value_type = list(found_list_element_value_types)[0]
         if attribute.name in self.name_list_element_value_type_map:
