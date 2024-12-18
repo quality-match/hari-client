@@ -114,6 +114,38 @@ def test_attribute_validation_inconsistent_value_type(attributes):
                 name="a",
                 annotatable_id="media_0",
                 annotatable_type=models.DataBaseObjectType.MEDIA,
+                value=None,
+            ),
+            models.AttributeCreate(
+                id=_some_uuids[1],
+                name="a",
+                annotatable_id="media_0",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
+                value=5,
+            ),
+        ],
+        [
+            models.AttributeCreate(
+                id=_some_uuids[0],
+                name="a",
+                annotatable_id="media_0",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
+                value=5,
+            ),
+            models.AttributeCreate(
+                id=_some_uuids[1],
+                name="a",
+                annotatable_id="media_1",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
+                value=None,
+            ),
+        ],
+        [
+            models.AttributeCreate(
+                id=_some_uuids[0],
+                name="a",
+                annotatable_id="media_0",
+                annotatable_type=models.DataBaseObjectType.MEDIA,
                 value=True,
             ),
             models.AttributeCreate(
