@@ -19,6 +19,10 @@
   - media
   - media object
   - attributes
+- added attribute validations to hari_uploader [PR#55](https://github.com/quality-match/hari-client/pull/55)
+  - attribute value types have to be consistent
+  - attributes with a list as value have to have a single consistent value type for their list elements
+  - attributes with the same name and annotatable_type have to reuse the same attribute id
 
 ### Fixes
 
