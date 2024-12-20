@@ -67,12 +67,8 @@ class AttributeConsistencyValidator:
         """Validates that attributes in a list have consistent value types and ids."""
         for attribute in self.attributes:
             self._check_attribute_id_usage(attribute)
-
             value_type = self._check_value_type(attribute)
-
-            # None values automatically pass the value type consistency check
-            if value_type != "NoneType":
-                self._check_list_elements_value_types(attribute, value_type)
+            self._check_list_elements_value_types(attribute, value_type)
 
     def _check_value_type(self, attribute: models.AttributeCreate) -> str:
         value_type = _get_value_type_for_comparison(attribute.value)
