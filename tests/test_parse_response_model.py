@@ -138,6 +138,7 @@ def test_parse_response_model_fails_for_response_data_not_matching_expected_resp
     [
         ([TestObject1], list[SimpleModel1], SimpleModel1),
         ([1, 2, 3], list[int], int),
+        ([], list[models.DatasetResponse], list),
     ],
 )
 def test_parse_response_model_works_with_list_of_parametrized_generics(
