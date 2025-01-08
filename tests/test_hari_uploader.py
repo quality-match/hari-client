@@ -1068,7 +1068,70 @@ def test_hari_uploader_unique_attributes_number_limit_error(
     # Assert
     with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
         uploader.upload()
-    assert (
-        f"You are trying to upload too many attributes for one dataset: {expected_attr_cnt}"
-        in str(e.value)
+    assert e.value.existing_attributes_number == 0
+    assert e.value.new_attributes_number == expected_attr_cnt
+
+
+def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attributes(
+    create_configurable_mock_uploader_successful_single_batch,
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        media_spy,
+        media_object_spy,
+        attribute_spy,
+        subset_create_spy,
+    ) = create_configurable_mock_uploader_successful_single_batch(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=5,
+        media_objects_cnt=10,
+        attributes_cnt=30,
     )
+
+    existing_attrs_number = 999
+    mock_attribute_metadata = [
+        models.AttributeMetadataResponse(id=str(i))
+        for i in range(existing_attrs_number)
+    ]
+    # create a collision with new attribute
+    mock_attribute_metadata.append(
+        models.AttributeMetadataResponse(id=str(uuid.UUID(int=0)))
+    )
+    # rewrite the get_attribute_metadata return value
+    uploader.client.get_attribute_metadata = (
+        lambda *args, **kwargs: mock_attribute_metadata
+    )
+
+    media = hari_uploader.HARIMedia(
+        name=f"my image",
+        media_type=models.MediaType.IMAGE,
+        back_reference=f"img",
+    )
+
+    new_attrs_number = 2
+    for k in range(new_attrs_number):
+        media_object = hari_uploader.HARIMediaObject(
+            source=models.DataSource.REFERENCE,
+            back_reference=f"img_obj_{k}",
+        )
+        media.add_media_object(media_object)
+        media_object.add_attribute(
+            hari_uploader.HARIAttribute(
+                id=uuid.UUID(int=k),
+                name=f"attr_{k}",
+                value=f"value_{k}",
+            )
+        )
+
+    uploader.add_media(media)
+
+    # Act + Assert
+    with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
+        uploader.upload()
+    assert e.value.new_attributes_number == new_attrs_number
+    assert e.value.existing_attributes_number == len(mock_attribute_metadata)
+    assert (
+        e.value.intended_attributes_number == 1001
+    )  # (1000 existing + 2 new) - 1 new that collides with existing

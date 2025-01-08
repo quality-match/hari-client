@@ -11,7 +11,8 @@ from hari_client import models
 @pytest.fixture()
 def mock_client(test_client, mocker) -> typing.Generator[HARIClient, list[str], None]:
     """Sets up a basic uploader using object_categories
-    Mocks the create_subset method to return random subset ids in lexicographical order
+    Mocks the create_subset method to return random subset ids in lexicographical order.
+    Mocks the get_attribute_metadata method to return an empty list.
     returns
         uploader: HARIUploader instance
         object_category_vs_subsets: dict[str, str] mapping object category names to their subset ids
@@ -23,6 +24,7 @@ def mock_client(test_client, mocker) -> typing.Generator[HARIClient, list[str], 
     mocker.patch.object(
         test_client, "create_empty_subset", side_effect=create_subset_return_val
     )
+    mocker.patch.object(test_client, "get_attribute_metadata", return_value=[])
     yield test_client, create_subset_return_val
 
 
@@ -84,6 +86,7 @@ def mock_uploader_for_batching(test_client, mocker):
         ),
     )
     mocker.patch.object(client, "create_attributes", return_value=models.BulkResponse())
+    mocker.patch.object(client, "get_attribute_metadata", return_value=[])
     pedestrian_subset_id = str(uuid.uuid4())
     wheel_subset_id = str(uuid.uuid4())
     object_categories = {"pedestrian", "wheel"}
@@ -166,6 +169,7 @@ def mock_uploader_for_bulk_operation_annotatable_id_setter(test_client, mocker):
     mocker.patch.object(
         client, "create_media_objects", return_value=models.BulkResponse()
     )
+    mocker.patch.object(client, "get_attribute_metadata", return_value=[])
     pedestrian_subset_id = str(uuid.uuid4())
     wheel_subset_id = str(uuid.uuid4())
     mocker.patch.object(
@@ -222,6 +226,7 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
      - create_attributes
      - create_subset
      - get_subsets_for_dataset
+    - get_attribute_metadata (mocked to return an empty list)
 
     mocked HARIUploader methods:
      - _set_bulk_operation_annotatable_id
@@ -287,6 +292,7 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
                 ]
             ),
         )
+        mocker.patch.object(test_client, "get_attribute_metadata", return_value=[])
 
         if create_subset_side_effect is not None:
             mocker.patch.object(
