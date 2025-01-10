@@ -23,12 +23,12 @@
   - attribute value types have to be consistent
   - attributes with a list as value have to have a single consistent value type for their list elements
   - attributes with the same name and annotatable_type have to reuse the same attribute id
-- added scripts [PR#44](https://github.com/quality-match/hari-client/pull/44)
+- added scripts [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added script `trigger_metadata_rebuild`
   - added script `upload_coco_like_dataset`
   - added script `upload_generic_dataset`
   - added script `upload_dataset_with_own_attributes`
-- extended client [PR#44](https://github.com/quality-match/hari-client/pull/44)
+- extended client [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - Add Uploader Wrappings which check for existing datasets, subsets and media before creation or upload
 
 ### Fixes
