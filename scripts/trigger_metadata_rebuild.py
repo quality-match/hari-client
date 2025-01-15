@@ -17,9 +17,7 @@ if __name__ == "__main__":
         "-d", "--dataset_id", type=str, help="Dataset ID to recreate", required=True
     )
 
-    parser.add_argument(
-        "-s", "--subset_id", type=str, help="Subset ID to recreate", required=True
-    )
+    parser.add_argument("-s", "--subset_id", type=str, help="Subset ID to recreate")
 
     # Parse the arguments.
     args = parser.parse_args()
