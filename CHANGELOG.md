@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [3.1.0] - 14-01-2025
+
 ### New Features
 
 - added a limit for the number of unique attribute ids that can be created for the dataset. [PR#51](https://github.com/quality-match/hari-client/pull/51) [PR#57](https://github.com/quality-match/hari-client/pull/57)
