@@ -2116,3 +2116,113 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
         )
+
+    def get_development_sets(
+        self,
+    ) -> list[models.DevelopmentSetResponse]:
+        return self._request(
+            "GET",
+            f"/trainingSets",
+            # no params
+            success_response_item_model=list[models.DevelopmentSetResponse],
+        )
+
+    def get_development_set(
+        self, development_set_id: str
+    ) -> models.DevelopmentSetResponse:
+        return self._request(
+            "GET",
+            f"/trainingSets/{development_set_id}",
+            # no params
+            success_response_item_model=models.DevelopmentSetResponse,
+        )
+
+    def create_development_set(
+        self,
+        name: str,
+        training_attributes: list[models.TrainingAttribute],
+        user_group: str | None = None,
+    ) -> models.DevelopmentSetResponse:
+        body = {
+            "name": name,
+            "training_attributes": training_attributes,
+            "user_group": user_group,
+        }
+
+        return self._request(
+            "POST",
+            "/trainingSets",
+            json=body,
+            success_response_item_model=models.DevelopmentSetResponse,
+        )
+
+    def get_aint_models(
+        self,
+    ) -> list[models.MlAnnotationModel]:
+        return self._request(
+            "GET",
+            f"/mlAnnotationModels",
+            # no params
+            success_response_item_model=list[models.MlAnnotationModel],
+        )
+
+    def get_aint_model(self, aint_model_id: str) -> models.MlAnnotationModel:
+        return self._request(
+            "GET",
+            f"/mlAnnotationModels/{aint_model_id}",
+            # no params
+            success_response_item_model=models.MlAnnotationModel,
+        )
+
+    def train_aint_model(
+        self, name: str, development_set_id: str, user_group: str | None = None
+    ) -> models.MlAnnotationModel:
+        body = {"name": name, "training_set_id": development_set_id}
+
+        return self._request(
+            "POST",
+            "/mlAnnotationModels",
+            json=body,
+            success_response_item_model=models.MlAnnotationModel,
+        )
+
+    def get_ai_annotation_runs(
+        self,
+    ) -> list[models.AiAnnotationRun]:
+        return self._request(
+            "GET",
+            f"/aiAnnotationRuns",
+            # no params
+            success_response_item_model=list[models.AiAnnotationRun],
+        )
+
+    def get_ai_annotation_run(self, run_id: str) -> models.AiAnnotationRun:
+        return self._request(
+            "GET",
+            f"/aiAnnotationRuns/{run_id}",
+            # no params
+            success_response_item_model=models.AiAnnotationRun,
+        )
+
+    def start_ai_annotation_run(
+        self,
+        name: str,
+        dataset_id: str,
+        subset_id: str,
+        model_id: str,
+        user_group: str | None = None,
+    ) -> models.AiAnnotationRun:
+        body = {
+            "name": name,
+            "dataset_id": dataset_id,
+            "subset_id": subset_id,
+            "ml_annotation_model_id": model_id,
+            "user_group": user_group,
+        }
+
+        return self._request(
+            "POST",
+            "/aiAnnotationRuns",
+            json=body,
+            success_response_item_model=models.AiAnnotationRun,
+        )

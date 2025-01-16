@@ -705,6 +705,90 @@ class MediaObjectResponse(BaseModel):
     )
 
 
+class TrainingAttribute(BaseModel):
+    dataset_id: str = pydantic.Field(default=None, title="Dataset Id")
+    attribute_id: str = pydantic.Field(default=None, title="Attribute Id")
+    query: QueryList | None = pydantic.Field(default_factory=list, title="Query")
+
+
+class DevelopmentSetResponse(BaseModel):
+    id: str | None = pydantic.Field(default=None, title="Id")
+    name: str | None = pydantic.Field(default=None, title="Name")
+    created_at: str | None = pydantic.Field(default=None, title="Created At")
+    updated_at: str | None = pydantic.Field(default=None, title="Updated At")
+    archived_at: str | None = pydantic.Field(default=None, title="Archived At")
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    training_attributes: list[TrainingAttribute] = pydantic.Field(
+        default_factory=list, title="Training Attributes"
+    )
+    question: str | None = pydantic.Field(default=None, title="Question")
+    possible_answers: list[str | int | bool] = pydantic.Field(
+        default_factory=list, title="Possible Answers"
+    )
+    repeats: int | None = pydantic.Field(default=None, title="Repeats")
+    subset_id: str | None = pydantic.Field(default=None, title="Subset Id")
+
+
+MLAnnotationModelStatus = typing.Literal[
+    "created", "training", "training_failed", "training_done"
+]
+
+
+class MlAnnotationModel(BaseModel):
+    created_at: str | None = pydantic.Field(default=None, title="Created At")
+    updated_at: str | None = pydantic.Field(default=None, title="Updated At")
+    archived_at: str | None = pydantic.Field(default=None, title="Archived At")
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    status: MLAnnotationModelStatus = pydantic.Field(default=None, title="Status")
+    dataset_id: str = pydantic.Field(default=None, title="Dataset Id")
+    reference_set_annotation_run_id: str | None = pydantic.Field(
+        default=None, title="Reference Set Annotation Run Id"
+    )
+    name: str | None = pydantic.Field(default=None, title="Name")
+    training_subset_id: str | None = pydantic.Field(
+        default=None, title="Training Subset Id"
+    )
+    validation_subset_id: str | None = pydantic.Field(
+        default=None, title="Validation Subset Id"
+    )
+    test_subset_id: str | None = pydantic.Field(default=None, title="Test Subset Id")
+    automation_correctness_curve: dict | None = pydantic.Field(
+        default_factory=dict, title="Automation Correctness Curve"
+    )
+    model_weight_location: str | None = pydantic.Field(
+        default=None, title="Model Weight Location"
+    )
+    training_set_id: str | None = pydantic.Field(default=None, title="Training Set Id")
+    id: str = pydantic.Field(default=None, title="Id")
+
+
+AiAnnotationRunStatus = typing.Literal[
+    "created", "annotating", "creation_failed", "ai_annotation_failed", "done"
+]
+
+
+class AiAnnotationRun(BaseModel):
+    created_at: str | None = pydantic.Field(default=None, title="Created At")
+    updated_at: str | None = pydantic.Field(default=None, title="Updated At")
+    archived_at: str | None = pydantic.Field(default=None, title="Archived At")
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    name: str = pydantic.Field(default=None, title="Name")
+    status: AiAnnotationRunStatus = pydantic.Field(default=None, title="Status")
+    dataset_id: str = pydantic.Field(default=None, title="Dataset Id")
+    subset_id: str = pydantic.Field(default=None, title="Subset Id")
+    ml_annotation_model_id: str | None = pydantic.Field(
+        default=None, title="ML Annotation Model Id"
+    )
+    attribute_metadata_id: str | None = pydantic.Field(
+        default=None, title="Attribute Metadata Id"
+    )
+    id: str = pydantic.Field(default=None, title="Id")
+    completed_at: str | None = pydantic.Field(default=None, title="Completed At")
+
+
 class ValidationError(BaseModel):
     loc: list = pydantic.Field(title="Location")
     msg: str = pydantic.Field(title="Message")
