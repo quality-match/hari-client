@@ -5,6 +5,23 @@ from hari_client import HARIClient
 from hari_client.models import models
 
 
+def get_ai_annotation_run_for_attribute_id(
+    attribute_id: str, ai_annoation_runs: list[models.AiAnnotationRun] = None
+) -> models.AiAnnotationRun | None:
+    if ai_annoation_runs is None:
+        ai_annoation_runs: list[models.AiAnnotationRun] = hari.get_ai_annotation_runs()
+        print(f"Found {len(ai_annoation_runs)} AI Annotation Runs")
+
+    # search for the desired annotation run
+    ai_annotation_run: models.AiAnnotationRun = None
+    for run in ai_annoation_runs:
+        if run.attribute_metadata_id == aint_attribute_id:
+            ai_annotation_run = run
+            break
+
+    return ai_annotation_run
+
+
 if __name__ == "__main__":
     # Argument parser setup.
     parser = argparse.ArgumentParser(
@@ -36,11 +53,9 @@ if __name__ == "__main__":
     print(f"Found {len(ai_annoation_runs)} AI Annotation Runs")
 
     # search for the desired annotation run
-    ai_annotation_run: models.AiAnnotationRun = None
-    for run in ai_annoation_runs:
-        if run.attribute_metadata_id == aint_attribute_id:
-            ai_annotation_run = run
-            break
+    ai_annotation_run = get_ai_annotation_run_for_attribute_id(
+        aint_attribute_id, ai_annoation_runs
+    )
 
     # OPTIONAL if you want a specific ai annotation run
     # annoation_run_id = "???????"
