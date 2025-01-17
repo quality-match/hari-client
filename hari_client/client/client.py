@@ -9,6 +9,7 @@ import warnings
 import pydantic
 import requests
 from requests import adapters
+from tqdm import tqdm
 
 from hari_client.client import errors
 from hari_client.config import config
@@ -932,6 +933,62 @@ class HARIClient:
             success_response_item_model=list[models.MediaResponse],
         )
 
+    def get_medias_paged(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MediaResponse]:
+        """Get all medias of a dataset, but with paging, should be used for larger datasets
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            batch_size: The number of medias to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
+
+        Returns:
+            A list of all medias in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_medias: int = self.get_media_count(
+            dataset_id, archived, query
+        ).total_count
+
+        print(f"Fetching {total_medias} medias ...")
+
+        medias: list[models.MediaResponse] = []
+
+        # Loop through media pages until all are retrieved
+        for skip in tqdm(range(0, total_medias, batch_size)):
+            page_medias = self._request(
+                "GET",
+                f"/datasets/{dataset_id}/medias",
+                params={
+                    "query": query,
+                    "projection": projection,
+                    "sort": sort,
+                    "archived": archived,
+                    "limit": batch_size,
+                    "skip": skip,
+                },
+                success_response_item_model=list[models.MediaResponse],
+            )
+            medias.extend(page_medias)
+
+        print(f"Fetched {len(medias)} medias successfully.")
+
+        return medias
+
     def archive_media(self, dataset_id: uuid.UUID, media_id: str) -> str:
         """Archive the media
 
@@ -1393,6 +1450,7 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
+        projection: dict | None = None,
     ) -> list[models.MediaObjectResponse]:
         """Queries the database based on the submitted parameters and returns a
 
@@ -1404,6 +1462,8 @@ class HARIClient:
             skip: Skip
             query: Query
             sort: Sort
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
 
         Returns:
             list
@@ -1418,6 +1478,62 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.MediaObjectResponse],
         )
+
+    def get_media_objects_paged(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MediaObjectResponse]:
+        """Get all media_objects of a dataset, but with paging, should be used for larger datasets
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            batch_size: The number of medias to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
+
+        Returns:
+            A list of all medias in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_medias: int = self.get_media_object_count(
+            dataset_id, archived, query
+        ).total_count
+
+        print(f"Fetching {total_medias} media_objects ...")
+
+        media_objects: list[models.MediaObjectResponse] = []
+
+        # Loop through media pages until all are retrieved
+        for skip in tqdm(range(0, total_medias, batch_size)):
+            page_medias = self._request(
+                "GET",
+                f"/datasets/{dataset_id}/mediaObjects",
+                params={
+                    "query": query,
+                    "projection": projection,
+                    "sort": sort,
+                    "archived": archived,
+                    "limit": batch_size,
+                    "skip": skip,
+                },
+                success_response_item_model=list[models.MediaObjectResponse],
+            )
+            media_objects.extend(page_medias)
+
+        print(f"Fetched {len(media_objects)} media_objects successfully.")
+
+        return media_objects
 
     def archive_media_object(self, dataset_id: uuid.UUID, media_object_id: str) -> str:
         """Delete (archive) a media object from the db.
@@ -1934,6 +2050,145 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.AttributeResponse],
         )
+
+    def get_attribute_value_count(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+    ) -> models.FilterCount:
+        """Calculates the number of attribute values for a given filter setting
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to consider archived medias
+            query: Query
+
+        Returns:
+             a FilterCount object containing the total count of attributes returned by the query.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues:count",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=models.FilterCount,
+        )
+
+    def get_attribute_value(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_id: str,
+        annotatable_id: str,
+        archived: bool | None = False,
+    ) -> models.AttributeValueResponse:
+        """Returns an attribute value with a given attribute_id.
+
+        Args:
+            dataset_id: The dataset id
+            attribute_id: The attribute id
+            annotatable_id: The id of the annotatable the attribute belongs to
+
+        Returns:
+            The attribute with the given attribute_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues/{attribute_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=models.AttributeValueResponse,
+        )
+
+    def get_attribute_values(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AttributeValueResponse]:
+        """Get all attribute values of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            limit: The number of medias tu return
+            skip: The number of medias to skip
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of all attribute values in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AttributeValueResponse],
+        )
+
+    def get_attribute_values_paged(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AttributeValueResponse]:
+        """Returns all attributes of a dataset, but with paging, should be used for larger datasets
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            batch_size: The number of medias to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of all medias in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_attributes: int = self.get_attribute_value_count(
+            dataset_id, archived, query
+        ).total_count
+
+        print(f"Fetching {total_attributes} attribute values ...")
+
+        medias: list[models.AttributeValueResponse] = []
+
+        # Loop through media pages until all are retrieved
+        for skip in tqdm(range(0, total_attributes, batch_size)):
+            page_medias = self._request(
+                "GET",
+                f"/datasets/{dataset_id}/attributeValues",
+                params={
+                    "query": query,
+                    "sort": sort,
+                    "archived": archived,
+                    "limit": batch_size,
+                    "skip": skip,
+                },
+                success_response_item_model=list[models.AttributeValueResponse],
+            )
+            medias.extend(page_medias)
+
+        print(f"Fetched {len(medias)} attribute values successfully.")
+
+        return medias
 
     def get_attribute(
         self, dataset_id: uuid.UUID, attribute_id: str, annotatable_id: str
