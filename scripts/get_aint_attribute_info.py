@@ -6,7 +6,7 @@ from hari_client.models import models
 
 
 def get_ai_annotation_run_for_attribute_id(
-    attribute_id: str, ai_annoation_runs: list[models.AiAnnotationRun] = None
+    hari, aint_attribute_id: str, ai_annoation_runs: list[models.AiAnnotationRun] = None
 ) -> models.AiAnnotationRun | None:
     if ai_annoation_runs is None:
         ai_annoation_runs: list[models.AiAnnotationRun] = hari.get_ai_annotation_runs()
@@ -54,7 +54,7 @@ if __name__ == "__main__":
 
     # search for the desired annotation run
     ai_annotation_run = get_ai_annotation_run_for_attribute_id(
-        aint_attribute_id, ai_annoation_runs
+        hari, aint_attribute_id, ai_annoation_runs
     )
 
     # OPTIONAL if you want a specific ai annotation run

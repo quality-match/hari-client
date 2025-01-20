@@ -3,6 +3,7 @@ import numpy as np
 import statsmodels.api as sm
 from tqdm import tqdm
 
+from hari_client.models.models import AttributeGroup
 from hari_client.models.models import AttributeMetadataResponse
 from hari_client.models.models import AttributeValueResponse
 from hari_client.models.models import DataBaseObjectType
@@ -33,6 +34,38 @@ def organize_attributes_by_group(
     return group2media_attribute, group2media_object_attribute
 
 
+def find_attribute_id_by_name(
+    attribute_name: str,
+    attribute_metas: list[AttributeMetadataResponse],
+    object_type: DataBaseObjectType = DataBaseObjectType.MEDIAOBJECT,
+    attribute_group: AttributeGroup = AttributeGroup.AnnotationAttribute,
+) -> str | None:
+    all_questions = [
+        attr.name
+        for attr in attribute_metas
+        if attr.annotatable_type == object_type
+        and attr.attribute_group == attribute_group
+    ]
+
+    relevant_ids = [
+        attr.id
+        for attr in attribute_metas
+        if attr.annotatable_type == object_type
+        and attr.attribute_group == attribute_group
+    ]
+
+    counting = all_questions.count(attribute_name)
+
+    if counting == 1:
+        return relevant_ids[all_questions.index(attribute_name)]
+    elif counting > 1:
+        print(
+            "WARNING: Attribute name is not unique, first occurrence of attribute name will be returned"
+        )
+        return relevant_ids[all_questions.index(attribute_name)]
+    return None
+
+
 def create_soft_label_for_annotations(
     attributes: list[AttributeValueResponse],
     attribute_name,
@@ -50,8 +83,8 @@ def create_soft_label_for_annotations(
             continue  # skip non defined attributes and questions
 
         assert (additional_result is None) or (
-            additional_result in attr
-        ), f"You specified the additional value {additional_result} for {attr} but it is not in the dictionary"
+            getattr(attr, additional_result) is not None
+        ), f"You specified the additional value {additional_result} for {attr} but it is not defined in the attribute"
 
         # check if annotatable id is already used
         annotatable_id = attr.annotatable_id
@@ -95,9 +128,9 @@ def create_soft_label_for_annotations(
         # write back
         annotatableID2attributes[annotatable_id][match_by_value] = queried_values
         if additional_result is not None:
-            annotatableID2additional[annotatable_id][match_by_value] = attr[
-                additional_result
-            ]
+            annotatableID2additional[annotatable_id][match_by_value] = getattr(
+                attr, additional_result
+            )
 
     if normalize:
         # use this if the values are actually frequencies of proper soft labels
@@ -134,8 +167,8 @@ def update_mapping(annotations, mapping):
 def calculate_ml_human_alignment(
     annotatableID2annotation,
     annotatableID2mlannotation,
-    question_key,
-    human_question_key=None,
+    attribute_key,
+    human_attribute_key,
     human_mapping=None,
     ml_mapping=None,
     selected_subset_ids=[],
@@ -173,10 +206,10 @@ def calculate_ml_human_alignment(
 
         if annotatable_id in annotatableID2mlannotation:
             ml_annotations = annotatableID2mlannotation[annotatable_id].get(
-                question_key, {}
+                attribute_key, {}
             )
             human_annotations = annotatableID2annotation[annotatable_id].get(
-                question_key if human_question_key is None else human_question_key, {}
+                human_attribute_key, {}
             )
 
             # print(ml_annotations, human_annotations)
@@ -187,7 +220,7 @@ def calculate_ml_human_alignment(
 
             # check if relevant with regard to confidence
             if confidence_threshold >= 0:
-                conf = ID2confidence[annotatable_id][question_key]
+                conf = ID2confidence[annotatable_id][attribute_key]
                 if conf < confidence_threshold:
                     continue
 
@@ -214,8 +247,8 @@ def calculate_ml_human_alignment(
 
     print(
         f"annotations with human/ml/ both(filtered) annotations: "
-        f"{sum([(question_key if human_question_key is None else human_question_key) in values for values in annotatableID2annotation.values()])}/"
-        f"{sum([question_key in values for values in annotatableID2mlannotation.values()])}/"
+        f"{sum([human_attribute_key in values for values in annotatableID2annotation.values()])}/"
+        f"{sum([attribute_key in values for values in annotatableID2mlannotation.values()])}/"
         f"{len(scores['acc'])} "
     )
     if len(scores["acc"]) == 0:
@@ -271,7 +304,7 @@ def kl_divergence(Q, P):
     for key in P:
         p = P[key] + epsilon
         q = Q.get(key, epsilon) + epsilon
-        kl_div += p * np.temp_log(p / q)
+        kl_div += p * np.log(p / q)
     return kl_div
 
 
