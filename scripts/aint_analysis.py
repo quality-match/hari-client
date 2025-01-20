@@ -22,6 +22,10 @@ if __name__ == "__main__":
         "-d", "--dataset_id", type=str, help="Dataset ID to download", required=True
     )
 
+    parser.add_argument(
+        "-s", "--subset_id", type=str, help="Optional, Subset ID for filtering down"
+    )
+
     # TODO define cache directory
     DATA_DIRECTORY = "/Volumes/Data/data/"
 
@@ -32,6 +36,7 @@ if __name__ == "__main__":
 
     # Extract arguments.
     dataset_id: uuid.uuid4() = args.dataset_id
+    subset_id: str = args.subset_id
 
     # load hari client
     config: Config = Config(_env_file=".env")
@@ -49,7 +54,11 @@ if __name__ == "__main__":
     #
     # print(attribute_metas)
     medias, media_objects, attributes, attribute_metas = collect_media_and_attributes(
-        hari, dataset_id, directory, subset_ids=[], additional_fields=["attributes"]
+        hari,
+        dataset_id,
+        directory,
+        subset_ids=[subset_id],
+        additional_fields=["attributes"],
     )
 
     print(len(media_objects), media_objects[0])
@@ -100,7 +109,7 @@ if __name__ == "__main__":
 
     # calculate cutoff
 
-    cutoff_threholds = calculate_cutoff_thresholds(
+    cutoff_thresholds = calculate_cutoff_thresholds(
         ID2annotation,
         ID2mlannotation,
         ID2confidence,
@@ -112,7 +121,7 @@ if __name__ == "__main__":
     )
 
     # print(cutoff_threholds)
-    for cut_off_name, (cut_off_threshold, approximated_ad) in cutoff_threholds.items():
+    for cut_off_name, (cut_off_threshold, approximated_ad) in cutoff_thresholds.items():
         print(f"# {cut_off_name} @ ~{approximated_ad * 100:0.02f}% automation")
         calculate_ml_human_alignment(
             ID2annotation,
