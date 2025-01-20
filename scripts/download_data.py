@@ -47,10 +47,6 @@ if __name__ == "__main__":
         hari, dataset_id, directory, subset_ids=[], additional_fields=["attributes"]
     )
 
-    print(media_objects[0])
-    print(
-        len(initial_attributes),
-        len(annotation_attributes),
-        len(ml_annotation_attributes),
-    )
-    print(annotation_attributes[0])
+    print(len(media_objects), media_objects[0])
+    print(len(medias), medias[0])
+    print(len(attributes), attributes[0])

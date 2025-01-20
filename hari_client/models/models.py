@@ -1143,12 +1143,12 @@ class AttributeMetadataResponse(BaseModel):
     # AttributeValue + AttributeMetadata = Attribute
     id: str | None = pydantic.Field(default=None, title="Id")
     dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
-    tags: set[str] | None = pydantic.Field(default=set(), title="Tags")
+    tags: set[str] | None = pydantic.Field(default=None, title="Tags")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
     name: str | None = pydantic.Field(default=None, title="Name")
     question: str | None = pydantic.Field(default=None, title="Question")
-    subset_ids: set[str] = pydantic.Field(default=set(), title="Subset Ids")
+    subset_ids: set[str] | None = pydantic.Field(default=None, title="Subset Ids")
     attribute_type: AttributeType | None = pydantic.Field(
         default=None, title="Attribute Type"
     )

@@ -32,14 +32,14 @@ def pydantic_save_to_json(
     with open(file_path, "w") as json_file:
         if isinstance(data, list):
             # Serialize a list of Pydantic models
-            json_file.write(
-                json.dumps(
-                    [model.model_dump() for model in data], indent=2, default=str
-                )
-            )
+            # .model_dump(mode="json") ensures sets become lists and other objects
+            # are converted properly.
+            serialized = [model.model_dump(mode="json") for model in data]
+            json.dump(serialized, json_file, indent=2)
         elif isinstance(data, models.BaseModel):
             # Serialize a single Pydantic model
-            json_file.write(json.dumps(data.model_dump(), indent=2, default=str))
+            serialized = data.model_dump(mode="json")
+            json.dump(serialized, json_file, indent=2)
         else:
             raise TypeError(
                 "Data must be a Pydantic model or a list of Pydantic models."
@@ -117,12 +117,12 @@ def collect_media_and_attributes(
         and os.path.exists(media_object_file)
     ) and cache:
         # Load the dictionaries from the existing JSON files
+        attribute_metas = pydantic_load_from_json(
+            attr_meta_file, models.AttributeMetadataResponse
+        )
         medias = pydantic_load_from_json(media_file, models.MediaResponse)
         media_objects = pydantic_load_from_json(
             media_object_file, models.MediaObjectResponse
-        )
-        attribute_metas = pydantic_load_from_json(
-            attr_meta_file, models.AttributeMetadataResponse
         )
 
         if "attributes" not in additional_fields:
