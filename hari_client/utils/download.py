@@ -96,6 +96,23 @@ def convert_internal_attributes_to_list(
     return attributes
 
 
+def get_ai_annotation_run_for_attribute_id(
+    hari, aint_attribute_id: str, ai_annoation_runs: list[models.AiAnnotationRun] = None
+) -> models.AiAnnotationRun | None:
+    if ai_annoation_runs is None:
+        ai_annoation_runs: list[models.AiAnnotationRun] = hari.get_ai_annotation_runs()
+        print(f"Found {len(ai_annoation_runs)} AI Annotation Runs")
+
+    # search for the desired annotation run
+    ai_annotation_run: models.AiAnnotationRun = None
+    for run in ai_annoation_runs:
+        if run.attribute_metadata_id == aint_attribute_id:
+            ai_annotation_run = run
+            break
+
+    return ai_annotation_run
+
+
 def collect_media_and_attributes(
     hari: HARIClient,
     dataset_id: uuid.UUID,
@@ -110,34 +127,48 @@ def collect_media_and_attributes(
     attr_file = join(directory, "attributes.json")
     attr_meta_file = join(directory, "attributes_meta.json")
     os.makedirs(directory, exist_ok=True)
-    if (
-        os.path.exists(attr_file)
-        and os.path.exists(media_file)
-        and os.path.exists(attr_meta_file)
-        and os.path.exists(media_object_file)
-    ) and cache:
-        # Load the dictionaries from the existing JSON files
+
+    # TODO add verbose explanation what happens
+
+    # meta attributes
+    if os.path.exists(attr_meta_file) and cache:
+        print("Load the attribute metas from the json file cache.")
         attribute_metas = pydantic_load_from_json(
             attr_meta_file, models.AttributeMetadataResponse
         )
+
+    else:
+        print("Query the attribute metas objects from HARI.")
+        attribute_metas = hari.get_attribute_metadata(dataset_id)
+        pydantic_save_to_json(attr_meta_file, attribute_metas)
+
+    # media and media object
+    if os.path.exists(media_object_file) and os.path.exists(media_file) and cache:
+        print("Load the media and media objects from the json file cache.")
+        # Load the dictionaries from the existing JSON files
         medias = pydantic_load_from_json(media_file, models.MediaResponse)
         media_objects = pydantic_load_from_json(
             media_object_file, models.MediaObjectResponse
         )
-
-        if "attributes" not in additional_fields:
-            attributes = pydantic_load_from_json(attr_file, models.AttributeResponse)
-        else:
-            attributes = convert_internal_attributes_to_list(medias, media_objects)
-
-        print("Loaded dictionaries from JSON")
     else:
+        print("Query the media and media objects from HARI.")
         dataset_name, medias, media_objects = get_media_and_objects(
             hari, dataset_id, subset_ids, additional_fields
         )
         pydantic_save_to_json(media_file, medias)
         pydantic_save_to_json(media_object_file, media_objects)
+
+    # attributes
+    if os.path.exists(attr_file) and cache:
+        # Load the dictionaries from the existing JSON files
         if "attributes" not in additional_fields:
+            print("Load the attributes from the json file cache.")
+            attributes = pydantic_load_from_json(attr_file, models.AttributeResponse)
+        else:
+            attributes = convert_internal_attributes_to_list(medias, media_objects)
+    else:
+        if "attributes" not in additional_fields:
+            print("Query the attributes from HARI.")
             attributes = get_all_attributes_for_media_and_objects(
                 hari, dataset_id, media_objects, medias
             )
@@ -146,13 +177,6 @@ def collect_media_and_attributes(
             # create based on fields in media objects
             pydantic_save_to_json(attr_file, [])
             attributes = convert_internal_attributes_to_list(medias, media_objects)
-
-        attribute_metas = get_attribute_metas_for_attributes_values(
-            hari, dataset_id, attributes
-        )
-        pydantic_save_to_json(attr_meta_file, attribute_metas)
-
-        print("Created and saved new dictionaries to JSON files.")
 
     return medias, media_objects, attributes, attribute_metas
 
@@ -272,8 +296,11 @@ def get_attribute_metas_for_attributes_values(
     # make unqiue
     meta_ids = list(set(meta_ids))
 
+    print(meta_ids)
+
     meta_ids = hari.get_attribute_metadata(
         dataset_id,
+        # can lead to too long queries
         query=json.dumps(
             {
                 "attribute": "id",

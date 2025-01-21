@@ -257,15 +257,20 @@ def calculate_ml_human_alignment(
 
     # average results
     for key, values in scores.items():
-        # print(f"{key}: {np.mean(values):0.02f} +- {np.std(values):0.02f}, median {np.median(values):0.02f} #{len(values)}")
+        if key.startswith("kl"):
+            print(
+                f"{key}: {np.mean(values):0.02f} +- {np.std(values):0.02f}, median {np.median(values):0.02f} #{len(values)}"
+            )
         if "acc" in key or "precision" in key:
             # add confidence estimations
-            caluclate_confidence_interval_scores(
-                f"{key} -> confidence", sum(values), len(values)
-            )
+            caluclate_confidence_interval_scores(f"{key} -> ", sum(values), len(values))
+
+    return scores
 
 
-def caluclate_confidence_interval_scores(score_name, m, n, invalids=0, confidence=0.95):
+def caluclate_confidence_interval_scores(
+    score_name, m, n, invalids=0, confidence=0.95, verbose=True
+):
     """
     based on wilson
     :param score_name:
@@ -292,9 +297,11 @@ def caluclate_confidence_interval_scores(score_name, m, n, invalids=0, confidenc
 
     alpha = 1 - confidence
     ci_lower, ci_upper = sm.stats.proportion_confint(m, n, alpha=alpha, method="wilson")
-    print(
-        f"{score_name}: {p_hat*100:0.02f}% , conf {p_adjusted*100:0.02f}% [{ci_lower*100:.2f}%, {ci_upper*100:.2f}%], m: {int(m):d}, n: {int(n):d}, invalid: {invalids:d}"
-    )
+    if verbose:
+        print(
+            f"{score_name} {p_hat*100:0.02f}% , conf {p_adjusted*100:0.02f}% [{ci_lower*100:.2f}%, {ci_upper*100:.2f}%], m: {int(m):d}, n: {int(n):d}, invalid: {invalids:d}"
+        )
+    return p_hat, p_adjusted, ci_lower, ci_upper, m, n, invalids
 
 
 def kl_divergence(Q, P):
@@ -319,6 +326,7 @@ def calculate_cutoff_thresholds(
     use_per_classList=[True, False],
     correctness_thresholdList=[0.99, 0.95],
     human_key=None,
+    visualize=False,
 ):
     # calculate ADC curve
     ml_annotations, human_annotations, confidences = [], [], []
@@ -421,41 +429,40 @@ def calculate_cutoff_thresholds(
                     last_ad,
                 )
 
-        print(cutoff_thresholds)
+        if visualize:
+            # print("ADC: ", adc)
+            # visualize
+            colors = [
+                "lightcoral",
+                "lightgreen",
+                "lightsalmon",
+                "lightpink",
+                "lightseagreen",
+                "lightsteelblue",
+                "lightgoldenrodyellow",
+                "lightcyan",
+                "lightgray",
+            ]
 
-        # print("ADC: ", adc)
-        # visualize
-        colors = [
-            "lightcoral",
-            "lightgreen",
-            "lightsalmon",
-            "lightpink",
-            "lightseagreen",
-            "lightsteelblue",
-            "lightgoldenrodyellow",
-            "lightcyan",
-            "lightgray",
-        ]
+            # Create a  plot
+            keys, values = list(adc.keys()), list(adc.values())
+            plt.plot(keys, values, color="lightblue", linestyle="--", label="All")
+            for i, label in enumerate(labels):
+                plt.plot(
+                    list(adc_per_class[label].keys()),
+                    list(adc_per_class[label].values()),
+                    color=colors[i],
+                    linestyle="--",
+                    label=label,
+                )
 
-        # Create a  plot
-        keys, values = list(adc.keys()), list(adc.values())
-        plt.plot(keys, values, color="lightblue", linestyle="--", label="All")
-        for i, label in enumerate(labels):
-            plt.plot(
-                list(adc_per_class[label].keys()),
-                list(adc_per_class[label].values()),
-                color=colors[i],
-                linestyle="--",
-                label=label,
-            )
+            # Labels and title
+            plt.xlabel("Automation Degree")
+            plt.ylabel("Correctness")
+            plt.title("ADC")
+            plt.legend()
 
-        # Labels and title
-        plt.xlabel("Automation Degree")
-        plt.ylabel("Correctness")
-        plt.title("ADC")
-        plt.legend()
-
-        # Show plot
-        # plt.show()
+            # Show plot
+            plt.show()
 
     return cutoff_thresholds
