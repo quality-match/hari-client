@@ -15,7 +15,7 @@ def create_development_data(
 ) -> models.DevelopmentSetResponse:
     # construct training attributes
     # simple case only one attribute, simple filter subset
-    if subset_id is not None:
+    if subset_id is None:
         training_attribute = {"attribute_id": attribute_id, "dataset_id": dataset_id}
     else:
         training_attribute = {
