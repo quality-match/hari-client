@@ -85,8 +85,18 @@ media_object_3 = hari_uploader.HARIMediaObject(
         closed=False,
     ),
 )
+media_object_4 = hari_uploader.HARIMediaObject(
+    back_reference="road marking segment",
+    reference_data=models.SegmentRLECompressed(
+        size=[1861, 2792],
+        counts=b"hSXa26oi1:F;E:F;E:F;E:F;E:F;E:F;E:F;E:F;E:F;E:F6MM4L4L4L4L5K4L4L4L4L5K4L4L4L4L5K4L4L4L4L5K4L4L4L4L5K4L4L4L4L5K4L4L4L4L5K4L4L4L4L5K4L4L4L4L5K4L4L4L4LmhXY2",
+    ),
+)
+
+
 media_object_3.set_object_category_subset_name("road_marking")
 media_3.add_media_object(media_object_3)
+media_3.add_media_object(media_object_4)
 
 # 4. Set up the uploader and add the medias to it
 uploader = hari_uploader.HARIUploader(

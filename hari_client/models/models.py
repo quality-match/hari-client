@@ -185,6 +185,18 @@ class BBox2DCenterPoint(BaseModel):
     height: typing.Any = pydantic.Field(title="Height")
 
 
+class SegmentRLECompressed(pydantic.BaseModel):
+    """
+    2D rle compressed segment representation.
+    counts: the actual RLE encoded string, which describes the binary mask
+    size: the dimensions of the binary mask that RLE represents
+    """
+
+    type: str = "segment2d_rle_compressed"
+    counts: str
+    size: list[int]
+
+
 class DataSource(str, enum.Enum):
     QM = "QM"
     REFERENCE = "REFERENCE"
@@ -785,6 +797,7 @@ GeometryUnion = (
     | BoundingBox2DAggregation
     | Point2DAggregation
     | Point3DAggregation
+    | SegmentRLECompressed
 )
 
 

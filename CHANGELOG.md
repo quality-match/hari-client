@@ -1,5 +1,11 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [3.2.0] - TBD
+
+### New Features
+
+- added support for segmentation of media objects [PR#62](https://github.com/quality-match/hari-client/pull/62)
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features
