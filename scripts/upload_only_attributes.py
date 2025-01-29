@@ -61,6 +61,19 @@ if __name__ == "__main__":
         media_type=models.MediaType.IMAGE,
     )
 
+    # Add media object to the media
+    obj1 = hari_uploader.HARIMediaObject(
+        back_reference="MO1",
+        reference_data=models.BBox2DCenterPoint(
+            type=models.BBox2DType.BBOX2D_CENTER_POINT,
+            x=10,
+            y=11,
+            width=12,
+            height=13,
+        ),
+    )
+    media.add_media_object(obj1)
+
     # Add attributes to the media
     att1 = hari_uploader.HARIAttribute(
         name="Attribute3",
@@ -69,6 +82,7 @@ if __name__ == "__main__":
         value=False,
     )
     media.add_attribute(att1)
+    obj1.add_attribute(att1)
 
     # upload image to dataset
     check_and_upload_dataset(
@@ -81,11 +95,11 @@ if __name__ == "__main__":
     )
 
     # if media is uploaded already only the backreference is needed
-    media = hari_uploader.HARIMedia(
-        name="Something",  # can be random, if already uploaded, TODO add mocking
-        media_type=models.MediaType.IMAGE,  # can be random, if already uploaded, TODO add mocking
+    media = hari_uploader.HARIMediaMockUpload(
         back_reference=image_url,
     )
+
+    obj1 = hari_uploader.HARIMediaObjectMockUpload(back_reference=obj1.back_reference)
 
     # Add attributes to the media
     att2 = hari_uploader.HARIAttribute(
@@ -102,6 +116,9 @@ if __name__ == "__main__":
     media.add_attribute(
         att1, att2
     )  # att1 was already uploaded but uploader can handle this
+
+    media.add_media_object(obj1)
+    obj1.add_attribute(att1, att2)
 
     # upload image to dataset
     check_and_upload_dataset(

@@ -82,6 +82,15 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
         return v
 
 
+class HARIMediaObjectMockUpload(HARIMediaObject):
+    def __init__(self, **kwargs):
+        # Set not needed necessary values to random entries
+        # can be random, if already uploaded
+        name = "???"
+        media_type = models.MediaType.IMAGE
+        super().__init__(name=name, media_type=media_type, **kwargs)
+
+
 class HARIMediaUploadError(Exception):
     pass
 
@@ -178,6 +187,15 @@ class HARIMedia(models.BulkMediaCreate):
                 "use a back_reference so that you can match HARI objects to your own."
             )
         return v
+
+
+class HARIMediaMockUpload(HARIMedia):
+    def __init__(self, **kwargs):
+        # Set not needed necessary values to random entries
+        # can be random, if already uploaded
+        name = "???"
+        media_type = models.MediaType.IMAGE
+        super().__init__(name=name, media_type=media_type, **kwargs)
 
 
 class HARIUploadResults(pydantic.BaseModel):
@@ -740,6 +758,8 @@ def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
         models.BulkResponse: The merged BulkResponse object
     """
     final_response = models.BulkResponse()
+
+    # TODO add option to highlight conflicts as in skipped
 
     if len(args) == 0:
         final_response.status = models.BulkOperationStatusEnum.SUCCESS

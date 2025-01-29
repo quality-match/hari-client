@@ -85,9 +85,7 @@ if __name__ == "__main__":
     )
 
     # if media is uploaded already only the backreference is needed
-    media = hari_uploader.HARIMedia(
-        name="Something",  # can be random, if already uploaded , TODO add mocking
-        media_type=models.MediaType.IMAGE,  # can be random, if already uploaded , TODO add mocking
+    media = hari_uploader.HARIMediaMockUpload(
         back_reference=image_url,
     )
 
