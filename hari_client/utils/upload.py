@@ -158,10 +158,10 @@ def check_and_upload_dataset(
         or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
         or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
     ):
-        print(
-            "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
-        )
+        print("The data upload wasn't fully successful. See the details below.")
         print(f"media upload details: {upload_results.medias.results}")
+        print(f"media objects upload details: {upload_results.media_objects.results}")
+        print(f"attributes upload details: {upload_results.attributes.results}")
 
     new_subset_id, reused = check_and_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type

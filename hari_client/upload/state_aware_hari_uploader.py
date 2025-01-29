@@ -7,6 +7,8 @@ from hari_client import HARIClient
 from hari_client import HARIUploaderConfig
 from hari_client import models
 from hari_client import validation
+from hari_client.client.client import _parse_response_model
+from hari_client.client.errors import APIError
 from hari_client.upload.hari_uploader import _merge_bulk_responses
 from hari_client.upload.hari_uploader import HARIAttribute
 from hari_client.upload.hari_uploader import HARIMedia
@@ -55,7 +57,6 @@ class HARIUploader:
         self._object_category_subsets: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
 
-    # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
     # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
     # --> refactor this, so that all logic happenning in the add_* functions happens when the upload method is run.
     def add_media(self, *args: HARIMedia) -> None:
@@ -71,44 +72,45 @@ class HARIUploader:
                 was detected
         """
 
-        # TODO move checks to validate function like validate all attributes
-        for media in args:
-            # check and remember media back_references
-            if media.back_reference in self._media_back_references:
-                log.warning(
-                    f"Found duplicate media back_reference: {media.back_reference}. If "
-                    f"you want to be able to match HARI objects 1:1 to your own, "
-                    f"consider using unique back_references."
-                )
-            else:
-                self._media_back_references.add(media.back_reference)
+        self._medias.extend(args)
 
-            self._medias.append(media)
-            # self._attribute_cnt += len(media.attributes)
-            for attr in media.attributes:
-                self._unique_attribute_ids.add(str(attr.id))
-                # annotatable_type is optional for a HARIAttribute, but can already be set here
-                if not attr.annotatable_type:
-                    attr.annotatable_type = models.DataBaseObjectType.MEDIA
-
-            # check and remember media object back_references
-            for media_object in media.media_objects:
-                if media_object.back_reference in self._media_object_back_references:
-                    log.warning(
-                        f"Found duplicate media_object back_reference: "
-                        f"{media.back_reference}. If you want to be able to match HARI "
-                        f"objects 1:1 to your own, consider using unique "
-                        f"back_references."
-                    )
-                else:
-                    self._media_object_back_references.add(media_object.back_reference)
-                # self._media_object_cnt += 1
-                # self._attribute_cnt += len(media_object.attributes)
-                for attr in media_object.attributes:
-                    self._unique_attribute_ids.add(str(attr.id))
-                    # annotatable_type is optional for a HARIAttribute, but can already be set here
-                    if not attr.annotatable_type:
-                        attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
+        # for media in args:
+        #     # check and remember media back_references
+        #     if media.back_reference in self._media_back_references:
+        #         log.warning(
+        #             f"Found duplicate media back_reference: {media.back_reference}. If "
+        #             f"you want to be able to match HARI objects 1:1 to your own, "
+        #             f"consider using unique back_references."
+        #         )
+        #     else:
+        #         self._media_back_references.add(media.back_reference)
+        #
+        #     # self._medias.append(media)
+        #     # self._attribute_cnt += len(media.attributes)
+        #     for attr in media.attributes:
+        #         self._unique_attribute_ids.add(str(attr.id))
+        #         # annotatable_type is optional for a HARIAttribute, but can already be set here
+        #         if not attr.annotatable_type:
+        #             attr.annotatable_type = models.DataBaseObjectType.MEDIA
+        #
+        #     # check and remember media object back_references
+        #     for media_object in media.media_objects:
+        #         if media_object.back_reference in self._media_object_back_references:
+        #             log.warning(
+        #                 f"Found duplicate media_object back_reference: "
+        #                 f"{media.back_reference}. If you want to be able to match HARI "
+        #                 f"objects 1:1 to your own, consider using unique "
+        #                 f"back_references."
+        #             )
+        #         else:
+        #             self._media_object_back_references.add(media_object.back_reference)
+        #         # self._media_object_cnt += 1
+        #         # self._attribute_cnt += len(media_object.attributes)
+        #         for attr in media_object.attributes:
+        #             self._unique_attribute_ids.add(str(attr.id))
+        #             # annotatable_type is optional for a HARIAttribute, but can already be set here
+        #             if not attr.annotatable_type:
+        #                 attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
         self._object_category_subsets[object_category] = subset_id
@@ -257,14 +259,85 @@ class HARIUploader:
         )
         self._assign_object_category_subsets()
 
-    def validate_all_attributes(self) -> None:
+    def validate_all_attributes(self) -> list[HARIAttribute]:
         """Validates all attributes of medias and media objects."""
+
+        # Get existing attributes
+        existing_attr_metadata = self.client.get_attribute_metadata(
+            dataset_id=self.dataset_id
+        )
+        attribute_name2IDs: dict[str, str | uuid.UUID] = {
+            attr.name: attr.id for attr in existing_attr_metadata
+        }
+
         all_attributes = []
         for media in self._medias:
             all_attributes.extend(media.attributes)
+
+            # set annotatable type
+            for attr in media.attributes:
+                # check that all attribute ids are correctly set or create new ones
+                if attr.name not in attribute_name2IDs:
+                    attribute_name2IDs[attr.name] = uuid.uuid4()
+                attr.id = attribute_name2IDs[attr.name]
+
+                # annotatable_type is optional for a HARIAttribute, but can already be set here
+                attr.annotatable_type = models.DataBaseObjectType.MEDIA
+
             for media_object in media.media_objects:
                 all_attributes.extend(media_object.attributes)
+
+                # set annotatable type
+                for attr in media_object.attributes:
+                    # check that all attribute ids are correctly set or create new ones
+                    if attr.name not in attribute_name2IDs:
+                        attribute_name2IDs[attr.name] = uuid.uuid4()
+                    attr.id = attribute_name2IDs[attr.name]
+
+                    # annotatable_type is optional for a HARIAttribute, but can already be set here
+                    attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
+
+        # Raises an error if any requirements for attribute consistency aren't met.
         validation.validate_attributes(all_attributes)
+
+        if len(attribute_name2IDs) > MAX_ATTR_COUNT:
+            raise HARIUniqueAttributesLimitExceeded(
+                new_attributes_number=len(attribute_name2IDs)
+                - len(existing_attr_metadata),
+                existing_attributes_number=len(existing_attr_metadata),
+                intended_attributes_number=len(attribute_name2IDs),
+            )
+
+        return all_attributes
+
+    def validate_all_media_and_media_objects(self) -> list[HARIMediaObject]:
+        all_media_objects = []
+        for media in self._medias:
+            # check and remember media back_references
+            if media.back_reference in self._media_back_references:
+                log.warning(
+                    f"Found duplicate media back_reference: {media.back_reference}. If "
+                    f"you want to be able to match HARI objects 1:1 to your own, "
+                    f"consider using unique back_references."
+                )
+            else:
+                self._media_back_references.add(media.back_reference)
+
+            # check and remember media object back_references
+            for media_object in media.media_objects:
+                if media_object.back_reference in self._media_object_back_references:
+                    log.warning(
+                        f"Found duplicate media_object back_reference: "
+                        f"{media.back_reference}. If you want to be able to match HARI "
+                        f"objects 1:1 to your own, consider using unique "
+                        f"back_references."
+                    )
+                else:
+                    self._media_object_back_references.add(media_object.back_reference)
+
+                all_media_objects.append(media_object)
+
+        return all_media_objects
 
     def upload(
         self,
@@ -288,25 +361,18 @@ class HARIUploader:
             )
             return None
 
-        existing_attr_metadata = self.client.get_attribute_metadata(
-            dataset_id=self.dataset_id
-        )
-        existing_attribute_ids = {attr.id for attr in existing_attr_metadata}
-        all_attribute_ids = existing_attribute_ids.union(self._unique_attribute_ids)
+        # validate intended upload, this only checks for incosistency which can be checked locally
+        validated_media_objects = self.validate_all_media_and_media_objects()
+        validated_attributes = self.validate_all_attributes()
 
-        # TODO update MAX ATTR COUNT
-
-        if len(all_attribute_ids) > MAX_ATTR_COUNT:
-            raise HARIUniqueAttributesLimitExceeded(
-                new_attributes_number=len(self._unique_attribute_ids),
-                existing_attributes_number=len(existing_attr_metadata),
-                intended_attributes_number=len(all_attribute_ids),
-            )
+        # validate that the intended uploads do not already exists on the server
+        # for attributes also unify the ids
 
         # TODO method check upload status of medias
         uploaded_medias = self.client.get_medias(
             self.dataset_id
         )  # TODO paging and easy query
+        # TODO if multiple of the same backreference are given, value will be overwritten
         uploaded_back_references = {m.back_reference: m.id for m in uploaded_medias}
 
         for media in self._medias:
@@ -320,38 +386,36 @@ class HARIUploader:
         )  # TODO paging and easy query
         uploaded_back_references = {m.back_reference: m.id for m in uploaded_mos}
 
-        media_objects: list[HARIMediaObject] = [
+        validated_media_objects: list[HARIMediaObject] = [
             mo for media in self._medias for mo in media.media_objects
         ]
 
-        for mo in media_objects:
+        for mo in validated_media_objects:
             # TODO extract this into one method, ensure uploaded marked are always having an id
             mo.uploaded = mo.back_reference in uploaded_back_references
             mo.id = uploaded_back_references.get(mo.back_reference, None)
 
-        attributes = []
-
-        # TODO validate media and media objects
-        self.validate_all_attributes()
-
         # TODO identify already uploaded ones, optional step (maybe you want to upload same media, media_object, attribute name)
+        # uploaded_attributes = self.client.get_attributes(dataset_id=self.dataset_id) # TODO paging and easy query
 
+        # make sure all needed object categories exists otherwise create them
         self._handle_object_categories()
 
         # upload batches of medias
         log.info(
             f"Starting upload of {len(self._medias)} medias with "
-            f"{len(media_objects)} media_objects and {len(attributes)} "
-            f"attributes to HARI."
+            f"{len(validated_media_objects)} media_objects and {len(validated_attributes)} "
+            f"attributes to HARI. "
+            f"Only not already uploaded values will be uploaded."  # TODO make this optional
         )
         self._media_upload_progress = tqdm.tqdm(
             desc="Media Upload", total=len(self._medias)
         )
         self._media_object_upload_progress = tqdm.tqdm(
-            desc="Media Object Upload", total=len(media_objects)
+            desc="Media Object Upload", total=len(validated_media_objects)
         )
         self._attribute_upload_progress = tqdm.tqdm(
-            desc="Attribute Upload", total=len(attributes)
+            desc="Attribute Upload", total=len(validated_attributes)
         )
 
         media_upload_responses: list[models.BulkResponse] = []
@@ -466,9 +530,15 @@ class HARIUploader:
     def _upload_attribute_batch(
         self, attributes_to_upload: list[HARIAttribute]
     ) -> models.BulkResponse:
-        response = self.client.create_attributes(
-            dataset_id=self.dataset_id, attributes=attributes_to_upload
-        )
+        try:
+            response = self.client.create_attributes(
+                dataset_id=self.dataset_id, attributes=attributes_to_upload
+            )
+        except APIError as e:
+            # try to parse as Bulk response, might only be a conflict
+            response = _parse_response_model(
+                response_data=e.message, response_model=models.BulkResponse
+            )
         return response
 
     def _upload_media_object_batch(
