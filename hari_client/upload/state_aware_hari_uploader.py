@@ -419,7 +419,7 @@ class HARIUploader:
             f"Starting upload of {len(self._medias)} medias with "
             f"{len(validated_media_objects)} media_objects and {len(validated_attributes)} "
             f"attributes to HARI. "
-            f"Only not already uploaded values will be uploaded."  # TODO make this optional
+            f"Only not already uploaded values will be uploaded."
         )
         self._media_upload_progress = tqdm.tqdm(
             desc="Media Upload", total=len(self._medias)

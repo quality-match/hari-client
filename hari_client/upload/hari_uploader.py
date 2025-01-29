@@ -759,8 +759,6 @@ def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     """
     final_response = models.BulkResponse()
 
-    # TODO add option to highlight conflicts as in skipped
-
     if len(args) == 0:
         final_response.status = models.BulkOperationStatusEnum.SUCCESS
         return final_response

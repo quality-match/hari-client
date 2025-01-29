@@ -144,28 +144,52 @@ def check_and_upload_dataset(
     upload_results = uploader.upload()
 
     # Inspect upload results
+    num_conflict_media = len(
+        [
+            r.status
+            for r in upload_results.medias.results
+            if r.status == models.ResponseStatesEnum.CONFLICT
+        ]
+    )
+    num_conflict_media_objects = len(
+        [
+            r.status
+            for r in upload_results.media_objects.results
+            if r.status == models.ResponseStatesEnum.CONFLICT
+        ]
+    )
+    num_conflict_attributes = len(
+        [
+            r.status
+            for r in upload_results.attributes.results
+            if r.status == models.ResponseStatesEnum.CONFLICT
+        ]
+    )
     print(f"media upload status: {upload_results.medias.status.value}")
-    print(f"media upload summary\n  {upload_results.medias.summary}")
+    print(
+        f"media upload summary\n  {upload_results.medias.summary} due to skipped {num_conflict_media}"
+    )
 
     print(f"media object upload status: {upload_results.media_objects.status.value}")
-    print(f"media object upload summary\n  {upload_results.media_objects.summary}")
+    print(
+        f"media object upload summary\n  {upload_results.media_objects.summary} due to skipped {num_conflict_media_objects}"
+    )
 
     print(f"attribute upload status: {upload_results.attributes.status.value}")
-    print(f"attribute upload summary\n  {upload_results.attributes.summary}")
+    print(
+        f"attribute upload summary\n  {upload_results.attributes.summary} due to skipped {num_conflict_attributes}"
+    )
 
+    # check if any failed (not due to skipping/conflict)
     if (
-        upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
-        or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
-        or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
+        upload_results.medias.summary.failed - num_conflict_media > 0
+        or upload_results.media_objects.summary.failed - num_conflict_media_objects > 0
+        or upload_results.attributes.summary.failed - num_conflict_attributes > 0
     ):
         print("The data upload wasn't fully successful. See the details below.")
         print(f"media upload details: {upload_results.medias.results}")
         print(f"media objects upload details: {upload_results.media_objects.results}")
         print(f"attributes upload details: {upload_results.attributes.results}")
-
-    print(f"media upload details: {upload_results.medias.results}")
-    print(f"media objects upload details: {upload_results.media_objects.results}")
-    print(f"attributes upload details: {upload_results.attributes.results}")
 
     new_subset_id, reused = check_and_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
