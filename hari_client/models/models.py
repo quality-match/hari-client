@@ -851,6 +851,10 @@ class MediaCreate(BaseModel):
     back_reference: str
     media_url: str | None = None
 
+    id: str | None = pydantic.Field(
+        default=None, title="Id"
+    )  # used to identify already uploaded medias
+
     archived: bool = False
     scene_id: str | None = None
     realWorldObject_id: str | None = None
@@ -885,6 +889,10 @@ class MediaObjectCreate(BaseModel):
     media_id: str
     source: DataSource = DataSource.REFERENCE
     back_reference: str
+
+    id: str | None = pydantic.Field(
+        default=None, title="Id"
+    )  # used to identify already uploaded medias
 
     archived: bool = False
     scene_id: str | None = None

@@ -2,9 +2,9 @@ import time
 import uuid
 from typing import Tuple
 
-from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
+from hari_client import state_aware_hari_uploader as hari_uploader
 from hari_client.models.models import Media
 
 
@@ -138,44 +138,30 @@ def check_and_upload_dataset(
         client=hari, dataset_id=dataset_id, object_categories=object_categories
     )
 
-    uploaded_medias = hari.get_medias(dataset_id)
-    uploaded_back_references = [m.back_reference for m in uploaded_medias]
-
-    elements_to_upload = 0
     for media in medias:
-        if media.back_reference not in uploaded_back_references:
-            uploader.add_media(media)
-            elements_to_upload += 1
+        uploader.add_media(media)
 
-    if elements_to_upload > 0:
-        upload_results = uploader.upload()
+    upload_results = uploader.upload()
 
-        # Inspect upload results
-        print(f"media upload status: {upload_results.medias.status.value}")
-        print(f"media upload summary\n  {upload_results.medias.summary}")
+    # Inspect upload results
+    print(f"media upload status: {upload_results.medias.status.value}")
+    print(f"media upload summary\n  {upload_results.medias.summary}")
 
+    print(f"media object upload status: {upload_results.media_objects.status.value}")
+    print(f"media object upload summary\n  {upload_results.media_objects.summary}")
+
+    print(f"attribute upload status: {upload_results.attributes.status.value}")
+    print(f"attribute upload summary\n  {upload_results.attributes.summary}")
+
+    if (
+        upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
+        or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
+        or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
+    ):
         print(
-            f"media object upload status: {upload_results.media_objects.status.value}"
+            "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
         )
-        print(f"media object upload summary\n  {upload_results.media_objects.summary}")
-
-        print(f"attribute upload status: {upload_results.attributes.status.value}")
-        print(f"attribute upload summary\n  {upload_results.attributes.summary}")
-
-        if (
-            upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
-            or upload_results.media_objects.status
-            != models.BulkOperationStatusEnum.SUCCESS
-            or upload_results.attributes.status
-            != models.BulkOperationStatusEnum.SUCCESS
-        ):
-            print(
-                "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
-            )
-            print(f"media upload details: {upload_results.medias.results}")
-
-    else:
-        print("WARNING: No data for upload specified which is not already uploaded.")
+        print(f"media upload details: {upload_results.medias.results}")
 
     new_subset_id, reused = check_and_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type

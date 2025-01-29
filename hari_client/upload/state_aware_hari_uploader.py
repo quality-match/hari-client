@@ -1,189 +1,29 @@
 import copy
-import typing
 import uuid
 
-import pydantic
 import tqdm
 
 from hari_client import HARIClient
 from hari_client import HARIUploaderConfig
 from hari_client import models
 from hari_client import validation
+from hari_client.upload.hari_uploader import _merge_bulk_responses
+from hari_client.upload.hari_uploader import HARIAttribute
+from hari_client.upload.hari_uploader import HARIMedia
+from hari_client.upload.hari_uploader import HARIMediaObject
+from hari_client.upload.hari_uploader import (
+    HARIMediaObjectUnknownObjectCategorySubsetNameError,
+)
+from hari_client.upload.hari_uploader import HARIMediaObjectUploadError
+from hari_client.upload.hari_uploader import HARIMediaUploadError
+from hari_client.upload.hari_uploader import HARIUniqueAttributesLimitExceeded
+from hari_client.upload.hari_uploader import HARIUploadResults
 from hari_client.utils import logger
 
 log = logger.setup_logger(__name__)
 
 # the maximum attributes number for the whole dataset/upload
 MAX_ATTR_COUNT = 1000
-
-
-class HARIAttribute(models.BulkAttributeCreate):
-    # overwrites the annotatable_id and _type fields to not be required,
-    # because it has to be set after the media has been uploaded
-    annotatable_id: str = ""
-    annotatable_type: str = ""
-
-    # upload status defines if the object has to be uploaded or is already uploaded and identified by backreference
-    uploaded: bool = False
-
-
-class HARIMediaObject(models.BulkMediaObjectCreate):
-    # the attributes field is not part of the lower level MediaObjectCreate model of the hari
-    # api, but we need it to add media_objects to a media before uploading the media.
-    attributes: list[HARIAttribute] = pydantic.Field(default=[], exclude=True)
-    # overwrites the media_id field to not be required,
-    # because it has to be set after the media has been uploaded
-    media_id: str = ""
-    # overwrites the bulk_operation_annotatable_id field to not be required,
-    # because it's set internally by the HARIUploader
-    bulk_operation_annotatable_id: str | None = None
-    # the object_category_subset_name field is not part of the lower level MediaObjectCreate model
-    # of the hari api, but is needed to store which object category subset the media object should belong to.
-    object_category_subset_name: str | None = pydantic.Field(default=None, exclude=True)
-
-    # upload status defines if the object has to be uploaded or is already uploaded and identified by backreference
-    uploaded: bool = False
-
-    # overrides the BulkMediaObjectCreate validator to not raise error if the bulk_operation_annotatable_id is not set;
-    # the field is set internally by the HARIUploader
-    @pydantic.model_validator(mode="before")
-    @classmethod
-    def check_bulk_operation_annotatable_id_omitted(
-        cls, data: typing.Any
-    ) -> typing.Any:
-        return data
-
-    def add_attribute(self, *args: HARIAttribute) -> None:
-        for attribute in args:
-            self.attributes.append(attribute)
-
-    def set_object_category_subset_name(self, object_category_subset_name: str) -> None:
-        self.object_category_subset_name = object_category_subset_name
-
-    @pydantic.field_validator("media_id", "bulk_operation_annotatable_id")
-    @classmethod
-    def field_must_not_be_set(cls, v: str) -> str:
-        if v:
-            raise ValueError(
-                "The field must not be set on object instantiation. It's used and set "
-                "by HARIUploader internals."
-            )
-        return v
-
-    @pydantic.field_validator("back_reference")
-    @classmethod
-    def empty_back_reference(cls, v: str) -> str:
-        if not v:
-            log.warning(
-                "Detected empty back_reference in HARIMediaObject. It's encouraged "
-                "that you use a back_reference so that you can match HARI objects to"
-                " your own."
-            )
-        return v
-
-
-class HARIMediaUploadError(Exception):
-    pass
-
-
-class HARIMediaObjectUploadError(Exception):
-    pass
-
-
-class HARIMediaObjectUnknownObjectCategorySubsetNameError(Exception):
-    pass
-
-
-class HARIUniqueAttributesLimitExceeded(Exception):
-    new_attributes_number: int
-    existing_attributes_number: int
-    intended_attributes_number: int
-
-    message: str
-
-    def __init__(
-        self,
-        new_attributes_number: int,
-        existing_attributes_number: int,
-        intended_attributes_number: int,
-    ):
-        self.new_attributes_number = new_attributes_number
-        self.existing_attributes_number = existing_attributes_number
-        self.intended_attributes_number = intended_attributes_number
-
-        message = f"You are trying to upload too many attributes with {new_attributes_number} different ids for one dataset"
-
-        if existing_attributes_number > 0:
-            message += (
-                f", and there are already {existing_attributes_number} different attribute ids uploaded. "
-                f"The intended number of all attribute ids per dataset would be {intended_attributes_number},"
-            )
-
-        message += (
-            f" when the limit is {MAX_ATTR_COUNT}. "
-            "Please make sure to reuse attribute ids you've already generated "
-            "for attributes that have the same name and annotatable type. "
-            "See how attributes work in HARI here: "
-            "https://docs.quality-match.com/hari_client/faq/#how-do-attributes-work-in-hari."
-        )
-        super().__init__(message)
-
-
-class HARIMedia(models.BulkMediaCreate):
-    # the media_objects and attributes fields are not part of the lower level
-    # MediaCreate model of the hari api, but we need them to add media objects and
-    # attributes to a media before uploading the media
-    media_objects: list[HARIMediaObject] = pydantic.Field(default=[], exclude=True)
-    attributes: list[HARIAttribute] = pydantic.Field(default=[], exclude=True)
-    # overwrites the bulk_operation_annotatable_id field to not be required,
-    # because it's set internally by the HARIUploader
-    bulk_operation_annotatable_id: str | None = ""
-
-    # upload status defines if the object has to be uploaded or is already uploaded and identified by backreference
-    uploaded: bool = False
-
-    # overrides the BulkMediaCreate validator to not raise error if the bulk_operation_annotatable_id is not set;
-    # the field is set internally by the HARIUploader
-    @pydantic.model_validator(mode="before")
-    @classmethod
-    def check_bulk_operation_annotatable_id_omitted(
-        cls, data: typing.Any
-    ) -> typing.Any:
-        return data
-
-    def add_media_object(self, *args: HARIMediaObject) -> None:
-        for media_object in args:
-            self.media_objects.append(media_object)
-
-    def add_attribute(self, *args: HARIAttribute) -> None:
-        for attribute in args:
-            self.attributes.append(attribute)
-
-    @pydantic.field_validator("bulk_operation_annotatable_id")
-    @classmethod
-    def field_must_not_be_set(cls, v: str) -> str:
-        if v:
-            raise ValueError(
-                "The field must not be set on object instantiation. It's used and set "
-                "by HARIUploader internals."
-            )
-        return v
-
-    @pydantic.field_validator("back_reference")
-    @classmethod
-    def empty_back_reference(cls, v: str) -> str:
-        if not v:
-            log.warning(
-                "Detected empty back_reference in HARIMedia. It's encouraged that you "
-                "use a back_reference so that you can match HARI objects to your own."
-            )
-        return v
-
-
-class HARIUploadResults(pydantic.BaseModel):
-    medias: models.BulkResponse
-    media_objects: models.BulkResponse
-    attributes: models.BulkResponse
 
 
 class HARIUploader:
@@ -209,8 +49,8 @@ class HARIUploader:
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
         self._media_object_back_references: set[str] = set()
-        self._media_object_cnt: int = 0
-        self._attribute_cnt: int = 0
+        # self._media_objects: list[HARIMediaObject] = []
+        # self._attributes: list[HARIAttribute] = []
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         self._object_category_subsets: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
@@ -230,6 +70,8 @@ class HARIUploader:
             HARIMediaUploadError: If an unrecoverable problem with the media upload
                 was detected
         """
+
+        # TODO move checks to validate function like validate all attributes
         for media in args:
             # check and remember media back_references
             if media.back_reference in self._media_back_references:
@@ -242,7 +84,7 @@ class HARIUploader:
                 self._media_back_references.add(media.back_reference)
 
             self._medias.append(media)
-            self._attribute_cnt += len(media.attributes)
+            # self._attribute_cnt += len(media.attributes)
             for attr in media.attributes:
                 self._unique_attribute_ids.add(str(attr.id))
                 # annotatable_type is optional for a HARIAttribute, but can already be set here
@@ -260,8 +102,8 @@ class HARIUploader:
                     )
                 else:
                     self._media_object_back_references.add(media_object.back_reference)
-                self._media_object_cnt += 1
-                self._attribute_cnt += len(media_object.attributes)
+                # self._media_object_cnt += 1
+                # self._attribute_cnt += len(media_object.attributes)
                 for attr in media_object.attributes:
                     self._unique_attribute_ids.add(str(attr.id))
                     # annotatable_type is optional for a HARIAttribute, but can already be set here
@@ -452,6 +294,8 @@ class HARIUploader:
         existing_attribute_ids = {attr.id for attr in existing_attr_metadata}
         all_attribute_ids = existing_attribute_ids.union(self._unique_attribute_ids)
 
+        # TODO update MAX ATTR COUNT
+
         if len(all_attribute_ids) > MAX_ATTR_COUNT:
             raise HARIUniqueAttributesLimitExceeded(
                 new_attributes_number=len(self._unique_attribute_ids),
@@ -459,24 +303,55 @@ class HARIUploader:
                 intended_attributes_number=len(all_attribute_ids),
             )
 
+        # TODO method check upload status of medias
+        uploaded_medias = self.client.get_medias(
+            self.dataset_id
+        )  # TODO paging and easy query
+        uploaded_back_references = {m.back_reference: m.id for m in uploaded_medias}
+
+        for media in self._medias:
+            # TODO extract this into one method, ensure uploaded marked are always having an id
+            media.uploaded = media.back_reference in uploaded_back_references
+            media.id = uploaded_back_references.get(media.back_reference, None)
+
+        # TODO method cehck uplaod status of media objects
+        uploaded_mos = self.client.get_media_objects(
+            self.dataset_id
+        )  # TODO paging and easy query
+        uploaded_back_references = {m.back_reference: m.id for m in uploaded_mos}
+
+        media_objects: list[HARIMediaObject] = [
+            mo for media in self._medias for mo in media.media_objects
+        ]
+
+        for mo in media_objects:
+            # TODO extract this into one method, ensure uploaded marked are always having an id
+            mo.uploaded = mo.back_reference in uploaded_back_references
+            mo.id = uploaded_back_references.get(mo.back_reference, None)
+
+        attributes = []
+
+        # TODO validate media and media objects
         self.validate_all_attributes()
+
+        # TODO identify already uploaded ones, optional step (maybe you want to upload same media, media_object, attribute name)
 
         self._handle_object_categories()
 
         # upload batches of medias
         log.info(
             f"Starting upload of {len(self._medias)} medias with "
-            f"{self._media_object_cnt} media_objects and {self._attribute_cnt} "
+            f"{len(media_objects)} media_objects and {len(attributes)} "
             f"attributes to HARI."
         )
         self._media_upload_progress = tqdm.tqdm(
             desc="Media Upload", total=len(self._medias)
         )
         self._media_object_upload_progress = tqdm.tqdm(
-            desc="Media Object Upload", total=self._media_object_cnt
+            desc="Media Object Upload", total=len(media_objects)
         )
         self._attribute_upload_progress = tqdm.tqdm(
-            desc="Attribute Upload", total=self._attribute_cnt
+            desc="Attribute Upload", total=len(attributes)
         )
 
         media_upload_responses: list[models.BulkResponse] = []
@@ -514,13 +389,17 @@ class HARIUploader:
         for media in medias_to_upload:
             self._set_bulk_operation_annotatable_id(item=media)
 
+        # ensure only non-uploaded medias are actually uploaded
+        medias_need_upload = [media for media in medias_to_upload if not media.uploaded]
+
         # upload media batch
         media_upload_response = self.client.create_medias(
-            dataset_id=self.dataset_id, medias=medias_to_upload
+            dataset_id=self.dataset_id, medias=medias_need_upload
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
-        # TODO: what if upload failures occur in the media upload above?
+        # TODO: what if upload failures occur in the media upload above? -> Just restart should be robust enough
+        # Enable checking for errors and abort here
         self._update_hari_media_object_media_ids(
             medias_to_upload=medias_to_upload,
             media_upload_bulk_response=media_upload_response,
@@ -597,8 +476,14 @@ class HARIUploader:
     ) -> models.BulkResponse:
         for media_object in media_objects_to_upload:
             self._set_bulk_operation_annotatable_id(item=media_object)
+
+        # filter out already marked as uploaded
+        media_objects_need_upload = [
+            mo for mo in media_objects_to_upload if not mo.uploaded
+        ]
+
         response = self.client.create_media_objects(
-            dataset_id=self.dataset_id, media_objects=media_objects_to_upload
+            dataset_id=self.dataset_id, media_objects=media_objects_need_upload
         )
         self._update_hari_attribute_media_object_ids(
             media_objects_to_upload=media_objects_to_upload,
@@ -624,24 +509,30 @@ class HARIUploader:
                     media_upload_bulk_response.results,
                 )
             )
-            if len(filtered_upload_response) == 0:
-                raise HARIMediaUploadError(
-                    f"Media upload response doesn't match expectation. Couldn't find "
-                    f"{media.bulk_operation_annotatable_id=} in the upload response."
+            # special case already uploaded
+            if media.uploaded:
+                media_id = media.id  # must be set when marked as uploaded
+            else:
+                if len(filtered_upload_response) == 0:
+                    raise HARIMediaUploadError(
+                        f"Media upload response doesn't match expectation. Couldn't find "
+                        f"{media.bulk_operation_annotatable_id=} in the upload response."
+                    )
+                elif (len(filtered_upload_response)) > 1:
+                    raise HARIMediaUploadError(
+                        f"Media upload response contains multiple items for "
+                        f"{media.bulk_operation_annotatable_id=}."
+                    )
+                media_upload_response: models.AnnotatableCreateResponse = (
+                    filtered_upload_response[0]
                 )
-            elif (len(filtered_upload_response)) > 1:
-                raise HARIMediaUploadError(
-                    f"Media upload response contains multiple items for "
-                    f"{media.bulk_operation_annotatable_id=}."
-                )
-            media_upload_response: models.AnnotatableCreateResponse = (
-                filtered_upload_response[0]
-            )
+
+                media_id = media_upload_response.item_id
 
             for i, media_object in enumerate(media.media_objects):
                 # Create a copy of the media object to avoid changing shared attributes
                 media.media_objects[i] = copy.deepcopy(media_object)
-                media.media_objects[i].media_id = media_upload_response.item_id
+                media.media_objects[i].media_id = media_id
 
     def _update_hari_attribute_media_object_ids(
         self,
@@ -661,25 +552,29 @@ class HARIUploader:
                     media_object_upload_bulk_response.results,
                 )
             )
-            if len(filtered_upload_response) == 0:
-                raise HARIMediaObjectUploadError(
-                    f"MediaObject upload response doesn't match expectation. Couldn't find "
-                    f"{media_object.bulk_operation_annotatable_id=} in the upload response."
+            # special case already uploaded
+            if media_object.uploaded:
+                media_object_id = media_object.id  # must be set when marked as uploaded
+            else:
+                if len(filtered_upload_response) == 0:
+                    raise HARIMediaObjectUploadError(
+                        f"MediaObject upload response doesn't match expectation. Couldn't find "
+                        f"{media_object.bulk_operation_annotatable_id=} in the upload response."
+                    )
+                elif (len(filtered_upload_response)) > 1:
+                    raise HARIMediaObjectUploadError(
+                        f"MediaObject upload response contains multiple items for "
+                        f"{media_object.bulk_operation_annotatable_id=}."
+                    )
+                media_object_upload_response: models.AnnotatableCreateResponse = (
+                    filtered_upload_response[0]
                 )
-            elif (len(filtered_upload_response)) > 1:
-                raise HARIMediaObjectUploadError(
-                    f"MediaObject upload response contains multiple items for "
-                    f"{media_object.bulk_operation_annotatable_id=}."
-                )
-            media_object_upload_response: models.AnnotatableCreateResponse = (
-                filtered_upload_response[0]
-            )
+                media_object_id = media_object_upload_response.item_id
+
             for i, attribute in enumerate(media_object.attributes):
                 # Create a copy of the attribute to avoid changing shared attributes
                 media_object.attributes[i] = copy.deepcopy(attribute)
-                media_object.attributes[
-                    i
-                ].annotatable_id = media_object_upload_response.item_id
+                media_object.attributes[i].annotatable_id = media_object_id
                 media_object.attributes[
                     i
                 ].annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
@@ -703,75 +598,31 @@ class HARIUploader:
                 )
             )
 
-            if len(filtered_upload_response) == 0:
-                raise HARIMediaUploadError(
-                    f"Media upload response doesn't match expectation. Couldn't find "
-                    f"{media.bulk_operation_annotatable_id=} in the upload response."
+            # special case already uploaded
+            if media.uploaded:
+                media_id = media.id  # must be set when marked as uploaded
+            else:
+                if len(filtered_upload_response) == 0:
+                    raise HARIMediaUploadError(
+                        f"Media upload response doesn't match expectation. Couldn't find "
+                        f"{media.bulk_operation_annotatable_id=} in the upload response."
+                    )
+                elif (len(filtered_upload_response)) > 1:
+                    raise HARIMediaUploadError(
+                        f"Media upload response contains multiple items for "
+                        f"{media.bulk_operation_annotatable_id=}."
+                    )
+                media_upload_response: models.AnnotatableCreateResponse = (
+                    filtered_upload_response[0]
                 )
-            elif (len(filtered_upload_response)) > 1:
-                raise HARIMediaUploadError(
-                    f"Media upload response contains multiple items for "
-                    f"{media.bulk_operation_annotatable_id=}."
-                )
-            media_upload_response: models.AnnotatableCreateResponse = (
-                filtered_upload_response[0]
-            )
+                media_id = media_upload_response.item_id
+
             for i, attribute in enumerate(media.attributes):
                 # Create a copy of the attribute to avoid changing shared attributes
                 media.attributes[i] = copy.deepcopy(attribute)
-                media.attributes[i].annotatable_id = media_upload_response.item_id
+                media.attributes[i].annotatable_id = media_id
                 media.attributes[i].annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):
         if not item.bulk_operation_annotatable_id:
             item.bulk_operation_annotatable_id = str(uuid.uuid4())
-
-
-def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
-    """
-    Merges multiple BulkResponse objects into one.
-    If no BulkResponse objects are provided, an empty BulkResponse object with status SUCCESS is returned.
-    If only one BulkResponse object is provided, it will be returned as is.
-
-    Args:
-        *args: Multiple BulkResponse objects
-
-    Returns:
-        models.BulkResponse: The merged BulkResponse object
-    """
-    final_response = models.BulkResponse()
-
-    if len(args) == 0:
-        final_response.status = models.BulkOperationStatusEnum.SUCCESS
-        return final_response
-
-    if len(args) == 1:
-        return args[0]
-
-    statuses = set()
-
-    for response in args:
-        # merge results
-        final_response.results.extend(response.results)
-
-        # merge summaries
-        final_response.summary.total += response.summary.total
-        final_response.summary.successful += response.summary.successful
-        final_response.summary.failed += response.summary.failed
-
-        statuses.add(response.status)
-
-    if len(statuses) == 1:
-        # if all statuses are the same, use that status
-        final_response.status = statuses.pop()
-    elif (
-        models.BulkOperationStatusEnum.SUCCESS
-        or models.BulkOperationStatusEnum.PARTIAL_SUCCESS in statuses
-    ):
-        # if success appears at least once, it's a partial_success
-        final_response.status = models.BulkOperationStatusEnum.PARTIAL_SUCCESS
-    else:
-        # any other case should be considered a failure
-        final_response.status = models.BulkOperationStatusEnum.FAILURE
-
-    return final_response
