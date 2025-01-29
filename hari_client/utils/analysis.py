@@ -13,6 +13,8 @@ def organize_attributes_by_group(
     attributes: list[AttributeValueResponse],
     ID2attribute_meta: dict[str, AttributeMetadataResponse],
 ):
+    # TODO splitting should maybe already happen in collect media and attributes
+
     group2media_attribute, group2media_object_attribute = {}, {}
 
     for attr in attributes:

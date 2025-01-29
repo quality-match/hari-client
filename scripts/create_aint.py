@@ -35,7 +35,9 @@ def create_development_data(
 
 if __name__ == "__main__":
     # Argument parser setup.
-    parser = argparse.ArgumentParser(description="Create and train an AI Nano Task")
+    parser = argparse.ArgumentParser(
+        description="Create and train an AI Nano Task (model). This also create the needed development sets."
+    )
 
     parser.add_argument(
         "-n",
@@ -64,6 +66,13 @@ if __name__ == "__main__":
         help="Subset ID to which the attributes should be restricted.",
     )
 
+    parser.add_argument(
+        "--user_group",
+        type=str,
+        help="User group for the creation, if you can not see your creation you might have a visibility issue related to your user_group",
+        required=True,
+    )
+
     # Parse the arguments.
     args = parser.parse_args()
 
@@ -72,25 +81,21 @@ if __name__ == "__main__":
     attribute_id: str = args.attribute_id
     dataset_id: str = args.dataset_id
     subset_id: str | None = args.subset_id
+    user_group: str = args.user_group
 
     # load hari client
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # TODO add user group
-
-    # TODO example usage:
-    # TODO test what happens if wrong input, wrong subset id seems still to work
-
     # Create Development Data
     development_data = create_development_data(
-        hari, name, dataset_id, attribute_id, subset_id
+        hari, name, dataset_id, attribute_id, subset_id, user_group=user_group
     )
     development_data_id = development_data.id
     print(f"Created development data with ID: {development_data_id}")
 
     # Start AINT Training
-    aint_id = hari.train_aint_model(name, development_data_id)
+    aint_id = hari.train_aint_model(name, development_data_id, user_group=user_group)
 
     print(
         "The AINT training can take a while please wait. You will be getting notified via HARI / Email when the training is done."
