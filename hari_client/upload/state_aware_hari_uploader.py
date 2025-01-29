@@ -366,8 +366,16 @@ class HARIUploader:
         objectsToUpload: list[HARIMediaObject] | list[HARIMedia],
         objectsUploaded: list[HARIMediaObject] | list[HARIMedia],
     ):
-        # TODO add warning if multiple of the same backreference are given, value will be overwritten
-        uploaded_back_references = {m.back_reference: m.id for m in objectsUploaded}
+        # build look up table for back references
+        # add warning if multiple of the same backreference are given, value will be overwritten
+        uploaded_back_references = {}
+        for m in objectsUploaded:
+            if m.back_reference in uploaded_back_references:
+                log.warning(
+                    f"Multiple of the same backreference '{m.back_reference}' encountered; "
+                    f"overwriting previous value."
+                )
+            uploaded_back_references[m.back_reference] = m.id
 
         for m in objectsToUpload:
             # ensure uploaded marked are always having an id
