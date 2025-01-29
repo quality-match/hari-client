@@ -478,6 +478,7 @@ class HARIUploader:
         # need to add filter out ones as manual responses
         medias_skipped = [media for media in medias_to_upload if media.uploaded]
         media_upload_response.summary.failed += len(medias_skipped)
+        media_upload_response.summary.total += len(medias_skipped)
         media_upload_response.results.extend(
             [
                 models.AnnotatableCreateResponse(
@@ -590,6 +591,7 @@ class HARIUploader:
         # need to add filter out ones as manual responses
         media_objects_skipped = [mo for mo in media_objects_to_upload if mo.uploaded]
         response.summary.failed += len(media_objects_skipped)
+        response.summary.total += len(media_objects_skipped)
         response.results.extend(
             [
                 models.AnnotatableCreateResponse(
