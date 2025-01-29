@@ -34,6 +34,8 @@ class HARIUploader:
         client: HARIClient,
         dataset_id: uuid.UUID,
         object_categories: set[str] | None = None,
+        check_duplicate_medias=True,
+        check_duplicate_media_objects=True,
     ) -> None:
         """Initializes the HARIUploader.
 
@@ -43,6 +45,10 @@ class HARIUploader:
             object_categories: A set of object categories present in the media_objects.
                 If media_objects have an object_category_subset_name assigned, it has to be from this set.
                 HARIUploader will create a HARI subset for each object_category and add the corresponding medias and media_objects to it.
+            check_duplicate_media_objects: Defines if backreferences are used to check before upload if media objects exists.
+             It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
+             check_duplicate_medias: Defines if backreferences are used to check before upload if media exists.
+             It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
         """
         self.client: HARIClient = client
         self.dataset_id: uuid.UUID = dataset_id
@@ -56,6 +62,8 @@ class HARIUploader:
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         self._object_category_subsets: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
+        self.check_duplicate_medias = check_duplicate_medias
+        self.check_duplicate_media_objects = check_duplicate_media_objects
 
     # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
     # --> refactor this, so that all logic happenning in the add_* functions happens when the upload method is run.
@@ -339,6 +347,33 @@ class HARIUploader:
 
         return all_media_objects
 
+    def check_duplicates_medias(self, medias: list[HARIMedia]):
+        uploaded_medias = self.client.get_medias(
+            self.dataset_id
+        )  # TODO paging and faster query, might be needed for larger datasets
+
+        self._check_duplicates_media_media_objects(medias, uploaded_medias)
+
+    def check_duplicates_media_objects(self, media_objects: list[HARIMediaObject]):
+        uploaded_mos = self.client.get_media_objects(
+            self.dataset_id
+        )  # TODO paging and faster query, might be needed for larger datasets
+
+        self._check_duplicates_media_media_objects(media_objects, uploaded_mos)
+
+    def _check_duplicates_media_media_objects(
+        self,
+        objectsToUpload: list[HARIMediaObject] | list[HARIMedia],
+        objectsUploaded: list[HARIMediaObject] | list[HARIMedia],
+    ):
+        # TODO add warning if multiple of the same backreference are given, value will be overwritten
+        uploaded_back_references = {m.back_reference: m.id for m in objectsUploaded}
+
+        for m in objectsToUpload:
+            # ensure uploaded marked are always having an id
+            m.uploaded = m.back_reference in uploaded_back_references
+            m.id = uploaded_back_references.get(m.back_reference, None)
+
     def upload(
         self,
     ) -> HARIUploadResults | None:
@@ -366,37 +401,15 @@ class HARIUploader:
         validated_attributes = self.validate_all_attributes()
 
         # validate that the intended uploads do not already exists on the server
-        # for attributes also unify the ids
+        # for attributes the check is automatically done via the server during upload
 
-        # TODO method check upload status of medias
-        uploaded_medias = self.client.get_medias(
-            self.dataset_id
-        )  # TODO paging and easy query
-        # TODO if multiple of the same backreference are given, value will be overwritten
-        uploaded_back_references = {m.back_reference: m.id for m in uploaded_medias}
+        # check upload status of medias
+        if self.check_duplicate_medias:
+            self.check_duplicates_medias(self._medias)
 
-        for media in self._medias:
-            # TODO extract this into one method, ensure uploaded marked are always having an id
-            media.uploaded = media.back_reference in uploaded_back_references
-            media.id = uploaded_back_references.get(media.back_reference, None)
-
-        # TODO method cehck uplaod status of media objects
-        uploaded_mos = self.client.get_media_objects(
-            self.dataset_id
-        )  # TODO paging and easy query
-        uploaded_back_references = {m.back_reference: m.id for m in uploaded_mos}
-
-        validated_media_objects: list[HARIMediaObject] = [
-            mo for media in self._medias for mo in media.media_objects
-        ]
-
-        for mo in validated_media_objects:
-            # TODO extract this into one method, ensure uploaded marked are always having an id
-            mo.uploaded = mo.back_reference in uploaded_back_references
-            mo.id = uploaded_back_references.get(mo.back_reference, None)
-
-        # TODO identify already uploaded ones, optional step (maybe you want to upload same media, media_object, attribute name)
-        # uploaded_attributes = self.client.get_attributes(dataset_id=self.dataset_id) # TODO paging and easy query
+        # check upload status of media objects
+        if self.check_duplicate_media_objects:
+            self.check_duplicates_media_objects(validated_media_objects)
 
         # make sure all needed object categories exists otherwise create them
         self._handle_object_categories()
