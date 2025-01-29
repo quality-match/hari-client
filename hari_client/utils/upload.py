@@ -65,6 +65,8 @@ def check_and_create_dataset(
     datasets = hari.get_datasets()
     dataset_names = [dataset.name for dataset in datasets]
 
+    assert user_group is not None, "User group is required."
+
     if dataset_name not in dataset_names:
         new_dataset = hari.create_dataset(
             name=dataset_name, user_group=user_group, is_anonymized=is_anonymized
