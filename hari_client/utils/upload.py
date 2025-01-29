@@ -163,6 +163,10 @@ def check_and_upload_dataset(
         print(f"media objects upload details: {upload_results.media_objects.results}")
         print(f"attributes upload details: {upload_results.attributes.results}")
 
+    print(f"media upload details: {upload_results.medias.results}")
+    print(f"media objects upload details: {upload_results.media_objects.results}")
+    print(f"attributes upload details: {upload_results.attributes.results}")
+
     new_subset_id, reused = check_and_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
     )

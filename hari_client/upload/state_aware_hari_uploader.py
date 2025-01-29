@@ -462,6 +462,24 @@ class HARIUploader:
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
+        # need to add filter out ones as manual responses
+        medias_skipped = [media for media in medias_to_upload if media.uploaded]
+        media_upload_response.summary.failed += len(medias_skipped)
+        media_upload_response.results.extend(
+            [
+                models.AnnotatableCreateResponse(
+                    bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
+                    status=models.ResponseStatesEnum.CONFLICT,
+                    item_id=media.id,
+                    errors=[
+                        f"Skipped the upload of media {media.id} "
+                        f"since media with back reference {media.back_reference} already exists."
+                    ],
+                )
+                for media in medias_skipped
+            ]
+        )
+
         # TODO: what if upload failures occur in the media upload above? -> Just restart should be robust enough
         # Enable checking for errors and abort here
         self._update_hari_media_object_media_ids(
@@ -555,6 +573,25 @@ class HARIUploader:
         response = self.client.create_media_objects(
             dataset_id=self.dataset_id, media_objects=media_objects_need_upload
         )
+
+        # need to add filter out ones as manual responses
+        media_objects_skipped = [mo for mo in media_objects_to_upload if mo.uploaded]
+        response.summary.failed += len(media_objects_skipped)
+        response.results.extend(
+            [
+                models.AnnotatableCreateResponse(
+                    bulk_operation_annotatable_id=mo.bulk_operation_annotatable_id,
+                    status=models.ResponseStatesEnum.CONFLICT,
+                    item_id=mo.id,
+                    errors=[
+                        f"Skipped the upload of media object {mo.id} "
+                        f"since object with back reference {mo.back_reference} already exists."
+                    ],
+                )
+                for mo in media_objects_skipped
+            ]
+        )
+
         self._update_hari_attribute_media_object_ids(
             media_objects_to_upload=media_objects_to_upload,
             media_object_upload_bulk_response=response,
@@ -579,25 +616,21 @@ class HARIUploader:
                     media_upload_bulk_response.results,
                 )
             )
-            # special case already uploaded
-            if media.uploaded:
-                media_id = media.id  # must be set when marked as uploaded
-            else:
-                if len(filtered_upload_response) == 0:
-                    raise HARIMediaUploadError(
-                        f"Media upload response doesn't match expectation. Couldn't find "
-                        f"{media.bulk_operation_annotatable_id=} in the upload response."
-                    )
-                elif (len(filtered_upload_response)) > 1:
-                    raise HARIMediaUploadError(
-                        f"Media upload response contains multiple items for "
-                        f"{media.bulk_operation_annotatable_id=}."
-                    )
-                media_upload_response: models.AnnotatableCreateResponse = (
-                    filtered_upload_response[0]
+            if len(filtered_upload_response) == 0:
+                raise HARIMediaUploadError(
+                    f"Media upload response doesn't match expectation. Couldn't find "
+                    f"{media.bulk_operation_annotatable_id=} in the upload response."
                 )
+            elif (len(filtered_upload_response)) > 1:
+                raise HARIMediaUploadError(
+                    f"Media upload response contains multiple items for "
+                    f"{media.bulk_operation_annotatable_id=}."
+                )
+            media_upload_response: models.AnnotatableCreateResponse = (
+                filtered_upload_response[0]
+            )
 
-                media_id = media_upload_response.item_id
+            media_id = media_upload_response.item_id
 
             for i, media_object in enumerate(media.media_objects):
                 # Create a copy of the media object to avoid changing shared attributes
@@ -622,24 +655,20 @@ class HARIUploader:
                     media_object_upload_bulk_response.results,
                 )
             )
-            # special case already uploaded
-            if media_object.uploaded:
-                media_object_id = media_object.id  # must be set when marked as uploaded
-            else:
-                if len(filtered_upload_response) == 0:
-                    raise HARIMediaObjectUploadError(
-                        f"MediaObject upload response doesn't match expectation. Couldn't find "
-                        f"{media_object.bulk_operation_annotatable_id=} in the upload response."
-                    )
-                elif (len(filtered_upload_response)) > 1:
-                    raise HARIMediaObjectUploadError(
-                        f"MediaObject upload response contains multiple items for "
-                        f"{media_object.bulk_operation_annotatable_id=}."
-                    )
-                media_object_upload_response: models.AnnotatableCreateResponse = (
-                    filtered_upload_response[0]
+            if len(filtered_upload_response) == 0:
+                raise HARIMediaObjectUploadError(
+                    f"MediaObject upload response doesn't match expectation. Couldn't find "
+                    f"{media_object.bulk_operation_annotatable_id=} in the upload response."
                 )
-                media_object_id = media_object_upload_response.item_id
+            elif (len(filtered_upload_response)) > 1:
+                raise HARIMediaObjectUploadError(
+                    f"MediaObject upload response contains multiple items for "
+                    f"{media_object.bulk_operation_annotatable_id=}."
+                )
+            media_object_upload_response: models.AnnotatableCreateResponse = (
+                filtered_upload_response[0]
+            )
+            media_object_id = media_object_upload_response.item_id
 
             for i, attribute in enumerate(media_object.attributes):
                 # Create a copy of the attribute to avoid changing shared attributes
@@ -668,24 +697,20 @@ class HARIUploader:
                 )
             )
 
-            # special case already uploaded
-            if media.uploaded:
-                media_id = media.id  # must be set when marked as uploaded
-            else:
-                if len(filtered_upload_response) == 0:
-                    raise HARIMediaUploadError(
-                        f"Media upload response doesn't match expectation. Couldn't find "
-                        f"{media.bulk_operation_annotatable_id=} in the upload response."
-                    )
-                elif (len(filtered_upload_response)) > 1:
-                    raise HARIMediaUploadError(
-                        f"Media upload response contains multiple items for "
-                        f"{media.bulk_operation_annotatable_id=}."
-                    )
-                media_upload_response: models.AnnotatableCreateResponse = (
-                    filtered_upload_response[0]
+            if len(filtered_upload_response) == 0:
+                raise HARIMediaUploadError(
+                    f"Media upload response doesn't match expectation. Couldn't find "
+                    f"{media.bulk_operation_annotatable_id=} in the upload response."
                 )
-                media_id = media_upload_response.item_id
+            elif (len(filtered_upload_response)) > 1:
+                raise HARIMediaUploadError(
+                    f"Media upload response contains multiple items for "
+                    f"{media.bulk_operation_annotatable_id=}."
+                )
+            media_upload_response: models.AnnotatableCreateResponse = (
+                filtered_upload_response[0]
+            )
+            media_id = media_upload_response.item_id
 
             for i, attribute in enumerate(media.attributes):
                 # Create a copy of the attribute to avoid changing shared attributes
