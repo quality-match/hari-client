@@ -30,6 +30,12 @@ if __name__ == "__main__":
         help="Url of an image which should be uploaded as a dataset",
         required=True,
     )
+    parser.add_argument(
+        "--user_group",
+        type=str,
+        help="User group for the upload",
+        required=True,
+    )
 
     # Parse the arguments.
     args = parser.parse_args()
@@ -37,6 +43,7 @@ if __name__ == "__main__":
     # Extract arguments.
     dataset_name = args.dataset_name
     image_url = args.image_url
+    user_group = args.user_group
 
     # load hari client
     config: Config = Config(_env_file=".env")
@@ -44,9 +51,8 @@ if __name__ == "__main__":
 
     # create dataset
     dataset_id = check_and_create_dataset(
-        hari=hari, dataset_name=dataset_name, user_group=None, is_anonymized=True
+        hari=hari, dataset_name=dataset_name, user_group=user_group, is_anonymized=True
     )
-    # TODO what is a good default user group, how should a customer select it
 
     # download image and create media
     local_path = "./test_img.png"

@@ -219,6 +219,13 @@ if __name__ == "__main__":
         required=True,
     )
 
+    parser.add_argument(
+        "--user_group",
+        type=str,
+        help="User group for the upload",
+        required=True,
+    )
+
     # Parse the arguments.
     args = parser.parse_args()
 
@@ -228,6 +235,7 @@ if __name__ == "__main__":
     target_dataset_name = args.target_dataset_name
     question = args.question
     attribute_name = args.attribute_name
+    user_group = args.user_group
 
     # load hari client
     config: Config = Config(_env_file=".env")
@@ -236,7 +244,6 @@ if __name__ == "__main__":
     # Call the main function.
     # Make sure that your data is anonymized before you mark it as such
     # If your data is not anonymized please contact us for further support.
-    # TODO what is a good default user group, how should a customer select it
     upload_dataset_with_own_attributes(
         hari,
         root_directory,
@@ -244,6 +251,6 @@ if __name__ == "__main__":
         target_dataset_name,
         question,
         attribute_name,
-        user_group=None,
+        user_group=user_group,
         is_anonymized=True,
     )
