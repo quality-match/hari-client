@@ -2375,6 +2375,12 @@ class HARIClient:
     def get_development_sets(
         self,
     ) -> list[models.DevelopmentSetResponse]:
+        """
+        Retrieve all available development sets.
+
+        Returns:
+            list[models.DevelopmentSetResponse]: A list of development set objects.
+        """
         return self._request(
             "GET",
             f"/trainingSets",
@@ -2385,6 +2391,15 @@ class HARIClient:
     def get_development_set(
         self, development_set_id: str
     ) -> models.DevelopmentSetResponse:
+        """
+        Retrieve a single development set by its ID.
+
+        Args:
+            development_set_id: The unique identifier of the development set.
+
+        Returns:
+            models.DevelopmentSetResponse: The requested development set object.
+        """
         return self._request(
             "GET",
             f"/trainingSets/{development_set_id}",
@@ -2398,6 +2413,17 @@ class HARIClient:
         training_attributes: list[models.TrainingAttribute],
         user_group: str | None = None,
     ) -> models.DevelopmentSetResponse:
+        """
+        Create a new development set.
+
+        Args:
+            name: A descriptive name for the development set.
+            training_attributes: The training attributes to be used by this set.
+            user_group: The user group for scoping the development set (default: None).
+
+        Returns:
+            models.DevelopmentSetResponse: The newly created development set object.
+        """
         body = {
             "name": name,
             "training_attributes": training_attributes,
@@ -2414,6 +2440,12 @@ class HARIClient:
     def get_aint_models(
         self,
     ) -> list[models.MlAnnotationModel]:
+        """
+        Retrieve all AI Nano Task (AINT) models.
+
+        Returns:
+            list[models.MlAnnotationModel]: A list of AI annotation model objects.
+        """
         return self._request(
             "GET",
             f"/mlAnnotationModels",
@@ -2422,6 +2454,15 @@ class HARIClient:
         )
 
     def get_aint_model(self, aint_model_id: str) -> models.MlAnnotationModel:
+        """
+        Retrieve a specific AI Nano Task (AINT) model by its ID.
+
+        Args:
+            aint_model_id: The unique identifier of the AI annotation model.
+
+        Returns:
+            models.MlAnnotationModel: The requested AI annotation model object.
+        """
         return self._request(
             "GET",
             f"/mlAnnotationModels/{aint_model_id}",
@@ -2432,6 +2473,18 @@ class HARIClient:
     def train_aint_model(
         self, name: str, development_set_id: str, user_group: str | None = None
     ) -> models.MlAnnotationModel:
+        """
+        Train a new AI Nano Task (AINT) model on a specified development set.
+
+        Args:
+            name: A descriptive name for the AI model.
+            development_set_id: The unique identifier of the development set to use for training.
+            user_group: The user group for scoping this model (default: None).
+
+        Returns:
+            models.MlAnnotationModel: The newly trained AI annotation model.
+        """
+
         body = {"name": name, "training_set_id": development_set_id}
 
         return self._request(
@@ -2444,6 +2497,12 @@ class HARIClient:
     def get_ai_annotation_runs(
         self,
     ) -> list[models.AiAnnotationRun]:
+        """
+        Retrieve all AI annotation runs.
+
+        Returns:
+            list[models.AiAnnotationRun]: A list of AI annotation run objects.
+        """
         return self._request(
             "GET",
             f"/aiAnnotationRuns",
@@ -2452,6 +2511,15 @@ class HARIClient:
         )
 
     def get_ai_annotation_run(self, run_id: str) -> models.AiAnnotationRun:
+        """
+        Retrieve a specific AI annotation run by its ID.
+
+        Args:
+            run_id: The unique identifier of the AI annotation run.
+
+        Returns:
+            models.AiAnnotationRun: The requested AI annotation run object.
+        """
         return self._request(
             "GET",
             f"/aiAnnotationRuns/{run_id}",
@@ -2467,6 +2535,19 @@ class HARIClient:
         model_id: str,
         user_group: str | None = None,
     ) -> models.AiAnnotationRun:
+        """
+        Start a new AI annotation run. Applies the specified model to the datset and subset
+
+        Args:
+            name: A descriptive name for the AI annotation run.
+            dataset_id: The unique identifier of the dataset to be annotated.
+            subset_id: The unique identifier of the subset to be annotated.
+            model_id: The unique identifier of the AI annotation model to use.
+            user_group: The user group for scoping this annotation run (default: None).
+
+        Returns:
+            models.AiAnnotationRun: The newly created AI annotation run object.
+        """
         body = {
             "name": name,
             "dataset_id": dataset_id,
