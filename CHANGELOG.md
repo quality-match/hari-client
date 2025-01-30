@@ -36,6 +36,17 @@
   - Add Uploader Wrappings which check for existing datasets, subsets and media before creation or upload
 - added alternative uploader, state-aware uploading which only uploads media, media_objects and attributes if they are not already uploaded [PR#58](https://github.com/quality-match/hari-client/pull/64)
   - Alternative to `hari_uploader`
+- updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - added Pydantic Models for DevelopmentSet, MLAnnotationModel, AIAnnotationRun, AttributeValue
+  - updated/added missing entries for Pydantic Models related to data download and AINTs
+- added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - paged download of media, media_objects and attributes to the client to enable download of large datasets, otherwise the request would just time out
+  - added handling of attribute values
+  - added getting and creating of DevelopmentSet, MLAnnotationModel and AIAnnotationRun
+- added scripts for data download and aint analysis [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - added util classes `analysis` and `download` for backend logic
+  - added executable scripts `aint_anaylsis`, `apply_aint_generic`, `apply_aint_on_test_data`, `create_aint`, `download_data`, `get_aint_attribute_info`
+
 
 ### Fixes
 

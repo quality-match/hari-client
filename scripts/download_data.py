@@ -17,10 +17,13 @@ if __name__ == "__main__":
         "-d", "--dataset_id", type=str, help="Dataset ID to download", required=True
     )
 
-    # TODO define cache directory
-    DATA_DIRECTORY = "/Volumes/Data/data/"
-
-    # TODO example usage:
+    parser.add_argument(
+        "-c",
+        "--cache_directory",
+        type=str,
+        help="Cache directory for saving the downloaded material",
+        required=True,
+    )
 
     # Parse the arguments.
     args = parser.parse_args()
@@ -32,19 +35,19 @@ if __name__ == "__main__":
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # Call the main function.
-    directory = join(DATA_DIRECTORY, "hari_client_testing")
-    # media_file = join(directory, "media.json")
-    # media_object_file = join(directory, "media_objects.json")
-    #
-    # medias = pydantic_load_from_json(media_file, models.MediaResponse)
-    # media_objects = pydantic_load_from_json(media_object_file, models.MediaObjectResponse)
-    # attribute_values = convert_internal_attributes_to_list(medias,media_objects)
-    # attribute_metas = get_attribute_metas_for_attributes_values(hari, dataset_id, attribute_values)
-    #
-    # print(attribute_metas)
+    # define cache directory
+    if config.data_directory:
+        cache_directory = join(config.data_directory, args.cache_directory)
+    else:
+        cache_directory = args.cache_directory
+
+    # download data
     medias, media_objects, attributes, attribute_metas = collect_media_and_attributes(
-        hari, dataset_id, directory, subset_ids=[], additional_fields=["attributes"]
+        hari,
+        dataset_id,
+        cache_directory,
+        subset_ids=[],
+        additional_fields=["attributes"],
     )
 
     print(len(media_objects), media_objects[0])

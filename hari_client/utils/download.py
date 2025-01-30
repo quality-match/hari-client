@@ -11,7 +11,15 @@ from hari_client import HARIClient
 from hari_client.models import models
 
 
-def save_to_json(file_path, data):
+def save_to_json(file_path: str, data: dict) -> None:
+    """
+    Args:
+        file_path: The path to the file where the JSON will be saved.
+        data: Dictionary containing the data to be saved.
+
+    Returns:
+        None: This function does not return a value. It writes the JSON data to the file.
+    """
     with open(file_path, "w") as json_file:
         json.dump(data, json_file, indent=4)
 
@@ -23,8 +31,8 @@ def pydantic_save_to_json(
     Save a Pydantic model or a list of Pydantic models to a JSON file.
 
     Args:
-        file_path (str): The path to the file where the JSON will be saved.
-        data (Union[BaseModel, List[BaseModel]]): The Pydantic model instance or a list of instances to serialize and save.
+        file_path: The path to the file where the JSON will be saved.
+        data: The Pydantic model instance or a list of instances to serialize and save.
 
     Returns:
         None: This function does not return a value. It writes the JSON data to the file.
@@ -46,7 +54,16 @@ def pydantic_save_to_json(
             )
 
 
-def load_from_json(file_path):
+def load_from_json(file_path: str) -> dict:
+    """
+    Load and parse a JSON file from the specified path.
+
+    Args:
+        file_path (str): The path to the JSON file on disk.
+
+    Returns:
+        dict: A Python dictionary containing the parsed JSON data.
+    """
     with open(file_path, "r") as json_file:
         return json.load(json_file)
 
@@ -59,8 +76,8 @@ def pydantic_load_from_json(file_path: str, model_class: Type[T]) -> T | list[T]
     Load a Pydantic model from a JSON file.
 
     Args:
-        file_path (str): Path to the JSON file containing the serialized model data.
-        model_class (Type[T]): The Pydantic model class to deserialize into.
+        file_path: Path to the JSON file containing the serialized model data.
+        model_class: The Pydantic model class to deserialize into.
 
     Returns:
         T: An instance of the Pydantic model class populated with the JSON data.
@@ -81,6 +98,20 @@ def pydantic_load_from_json(file_path: str, model_class: Type[T]) -> T | list[T]
 def convert_internal_attributes_to_list(
     medias: list[models.MediaResponse], media_objects: list[models.MediaObjectResponse]
 ):
+    """
+    Aggregate all attributes from lists of Media and MediaObject responses.
+
+    This function iterates over each media and media object, collects their
+    attributes, and returns them in a single list. This approach avoids the need
+    to re-download attributes by manually extracting them from already-retrieved data.
+
+    Args:
+        medias (list[models.MediaResponse]): A list of media responses, possibly containing attributes.
+        media_objects (list[models.MediaObjectResponse]): A list of media object responses, possibly containing attributes.
+
+    Returns:
+        list[models.Attribute]: A list of combined attributes from both medias and media objects.
+    """
     attributes = []
 
     print("Split attributes manually to avoid redownloading!")
@@ -99,6 +130,23 @@ def convert_internal_attributes_to_list(
 def get_ai_annotation_run_for_attribute_id(
     hari, aint_attribute_id: str, ai_annoation_runs: list[models.AiAnnotationRun] = None
 ) -> models.AiAnnotationRun | None:
+    """
+    Find an AI Annotation Run corresponding to a given attribute ID.
+
+    If a list of AI Annotation Runs is not provided, this function retrieves them from the
+    HARI client, then searches for the run whose `attribute_metadata_id` matches the
+    specified attribute ID.
+
+    Args:
+        hari: The HARI client instance used to retrieve AI annotation runs if not provided.
+        aint_attribute_id (str): The identifier of the attribute to match.
+        ai_annoation_runs (list[models.AiAnnotationRun], optional): An existing list of runs
+            to search. If None, the function will call `hari.get_ai_annotation_runs()`.
+
+    Returns:
+        models.AiAnnotationRun | None: The matching AI Annotation Run if found, otherwise None.
+    """
+
     if ai_annoation_runs is None:
         ai_annoation_runs: list[models.AiAnnotationRun] = hari.get_ai_annotation_runs()
         print(f"Found {len(ai_annoation_runs)} AI Annotation Runs")
@@ -116,19 +164,42 @@ def get_ai_annotation_run_for_attribute_id(
 def collect_media_and_attributes(
     hari: HARIClient,
     dataset_id: uuid.UUID,
-    directory,
-    subset_ids=[],
-    cache=True,
-    additional_fields=[],
-):
+    directory: str,
+    subset_ids: list[str] = [],
+    cache: bool = True,
+    additional_fields: list[str] = [],
+) -> tuple[
+    list[models.MediaResponse],
+    list[models.MediaObjectResponse],
+    list[models.Attribute],
+    list[models.AttributeMetadataResponse],
+]:
+    """
+    Collect media and their corresponding attributes from a specified dataset,
+    optionally restricting to certain subsets and applying caching or additional query fields.
+
+    Args:
+        hari: An instance of the HARI client to query data.
+        dataset_id: The unique identifier of the dataset from which to collect media.
+        directory: The file system directory where the data may be cached.
+        subset_ids: A list of subset identifiers to limit the media and media object retrieval.
+            Defaults to an empty list, meaning no subset-based restriction is applied.
+        cache: Whether to use cached data if available. Defaults to True.
+        additional_fields: A list of extra fields to retrieve or process
+            when collecting media and media_objects. Defaults to an empty list which means no extra fields.
+            If 'attributes' are specified as attribute, the attributes are directly downloaded with the media and media objects.
+            The attribute values are then calculated based on this and not directly downloaded.
+            For large datasets this approach may be faster than separate downloads.
+
+    Returns: Collection of queried media, media objects and attributes.
+    """
+
     # Check if the JSON files already exist
     media_file = join(directory, "media.json")
     media_object_file = join(directory, "media_objects.json")
     attr_file = join(directory, "attributes.json")
     attr_meta_file = join(directory, "attributes_meta.json")
     os.makedirs(directory, exist_ok=True)
-
-    # TODO add verbose explanation what happens
 
     # meta attributes
     if os.path.exists(attr_meta_file) and cache:
@@ -182,8 +253,25 @@ def collect_media_and_attributes(
 
 
 def get_media_and_objects(
-    hari: HARIClient, dataset_id: uuid.UUID, SUBSET_ID=[], additional_fields=[]
-):
+    hari: HARIClient,
+    dataset_id: uuid.UUID,
+    subset_id: list[str] = [],
+    additional_fields: list[str] = [],
+) -> tuple[str, list[models.MediaResponse], list[models.MediaObjectResponse]]:
+    """
+    Retrieve the name of a dataset and fetch its associated media and media objects.
+
+    Args:
+        hari: An instance of the HARI client to query data.
+        dataset_id: The unique identifier of the dataset.
+        subset_id: A list of subset IDs to filter the media or
+            media objects. Defaults to an empty list, meaning no subset-based restriction.
+        additional_fields: Additional fields to be included in the
+            media object projection. Defaults to an empty list.
+
+    Returns:
+        dataset_name, media and media objects.
+    """
     print("Fetching dataset name...")
 
     # Fetch dataset name
@@ -194,11 +282,11 @@ def get_media_and_objects(
 
     # Define query parameters to filter media objects/medias by subset ID if exists
     query = []
-    if SUBSET_ID:
+    if subset_id:
         subset_query_parameters = {
             "attribute": "subset_ids",
             "query_operator": "in",
-            "value": SUBSET_ID,
+            "value": subset_id,
         }
         query = json.dumps(subset_query_parameters)
 
@@ -212,47 +300,54 @@ def get_media_and_objects(
         "projection[object_category]": True,
         "projection[frame_idx]": True,
         "projection[subset_ids]": True,
-        # "projection[visualisations]": True,
-        # "projection[attributes]": True, # non complete attribute information
     }
 
     for additional_field in additional_fields:
         media_object_projection[f"projection[{additional_field}]"] = True
-
-    # Fetch media objects asynchronously
-    # media_objects_task = get_media_objects(dataset_id, query, media_object_projection)
 
     # Define projection for medias, i.e. which fields we want to get at the returned value
     media_projection = {
         "projection[id]": True,
         "projection[back_reference]": True,
         "projection[subset_ids]": True,
-        # "projection[attributes]": True,
     }
 
     # Fetch medias asynchronously
-    # medias_task = get_medias(dataset_id, query, media_projection)
     medias = hari.get_medias_paged(dataset_id, query=query, projection=media_projection)
     media_objects = hari.get_media_objects_paged(
         dataset_id, query=query, projection=media_object_projection
     )
 
     # Await all parallel tasks
-    # media_objects, medias = await asyncio.gather(media_objects_task, medias_task)
-    # TODO parallelize calls
-
-    # print(medias[:3])
-    # print(media_objects[:3])
+    # TODO parallelize calls for faster download
 
     return dataset_name, medias, media_objects
 
 
 def get_all_attributes_for_media_and_objects(
-    hari,
-    dataset_id,
+    hari: HARIClient,
+    dataset_id: str,
     media_objects: list[models.MediaObjectResponse],
     medias: list[models.MediaResponse],
 ) -> list[models.AttributeValueResponse]:
+    """
+    Retrieve all attribute values for the given media and media objects within a dataset.
+
+    This function consolidates the IDs of both media and media objects, then uses a query
+    to fetch their associated attribute values. It can handle large datasets by using the
+    paginated method on the HARI client.
+
+    Args:
+        hari: An instance of the HARI client.
+        dataset_id: The unique identifier of the dataset.
+        media_objects: A list of media object responses
+            from which to extract IDs.
+        medias: A list of media responses from which to extract IDs.
+
+    Returns:
+        AttributeValues
+    """
+
     # Initialize a list to store media object IDs
     media_object_ids = []
 
@@ -273,41 +368,15 @@ def get_all_attributes_for_media_and_objects(
     annotatable_ids = media_ids + media_object_ids
 
     # Define the first query parameter to filter attributes by annotatable ids
-    # TODO does not work the query is too long
+    # TODO may not work if the query is too long
     attribute_query_parameters = {
         "attribute": "annotatable_id",
         "query_operator": "in",
         "value": annotatable_ids,
     }
 
-    # print(attribute_query_parameters)
-
     attribute_values = hari.get_attribute_values_paged(
         dataset_id, query=json.dumps(attribute_query_parameters)
     )
 
     return attribute_values
-
-
-def get_attribute_metas_for_attributes_values(
-    hari, dataset_id, attribute_values: list[models.AttributeValueResponse]
-):
-    meta_ids = [attr_value.metadata_id for attr_value in attribute_values]
-    # make unqiue
-    meta_ids = list(set(meta_ids))
-
-    print(meta_ids)
-
-    meta_ids = hari.get_attribute_metadata(
-        dataset_id,
-        # can lead to too long queries
-        query=json.dumps(
-            {
-                "attribute": "id",
-                "query_operator": "in",
-                "value": meta_ids,
-            }
-        ),
-    )
-
-    return meta_ids

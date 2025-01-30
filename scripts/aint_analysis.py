@@ -14,13 +14,6 @@ from hari_client.utils.analysis import organize_attributes_by_group
 from hari_client.utils.download import collect_media_and_attributes
 from hari_client.utils.download import get_ai_annotation_run_for_attribute_id
 
-# def aint_analysis(
-#     human_annotation_attribute_id: str,
-#     ai_annotation_attribute_id: str,
-#     model: models.MlAnnotationModel,
-# ):
-#
-
 
 if __name__ == "__main__":
     # Argument parser setup.
@@ -61,8 +54,6 @@ if __name__ == "__main__":
         required=True,
     )
 
-    # TODO example usage:
-
     # Parse the arguments.
     args = parser.parse_args()
 
@@ -90,10 +81,6 @@ if __name__ == "__main__":
         additional_fields=["attributes"],
     )
 
-    # print(len(media_objects), media_objects[0])
-    # print(len(medias), medias[0])
-    # print(len(attributes), attributes[0])
-
     # Get AINT info for attribute ID
     ai_annotation_run = get_ai_annotation_run_for_attribute_id(
         hari, ai_annotation_attribute_id
@@ -113,7 +100,6 @@ if __name__ == "__main__":
     ID2subsets = {m.id: m.subset_ids for m in media_objects}
 
     # organize Attributes by type
-    # TODO splitting should maybe already happen in collect media and attributes
     group2media_attribute, group2media_object_attribute = organize_attributes_by_group(
         attributes, ID2attribute_meta
     )
@@ -125,9 +111,6 @@ if __name__ == "__main__":
         normalize=True,
         combine=False,
     )
-
-    print(len(ID2annotation))
-    print(ID2annotation[list(ID2annotation.keys())[0]])
 
     ID2mlannotation, ID2confidence = create_soft_label_for_annotations(
         group2media_object_attribute[AttributeGroup.MlAnnotationAttribute],

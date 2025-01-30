@@ -8,14 +8,14 @@ from hari_client.utils.download import get_ai_annotation_run_for_attribute_id
 if __name__ == "__main__":
     # Argument parser setup.
     parser = argparse.ArgumentParser(
-        description="Get all linked AINT info for an AINT attribute"
+        description="Get all linked AINT info for an AI annotation run attribute"
     )
 
     parser.add_argument(
         "-a",
         "--aint_attribute_id",
         type=str,
-        help="ID of the AI Nano Task Attribute.",
+        help="ID of the AI annotation run Attribute.",
         required=True,
     )
 
