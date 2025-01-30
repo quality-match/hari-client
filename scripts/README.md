@@ -28,6 +28,10 @@ Below you can find a description of the different available scripts.
 - `trigger_metadata_rebuild` Triggers the metadata rebuild like crop generation, missing thumbnails, wrong histogram calculations.
   - Call with `python trigger_metadata_rebuild.py --dataset_id <Dataset ID> --subset_id <Attribute ID>`
   - Example: `python trigger_metadata_rebuild.py --dataset_id 12345678-aaaa-bbbb-cccc-123456789de --subset_id 12345678-aaaa-bbbb-cccc-123456789de`
+- `upload_only_attributes` Example script how to upload attributes to a previously created media or media objects
+  - Call with `python upload_only_attributes.py --dataset_name <Dataset Name : str> --image_url <URL> --user_group <User Group: str>`
+- `upload_only_media_objects` Example script how to upload only media objects to a previously created media
+  - Call with `python upload_only_media_objects.py --dataset_name <Dataset Name : str> --image_url <URL> --user_group <User Group: str>`
 
 
 

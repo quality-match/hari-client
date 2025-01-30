@@ -5,6 +5,7 @@ from hari_client.config.config import HARIUploaderConfig
 from hari_client.models import models
 from hari_client.models import validation
 from hari_client.upload import hari_uploader
+from hari_client.upload import state_aware_hari_uploader
 
 __all__ = [
     HARIClient,
@@ -14,4 +15,5 @@ __all__ = [
     validation,
     hari_uploader,
     HARIUploaderConfig,
+    state_aware_hari_uploader,
 ]

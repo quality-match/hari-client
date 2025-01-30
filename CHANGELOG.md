@@ -30,8 +30,12 @@
   - added script `upload_coco_like_dataset`
   - added script `upload_generic_dataset`
   - added script `upload_dataset_with_own_attributes`
+  - added script `upload_only_attributes`
+  - added script `upload_only_media_objects`
 - extended client [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - Add Uploader Wrappings which check for existing datasets, subsets and media before creation or upload
+- added alternative uploader, state-aware uploading which only uploads media, media_objects and attributes if they are not already uploaded [PR#58](https://github.com/quality-match/hari-client/pull/64)
+  - Alternative to `hari_uploader`
 
 ### Fixes
 

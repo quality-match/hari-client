@@ -163,6 +163,13 @@ if __name__ == "__main__":
         required=True,
     )
 
+    parser.add_argument(
+        "--user_group",
+        type=str,
+        help="User group for the upload",
+        required=True,
+    )
+
     # Parse the arguments.
     args = parser.parse_args()
 
@@ -170,6 +177,7 @@ if __name__ == "__main__":
     dataset_name = args.dataset_name
     images_dir = args.image_directory
     annotations_file = args.annotations_file
+    user_group = args.user_group
 
     # load hari client
     config: Config = Config(_env_file=".env")
@@ -178,12 +186,11 @@ if __name__ == "__main__":
     # Call the main function
     # Make sure that your data is anonymized before you mark it as such
     # If your data is not anonymized please contact us for further support.
-    # TODO what is a good default user group, how should a customer select it
     upload_coco_like_dataset(
         hari,
         dataset_name,
         images_dir,
         annotations_file,
-        user_group=None,
+        user_group=user_group,
         is_anonymized=True,
     )
