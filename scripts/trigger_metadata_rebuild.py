@@ -3,7 +3,7 @@ import uuid
 
 from hari_client import Config
 from hari_client import HARIClient
-from hari_client.utils.upload import trigger_and_display_metedata_update
+from hari_client.utils.upload import trigger_and_display_metadata_update
 
 if __name__ == "__main__":
     # Argument parser setup.
@@ -32,4 +32,4 @@ if __name__ == "__main__":
     hari: HARIClient = HARIClient(config=config)
 
     # Call the main function.
-    trigger_and_display_metedata_update(hari, dataset_id, subset_id)
+    trigger_and_display_metadata_update(hari, dataset_id, subset_id)

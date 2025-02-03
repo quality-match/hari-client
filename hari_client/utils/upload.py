@@ -8,7 +8,7 @@ from hari_client import state_aware_hari_uploader as hari_uploader
 from hari_client.models.models import Media
 
 
-def trigger_and_display_metedata_update(
+def trigger_and_display_metadata_update(
     hari: HARIClient, dataset_id: uuid.UUID, subset_id: uuid.UUID | None
 ):
     """
@@ -205,6 +205,6 @@ def check_and_upload_dataset(
         )
 
     # Trigger metadata updates
-    trigger_and_display_metedata_update(
+    trigger_and_display_metadata_update(
         hari, dataset_id=dataset_id, subset_id=new_subset_id
     )
