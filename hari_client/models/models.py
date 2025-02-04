@@ -185,16 +185,21 @@ class BBox2DCenterPoint(BaseModel):
     height: typing.Any = pydantic.Field(title="Height")
 
 
+class SegmentType(str, enum.Enum):
+    SEGMENT_RLE_COMPRESSED = "segment_rle_compressed"
+
+
 class SegmentRLECompressed(pydantic.BaseModel):
     """
-    2D rle compressed segment representation.
-    counts: the actual RLE encoded string, which describes the binary mask
-    size: the dimensions of the binary mask that RLE represents
+    RLE compressed segment representation.
+
+    counts: the actual RLE encoded string, which describes the binary mask (example: "61X13mN000`0")
+    size: the dimensions of the binary mask that RLE represents - [height, width] (example: [9, 10])
     """
 
-    type: str = "segment2d_rle_compressed"
-    counts: str
-    size: list[int]
+    type: str = SegmentType.SEGMENT_RLE_COMPRESSED
+    counts: str = pydantic.Field(title="Counts")
+    size: list[int] = pydantic.Field(title="Size")
 
 
 class DataSource(str, enum.Enum):
