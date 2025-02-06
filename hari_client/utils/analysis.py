@@ -114,6 +114,7 @@ def create_soft_label_for_annotations(
     combine: bool = False,
     ignore_duplicate: bool = False,
     match_by: str = "id",
+    match_by2name: dict[str, str] | None = None,
     additional_result: str | None = None,
 ) -> (
     dict[str, dict[str, dict[str, float]]]
@@ -137,18 +138,20 @@ def create_soft_label_for_annotations(
         ignore_duplicate (bool, optional): If False and duplicates exist without `combine`, prints a warning.
             Defaults to False.
         match_by (str): The attribute field to match on, e.g., 'id'. Defaults to 'id'.
+        match_by2name: Optional dictionary which describes how the match by value should be mapped. E.g. map ids to readable version
         additional_result (str | None, optional): If specified, also retrieve and store data from this field.
             Defaults to None.
 
     Returns:
         dict[str, dict[str, dict[str, float]]] or tuple of:
-            - (1) A nested dictionary keyed by annotatable ID, then keyed by the `match_by` value,
+            - (1) A nested dictionary keyed by annotatable ID, then keyed by the `match_by` value or the `match_by2name` entry if applicable.,
               mapping to a dict of {possible_label: frequency or probability}.
             - (2) If `additional_result` is specified, returns a tuple where the second element
               is a similarly nested dictionary capturing the additional data.
     """
     annotatableID2attributes = {}
     annotatableID2additional = {}
+
     for attr in attributes:
         if getattr(attr, attribute_name, None) is None:
             print(f"WARNING: {attribute_name} not found in {attr}")
@@ -168,6 +171,11 @@ def create_soft_label_for_annotations(
         queried_values = getattr(attr, attribute_name)
         match_by_value = getattr(attr, match_by)
 
+        if match_by2name is not None:
+            mapped_match_by_value = match_by2name.get(match_by_value, match_by_value)
+        else:
+            mapped_match_by_value = match_by_value
+
         # check for missing can not solve
         if "cant_solve" not in queried_values:
             queried_values["cant_solve"] = (
@@ -175,16 +183,20 @@ def create_soft_label_for_annotations(
             )  # make sure default value is 0
 
         # Check for duplicates
-        if match_by_value in annotatableID2attributes[annotatable_id]:
+        if mapped_match_by_value in annotatableID2attributes[annotatable_id]:
             if not combine:
                 if not ignore_duplicate:
-                    print(f"Warning: duplicate for {match_by_value} @ {annotatable_id}")
-                    print(annotatableID2attributes[annotatable_id][match_by_value])
+                    print(
+                        f"Warning: duplicate for {mapped_match_by_value} @ {annotatable_id}"
+                    )
+                    print(
+                        annotatableID2attributes[annotatable_id][mapped_match_by_value]
+                    )
                     print(queried_values)
             else:
                 # combine frequencies
                 old_frequencies = annotatableID2attributes[annotatable_id][
-                    match_by_value
+                    mapped_match_by_value
                 ]
                 for key, value in old_frequencies.items():
                     # Add the value to the existing key or initialize it
@@ -196,9 +208,9 @@ def create_soft_label_for_annotations(
                     )
 
         # write back
-        annotatableID2attributes[annotatable_id][match_by_value] = queried_values
+        annotatableID2attributes[annotatable_id][mapped_match_by_value] = queried_values
         if additional_result is not None:
-            annotatableID2additional[annotatable_id][match_by_value] = getattr(
+            annotatableID2additional[annotatable_id][mapped_match_by_value] = getattr(
                 attr, additional_result
             )
 
