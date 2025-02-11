@@ -1,5 +1,10 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New Features
+
+- add skip, limit, sort, query and archived parameters to get_datasets method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+- add get_datasets_count method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features

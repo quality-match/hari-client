@@ -564,12 +564,24 @@ class HARIClient:
         self,
         subset: bool | None = False,
         visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
     ) -> list[models.DatasetResponse]:
-        """Returns all datasets that a user has access to.
+        """Returns datasets that a user has access to.
 
         Args:
             subset: Return also subsets. If False, returns only parent datasets
             visibility_statuses: Visibility statuses of the returned datasets
+            limit: limit the number of datasets returned
+            skip: skip the number of datasets returned
+            query: query parameters to filter the datasets
+            sort: sorting parameters to sort the datasets
+            name_filter: filter by dataset name
+            archived: whether to include archived media_objects (default: False)
 
         Returns:
             A list of datasets
@@ -582,6 +594,34 @@ class HARIClient:
             "/datasets",
             params=self._pack(locals()),
             success_response_item_model=list[models.DatasetResponse],
+        )
+
+    def get_datasets_count(
+        self,
+        visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns dataset count for the user.
+        Args:
+            visibility_statuses: Visibility statuses of the returned datasets
+            query: query parameters to filter the datasets
+            name_filter: filter by dataset name
+            archived: whether to include archived media_objects (default: False)
+
+        Returns:
+            The number of datasets
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/datasets:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
         )
 
     def get_subsets_for_dataset(
