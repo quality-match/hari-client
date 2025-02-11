@@ -1854,7 +1854,7 @@ class HARIClient:
         frequency: dict[str, int] | None = None,
         question: str | None = None,
         repeats: int | None = None,
-        possible_values: list[str | int | float | bool] | None = None,
+        possible_values: list[str] | None = None,
     ) -> models.Attribute:
         """Create an attribute for a dataset.
 

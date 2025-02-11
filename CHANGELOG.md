@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+- restricted attribute `possible_values` to be a list of strings [PR#66](https://github.com/quality-match/hari-client/pull/66)
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features
