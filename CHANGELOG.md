@@ -1,5 +1,9 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [4.0.0] - TBD
+
+- removed `trigger_thumbnails_creation_job` and `trigger_crops_creation_job`
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features
