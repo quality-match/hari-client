@@ -581,7 +581,7 @@ class HARIClient:
             query: query parameters to filter the datasets
             sort: sorting parameters to sort the datasets
             name_filter: filter by dataset name
-            archived: whether to include archived media_objects (default: False)
+            archived: whether to include archived datasets (default: False)
 
         Returns:
             A list of datasets
@@ -609,7 +609,7 @@ class HARIClient:
             visibility_statuses: Visibility statuses of the returned datasets
             query: query parameters to filter the datasets
             name_filter: filter by dataset name
-            archived: whether to include archived media_objects (default: False)
+            archived: whether to consider archived datasets (default: False)
 
         Returns:
             The number of datasets
