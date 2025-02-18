@@ -8,7 +8,8 @@
 - removed `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` [PR#68](https://github.com/quality-match/hari-client/pull/68)
 
 ### New features
-- added "compute_auto_attributes"-param to trigger_metadata_rebuild_job
+
+- added "compute_auto_attributes"-param to trigger_metadata_rebuild_job [PR#71](https://github.com/quality-match/hari-client/pull/71)
 
 ## [3.1.0] - 14-01-2025
 
