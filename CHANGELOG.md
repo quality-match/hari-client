@@ -1,5 +1,11 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [3.2.0] - TBD
+
+### New Features
+
+- added "compute_auto_attributes"-param to trigger_metadata_rebuild_job
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features
