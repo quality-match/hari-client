@@ -949,7 +949,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to get archived media
+            archived: if true, return only archived medias; if false (default), return non-archived medias.
             presign_medias: Whether to presign medias
             limit: The number of medias tu return
             skip: The number of medias to skip
@@ -1084,7 +1084,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             subset_id: The subset id or None, if the result for the whole dataset
-            archived: Whether to consider archived medias (default: False)
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
 
         Returns:
             Dictionary, where the key is the number of medias in the dataset having
@@ -1110,7 +1110,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to consider archived medias
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
             query: Query
 
         Returns:
@@ -1434,11 +1434,11 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
     ) -> list[models.MediaObjectResponse]:
-        """Queries the database based on the submitted parameters and returns a
+        """Queries the database based on the submitted parameters and returns a list of media objects
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, return only archived media objects; if false (default), return non-archived media objects.
             presign_medias: Presign Medias
             limit: Limit
             skip: Skip
@@ -1510,7 +1510,7 @@ class HARIClient:
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, consider only archived media objects; if false (default), consider only non-archived media objects.
             query: Query
 
         Returns:
@@ -1954,7 +1954,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: True if archived attributes should be returned
+            archived: if true, return only archived attributes; if false (default), return non-archived attributes.
             limit: The maximum number of attributes to return
             skip: The number of attributes to skip
             query: A query to filter attributes
@@ -2108,9 +2108,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Filters items based on their archived status (default: False):
-              - if set (True/False), returns only archived or non-archived items, respectively
-              - if None, returns all items, regardless of their archived status
+            archived: if true, return only archived attribute metadata; if false (default), return non-archived attribute metadata.
             query: A query to filter attribute metadata
 
          Returns:
@@ -2141,7 +2139,7 @@ class HARIClient:
 
         Args:
             dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
-            archived: Whether to include archived VisualisationConfigs (default: False)
+            archived: if true, return only archived visualisation configurations; if false (default), return non-archived visualisation configurations.
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             limit: How many visualisation_configs to return
