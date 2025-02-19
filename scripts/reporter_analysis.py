@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from hari_client import Config
 from hari_client import HARIClient
 from hari_client.models.models import AnnotationResponse
+from hari_client.utils.analysis import caluclate_confidence_interval_scores
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -97,12 +98,19 @@ def generate_reference_data_map(dataset_id, subset_id, annotation_run_node_id) -
     for attr in reference_attributes:
         if attr.annotatable_id in media_object_ids_of_reference_subset:
             # relevant media objects
+            frequency = attr.frequency
+            frequency["cant_solve"] = attr.cant_solves
+
+            # Step 1: Find the maximum value in the dictionary
+            max_value = max(frequency.values())
+
+            # Step 2: Collect all keys that have this maximum value
+            max_keys = [key for key, value in frequency.items() if value == max_value]
 
             # ensure only one value
-            if len(attr.value) == 1:
-                # TODO use frequency of attribute, include cant solves because attr could also be cant solve
+            if len(max_keys) == 1:
                 # maybe do not allow it since it is ambiguous
-                reference_data_map[attr.annotatable_id] = attr.value
+                reference_data_map[attr.annotatable_id] = max_keys[0]
             else:
                 print(
                     "WARNING: tried to load reference data with ambiguous label which is not allowed @",
@@ -149,10 +157,12 @@ def get_annotator_summary(
         frequency_answers[answer] = frequency_answers.get(answer, 0) + 1
 
         if annotation.annotatable_id in reference_data_map:
+            if reference_data_map[annotation.annotatable_id] == "cant_solve":
+                continue  # cant solve
             # found entry
             total_answered_reference_data += 1
             # check correct
-            if answer == reference_data_map[annotation.annotatable_id][0]:
+            if answer == reference_data_map[annotation.annotatable_id]:
                 total_correct_reference_data += 1
 
         total_duration += duration_s
@@ -272,7 +282,6 @@ def visualize_annotator_analysis(
     # ----------------------------------------------------------------
     # Dictionary: metric_name -> list of values from each annotator
     metric_values = {m: [] for m in metrics}
-
     for ann in annotators:
         for m in metrics:
             if m in ["average_duration", "percentage_correct_reference_data"]:
@@ -339,17 +348,42 @@ def visualize_annotator_analysis(
         # Collect values for this annotator
         ann_duration_values = []
         ann_percentage_values = []
-        for m in duration_metrics:
-            ann_duration_values.append(ann.get(m, 0.0))
+        uncertainty_values = []
 
-        ann_percentage_values_map = {}
+        # side calculations for unceratinta
+        total_annotations = ann.get("total_annotations", 0.0)
+        total_reference_annotations = ann.get("total_answered_reference_data", 0.0)
+
+        for m in duration_metrics:
+            value = ann.get(m, 0.0)
+            ann_duration_values.append(value)
+
         for m in percentage_metrics:
             if m in ["percentage_correct_reference_data"]:
-                ann_percentage_values_map[m] = ann.get(m, 0.0) * 100.0
+                value = ann.get(m, 0.0)
+                ann_percentage_values.append(value * 100.0)
+                total = total_reference_annotations
             else:
                 # distribution_answers keys are also percentages 0..1 => multiply by 100
                 dist_answers = ann.get("distribution_answers", {})
-                ann_percentage_values_map[m] = dist_answers.get(m, 0.0) * 100.0
+                value = dist_answers.get(m, 0.0)
+                ann_percentage_values.append(value * 100.0)
+                total = total_annotations
+
+            (
+                p_hat,
+                p_adjusted,
+                ci_lower,
+                ci_upper,
+                m,
+                n,
+                invalids,
+            ) = caluclate_confidence_interval_scores(
+                "", value * total, total, verbose=False
+            )
+            uncertainty_values.append(
+                (p_adjusted * 100.0, (p_adjusted - ci_lower) * 100.0)
+            )
 
         # X-axis indices
         x_positions = range(len(metrics))
@@ -372,9 +406,6 @@ def visualize_annotator_analysis(
 
         # Plot percentage bars on ax2
         x_percent = range(1, len(percentage_metrics) + 1)
-        ann_percentage_values = [
-            ann_percentage_values_map[m] for m in percentage_metrics
-        ]
         ax2.bar(
             x_percent,
             ann_percentage_values,
@@ -415,9 +446,11 @@ def visualize_annotator_analysis(
                 x_pos = i  # because distribution metrics start at 1, shift accordingly
                 axis = ax2
 
-                # Plot mean ± 95% CI as error bar
+            offsets_additions = 0.1
+
+            # Plot mean ± 95% CI as error bar
             axis.errorbar(
-                x_pos,
+                x_pos + offsets_additions,  # slide offset
                 mean_val,
                 yerr=ci_95,
                 fmt="o",
@@ -426,9 +459,27 @@ def visualize_annotator_analysis(
                 label=None,
             )
 
+            # plot uncerainty as CI
+            if i > 0:
+                # draw only for percentages
+                axis.errorbar(
+                    x_pos - offsets_additions,
+                    uncertainty_values[i - 1][0],  # update index
+                    yerr=uncertainty_values[i - 1][1],
+                    fmt="d",
+                    color="darkblue",
+                    capsize=5,
+                    label=None,
+                )
+
             # Plot median as 'x'
             axis.plot(
-                x_pos, median_val, marker="x", color="green", markersize=8, label=None
+                x_pos + offsets_additions,
+                median_val,
+                marker="x",
+                color="green",
+                markersize=8,
+                label=None,
             )
 
             # Plot outliers only
@@ -436,7 +487,13 @@ def visualize_annotator_analysis(
                 lower = mean_val - ci_95
                 upper = mean_val + ci_95
                 if val < lower or val > upper:
-                    axis.plot(x_pos, val, marker=".", color="gray", markersize=5)
+                    axis.plot(
+                        x_pos + offsets_additions,
+                        val,
+                        marker=".",
+                        color="gray",
+                        markersize=5,
+                    )
 
         # ----------------------------------------------------------------
         # Cosmetics and labeling
@@ -592,7 +649,13 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--subset_id",
+        "--reference_data_attribute_id",
+        type=str,
+        help="Attribute ID which should be used as reference data",
+    )
+
+    parser.add_argument(
+        "--reference_data_subset_id",
         type=str,
         help="Subset ID for on which the reference data is defined",
     )
@@ -604,7 +667,10 @@ if __name__ == "__main__":
     dataset_id: uuid.UUID = args.dataset_id
     annotation_run_node_id: uuid.UUID = args.annotation_run_node_id
     attribute_id: uuid.UUID = args.attribute_id
-    subset_id: uuid.UUID = args.subset_id  # TODO check what happens if empty
+    reference_data_attribute_id: uuid.UUID = args.reference_data_attribute_id
+    reference_data_subset_id: uuid.UUID = (
+        args.reference_data_subset_id
+    )  # TODO check what happens if empty
 
     assert (
         annotation_run_node_id is not None or attribute_id is not None
@@ -619,6 +685,13 @@ if __name__ == "__main__":
         annotation_run_node_id = get_annotation_run_node_id_for_attribute_id(
             dataset_id=dataset_id, attribute_id=attribute_id
         )
+    if reference_data_attribute_id is not None:
+        reference_data_run_node_id = get_annotation_run_node_id_for_attribute_id(
+            dataset_id=dataset_id, attribute_id=reference_data_attribute_id
+        )
+    else:
+        # use same annotation run
+        reference_data_run_node_id = annotation_run_node_id
 
     # used here same annotation run node id for reference but could have been also different one
     # important the node values must match
@@ -626,6 +699,6 @@ if __name__ == "__main__":
         hari,
         dataset_id,
         annotation_run_node_id,
-        reference_subset_id=subset_id,
-        reference_annotation_run_node_id=annotation_run_node_id,
+        reference_subset_id=reference_data_subset_id,
+        reference_annotation_run_node_id=reference_data_run_node_id,
     )
