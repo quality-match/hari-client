@@ -1364,7 +1364,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Can't Solve",
         description="Indicates that the annotator could not resolve or answer the question",
     )
-    errors: list[str] | None = pydantic.Field(
+    errors: list[dict] | None = pydantic.Field(
         default=None,
         title="Errors",
         description="Any errors encountered during the annotation process",
