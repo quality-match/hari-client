@@ -458,6 +458,10 @@ def caluclate_confidence_interval_scores(
             f"Supported values are: {list(confidence_to_z.keys())}"
         )
 
+    # safe guard for n == 0
+    if n == 0:
+        return 0.5, 0.5, 0, 1, m, n, invalids
+
     # calculate observed rate
     p_hat = m / n
     p_adjusted = (p_hat + (pow(z, 2) / (2 * n))) / (
