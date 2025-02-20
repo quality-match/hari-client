@@ -106,7 +106,7 @@ def check_and_create_subset_for_all(
             subset_name=subset_name,
         )
         print(f"Created new subset with id {new_subset_id}")
-        return new_subset_id, False
+        return uuid.UUID(new_subset_id), False
     else:
         subset = subsets[subset_names.index(subset_name)]
         new_subset_id = subset.id
