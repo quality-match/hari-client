@@ -109,7 +109,7 @@ if __name__ == "__main__":
     )
     media.add_media_object(
         obj1, obj2
-    )  # att1 was already uploaded but uploader can handle this
+    )  # obj1 was already uploaded but uploader can handle this
     obj2.set_object_category_subset_name("dog")  # you can also add object categories
 
     # upload image to dataset
