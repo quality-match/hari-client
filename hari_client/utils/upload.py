@@ -119,7 +119,7 @@ def check_and_upload_dataset(
     hari: HARIClient,
     dataset_id: uuid.UUID,
     object_categories: list[str],
-    medias: list[Media],
+    medias: list[HARIMedia],
     new_subset_name: str = "All media objects",
     subset_type: models.SubsetType = models.SubsetType.MEDIA_OBJECT,
 ):
