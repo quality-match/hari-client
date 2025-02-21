@@ -1,11 +1,8 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [4.0.0] - TBD
-
 ### Breaking Changes
 
 - restricted attribute `possible_values` to be a list of strings [PR#66](https://github.com/quality-match/hari-client/pull/66)
-- removed `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` [PR#68](https://github.com/quality-match/hari-client/pull/68)
 
 ### New features
 
