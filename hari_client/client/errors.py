@@ -42,7 +42,14 @@ class ParseResponseModelError(Exception):
 class MediaCreateMissingFilePathError(Exception):
     def __init__(self, media_create: models.MediaCreate):
         super().__init__(
-            f"The 'file_path' has to be set when using an instance of models.MediaCreate in HARIClient.create_medias() and with_media_file_upload is True. Found: {media_create.file_path=}"
+            f"The 'file_path' has to be set when using an instance of models.MediaCreate in HARIClient.create_medias() when with_media_file_upload is True. Found: {media_create.file_path=}"
+        )
+
+
+class MediaCreateMissingMediaUrlError(Exception):
+    def __init__(self, media_create: models.MediaCreate):
+        super().__init__(
+            f"The 'media_url' has to be set when using an instance of models.MediaCreate in HARIClient.create_medias() when with_media_file_upload is False. Found: {media_create.media_url=}"
         )
 
 

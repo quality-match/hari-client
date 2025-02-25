@@ -835,7 +835,7 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         medias: list[models.BulkMediaCreate],
-        with_media_file_upload: bool = True,
+        with_media_files_upload: bool = True,
     ) -> models.BulkResponse:
         """Accepts multiple media files, uploads them, and creates the media entries in the db.
         The limit is 500 per call.
@@ -843,7 +843,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             medias: A list of MediaCreate objects. Each object contains the file_path as a field.
-            with_media_file_upload: Whether the media files have to be uploaded or not.
+            with_media_files_upload: Whether the media files have to be uploaded or not.
 
         Returns:
             A BulkResponse with information on upload successes and failures.
@@ -859,7 +859,7 @@ class HARIClient:
             raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
-        if with_media_file_upload:
+        if with_media_files_upload:
             # 1. upload files - if necessary
             file_paths: dict[int, str] = {}
             for idx, media in enumerate(medias):
@@ -877,7 +877,11 @@ class HARIClient:
                 media.media_url = media_upload_responses[idx].media_url
                 media_dicts.append(media.model_dump())
         else:
-            media_dicts = [media.model_dump() for media in medias]
+            media_dicts = []
+            for media in medias:
+                if not media.file_path:
+                    raise errors.MediaCreateMissingMediaUrlError(media)
+                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(
