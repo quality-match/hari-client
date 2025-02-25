@@ -7,8 +7,8 @@
 #### Support for external media sources
 
 - added support for defining external media sources when creating a dataset
-  - new field `external_media_source` in the `create_dataset` method [PR#72](https://github.com/quality-match/hari-client/pull/72)
-- added new endpoint `get_external_media_source` [PR#72](https://github.com/quality-match/hari-client/pull/72)
+  - new field `external_media_source` in the `create_dataset` method [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new endpoint `get_external_media_source` [PR#73](https://github.com/quality-match/hari-client/pull/73)
 
 ## [3.2.0] - 25-02-2025
 
