@@ -1,6 +1,6 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [3.2.0] - TBD
+## [3.2.0] - 25-02-2025
 
 ### New features
 
