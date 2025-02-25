@@ -1,5 +1,15 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [3.3.0] - DD-MM-YYYY
+
+### New features
+
+#### Support for external media sources
+
+- added support for defining external media sources when creating a dataset
+  - new field `external_media_source` in the `create_dataset` method [PR#72](https://github.com/quality-match/hari-client/pull/72)
+- added new endpoint `get_external_media_source` [PR#72](https://github.com/quality-match/hari-client/pull/72)
+
 ## [3.2.0] - 25-02-2025
 
 ### New features

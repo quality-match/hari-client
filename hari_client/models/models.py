@@ -243,6 +243,52 @@ class VisualisationType(str, enum.Enum):
     RENDERED = "Rendered"
 
 
+class ExternalMediaSourceCredentialsType(str, enum.Enum):
+    AZURE_SAS_TOKEN = "azure_sas_token"
+    S3_CROSS_ACCOUNT_ACCESS = "s3_cross_account_access"
+
+
+class ExternalMediaSourceS3CrossAccountAccessInfo(BaseModel):
+    type: ExternalMediaSourceCredentialsType = (
+        ExternalMediaSourceCredentialsType.S3_CROSS_ACCOUNT_ACCESS
+    )
+    bucket_name: str
+    region: str
+
+
+class ExternalMediaSourceAzureCredentials(pydantic.BaseModel):
+    type: ExternalMediaSourceCredentialsType = (
+        ExternalMediaSourceCredentialsType.AZURE_SAS_TOKEN
+    )
+    container_name: str
+    account_name: str
+    sas_token: str
+
+
+class ExternalMediaSourceAPICreate(BaseModel):
+    credentials: (
+        ExternalMediaSourceS3CrossAccountAccessInfo
+        | ExternalMediaSourceAzureCredentials
+    )
+
+
+class ExternalMediaSourceCredentialsDB(pydantic.BaseModel):
+    type: ExternalMediaSourceCredentialsType
+    container_name: str | None
+    account_name: str | None
+    bucket_name: str | None
+    region: str | None
+
+
+class ExternalMediaSourceAPIResponse(BaseModel):
+    id: uuid.UUID
+    user_group: str
+    owner: uuid.UUID
+    # credentials field doesn't contain secrets
+    credentials: ExternalMediaSourceCredentialsDB
+    creation_timestamp: datetime.datetime
+
+
 class Dataset(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
@@ -266,6 +312,9 @@ class Dataset(BaseModel):
     )
     visibility_status: VisibilityStatus | None = pydantic.Field(
         default="visible", title="VisibilityStatus"
+    )
+    external_media_source: ExternalMediaSourceAPICreate | None = pydantic.Field(
+        None, title="External Media Source"
     )
 
 
@@ -293,6 +342,7 @@ class DatasetResponse(BaseModel):
     visibility_status: VisibilityStatus | None = pydantic.Field(
         default=VisibilityStatus.VISIBLE, title="VisibilityStatus"
     )
+    external_media_source: uuid.UUID | None = None
 
 
 class Pose3D(BaseModel):
