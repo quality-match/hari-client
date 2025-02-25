@@ -551,6 +551,89 @@ def test_hari_uploader_creates_single_batch_correctly(
     assert uploader._attribute_cnt == 30
 
 
+def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_files(
+    create_configurable_mock_uploader_successful_single_batch, mocker
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        media_spy,
+        media_object_spy,
+        attribute_spy,
+        subset_create_spy,
+    ) = create_configurable_mock_uploader_successful_single_batch(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=5,
+        media_objects_cnt=10,
+        attributes_cnt=30,
+    )
+
+    mocker.patch.object(
+        uploader, "_dataset_uses_external_media_source", return_value=True
+    )
+    client_create_medias_spy = mocker.spy(client, "create_medias")
+
+    # 5 medias --> 1 batch
+    # 10 media_objects --> 1 batch
+    # 30 attributes --> 1 batch
+    for i in range(5):
+        media = hari_uploader.HARIMedia(
+            name=f"my image {i}",
+            media_type=models.MediaType.IMAGE,
+            back_reference=f"img_{i}",
+            media_url=f"s3://my_bucket/images/image_{i}.jpg",
+        )
+        for k in range(2):
+            media_object = hari_uploader.HARIMediaObject(
+                source=models.DataSource.REFERENCE,
+                back_reference=f"img_{i}_obj_{k}",
+            )
+            media.add_media_object(media_object)
+            media.add_attribute(
+                hari_uploader.HARIAttribute(
+                    id=uuid.uuid4(),
+                    name=f"attr_{i}_{k}",
+                    value=f"value_{i}_{k}",
+                )
+            )
+            for l in range(2):
+                media_object.add_attribute(
+                    hari_uploader.HARIAttribute(
+                        id=uuid.uuid4(),
+                        name=f"attr_{i}_{k}_{l}",
+                        value=f"value_{i}_{k}_{l}",
+                    )
+                )
+
+        uploader.add_media(media)
+
+    # Act
+    uploader.upload()
+
+    # Assert
+    # check every batch upload method's call
+    assert media_spy.call_count == 1
+    media_calls = media_spy.call_args_list
+    assert len(media_calls[0].kwargs["medias_to_upload"]) == 5
+    assert len(uploader._medias) == 5
+
+    assert media_object_spy.call_count == 1
+    media_object_calls = media_object_spy.call_args_list
+    assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 10
+    assert uploader._media_object_cnt == 10
+
+    assert attribute_spy.call_count == 1
+    attribute_calls = attribute_spy.call_args_list
+    assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 30
+    assert uploader._attribute_cnt == 30
+
+    # check client method spies
+    assert client_create_medias_spy.call_count == 1
+    create_medias_calls = client_create_medias_spy.call_args_list
+    assert create_medias_calls[0].kwargs["with_media_files_upload"] == False
+
+
 def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(
     mock_uploader_for_object_category_validation, mocker
 ):
