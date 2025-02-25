@@ -455,6 +455,7 @@ class HARIClient:
         ) = models.VisibilityStatus.VISIBLE,
         data_root: str | None = "custom_upload",
         id: str | None = None,
+        external_media_source: models.ExternalMediaSourceAPICreate | None = None,
     ) -> models.Dataset:
         """Creates an empty dataset in the database.
 
@@ -478,6 +479,7 @@ class HARIClient:
             visibility_status: Visibility status of the new dataset
             data_root: Data root
             id: ID of the newly created dataset
+            external_media_source: External Media Source
 
         Returns:
             The created dataset
@@ -485,6 +487,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if external_media_source:
+            external_media_source = external_media_source.model_dump()
+
         return self._request(
             "POST",
             "/datasets",
@@ -743,8 +748,29 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-        ### media ###
+    ### external media source ###
+    def get_external_media_source(
+        self, external_media_source_id: uuid.UUID
+    ) -> models.ExternalMediaSourceAPIResponse:
+        """Returns an external media source with a given external_media_source_id.
 
+        Args:
+            external_media_source_id: external media source id
+
+        Returns:
+            The external media source with the given external_media_source_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/externalMediaSources/{external_media_source_id}",
+            params=self._pack(locals()),
+            success_response_item_model=models.ExternalMediaSourceAPIResponse,
+        )
+
+    ### media ###
     def create_media(
         self,
         dataset_id: uuid.UUID,
