@@ -832,7 +832,10 @@ class HARIClient:
         )
 
     def create_medias(
-        self, dataset_id: uuid.UUID, medias: list[models.BulkMediaCreate]
+        self,
+        dataset_id: uuid.UUID,
+        medias: list[models.BulkMediaCreate],
+        with_media_file_upload: bool = True,
     ) -> models.BulkResponse:
         """Accepts multiple media files, uploads them, and creates the media entries in the db.
         The limit is 500 per call.
@@ -840,6 +843,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             medias: A list of MediaCreate objects. Each object contains the file_path as a field.
+            with_media_file_upload: Whether the media files have to be uploaded or not.
 
         Returns:
             A BulkResponse with information on upload successes and failures.
@@ -855,23 +859,25 @@ class HARIClient:
             raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
+        if with_media_file_upload:
+            # 1. upload files - if necessary
+            file_paths: dict[int, str] = {}
+            for idx, media in enumerate(medias):
+                if not media.file_path:
+                    raise errors.MediaCreateMissingFilePathError(media)
+                file_paths[idx] = media.file_path
 
-        # 1. upload files
-        file_paths: dict[int, str] = {}
-        for idx, media in enumerate(medias):
-            if not media.file_path:
-                raise errors.MediaCreateMissingFilePathError(media)
-            file_paths[idx] = media.file_path
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths=file_paths
+            )
 
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths=file_paths
-        )
-
-        # 2. set media_urls on medias and parse them to dicts
-        media_dicts = []
-        for idx, media in enumerate(medias):
-            media.media_url = media_upload_responses[idx].media_url
-            media_dicts.append(media.model_dump())
+            # 2. set media_urls on medias and parse them to dicts
+            media_dicts = []
+            for idx, media in enumerate(medias):
+                media.media_url = media_upload_responses[idx].media_url
+                media_dicts.append(media.model_dump())
+        else:
+            media_dicts = [media.model_dump() for media in medias]
 
         # 3. create the medias in HARI
         return self._request(

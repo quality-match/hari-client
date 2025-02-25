@@ -426,6 +426,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             name=f"my image {i}",
             media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
+            file_path=f"images/image_{i}.jpg",
         )
         for k in range(2):
             media_object = hari_uploader.HARIMediaObject(
@@ -503,6 +504,7 @@ def test_hari_uploader_creates_single_batch_correctly(
             name=f"my image {i}",
             media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
+            file_path=f"images/image_{i}.jpg",
         )
         for k in range(2):
             media_object = hari_uploader.HARIMediaObject(
@@ -646,6 +648,7 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
         name="my image",
         media_type=models.MediaType.IMAGE,
         back_reference="img",
+        file_path="images/image.jpg",
     )
     media.add_media_object(
         hari_uploader.HARIMediaObject(
@@ -685,7 +688,10 @@ def test_hari_uploader_upload_without_specified_object_categories(mock_client):
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -737,7 +743,10 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -783,7 +792,10 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -853,7 +865,10 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -1135,3 +1150,147 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
     assert (
         e.value.intended_attributes_number == 1001
     )  # (1000 existing + 2 new) - 1 new that collides with existing
+
+
+@pytest.mark.parametrize(
+    "url, is_valid",
+    [
+        # valid
+        ("s3://my-bucket/path/to/file.jpg", True),
+        ("https://mybucket.s3.us-west-2.amazonaws.com/path/to/file.png", True),
+        ("https://mybucket.s3.eu-central-1.amazonaws.com/path/to/file.jpg", True),
+        ("https://mybucket.s3.some-region.amazonaws.com/path/to/file.png", True),
+        ("https://myaccount.blob.core.windows.net/container/blob.png", True),
+        ("https://myaccount.blob.core.windows.net/container/path/to/blob.png", True),
+        # invalid
+        ("/path/to/my_file.png", False),
+        ("path/to/my_file.png", False),
+        ("my_file.jpg", False),
+        ("https://my-custom.domain.com/path/to/file.png", False),  # unknown domain
+        ("https://my-custom-domain.com/path/to/file.png", False),  # unknown domain
+        ("https://mybucket.s3.amazonaws.com/path/to/file.jpg", False),  # missing region
+        (
+            "http://mybucket.s3.some-region.amazonaws.com/path/to/file.png",
+            False,
+        ),  # http not allowed
+        (
+            "http://myaccount.blob.core.windows.net/container/blob.jpg",
+            False,
+        ),  # http not allowed
+    ],
+)
+def test_hari_media_media_url_validation(url, is_valid):
+    if is_valid:
+        media = hari_uploader.HARIMedia(
+            name="my image",
+            back_reference="my_image_backref",
+            media_type=models.MediaType.IMAGE,
+            media_url=url,
+        )
+        assert media.media_url == url
+    else:
+        with pytest.raises(ValueError):
+            hari_uploader.HARIMedia(
+                name="my image",
+                back_reference="my_image_backref",
+                media_type=models.MediaType.IMAGE,
+                media_url=url,
+            )
+
+
+def test_hari_uploader_prepare_media_upload_without_upload(test_client):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=test_client, dataset_id=uuid.uuid4())
+
+    medias = [
+        hari_uploader.HARIMedia(
+            name="my_image_0",
+            back_reference="my_image_backref_0",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_0.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_1",
+            back_reference="my_image_backref_1",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/imag_1.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_2",
+            back_reference="my_image_backref_2",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_2.jpg",
+        ),
+    ]
+    uploader.add_media(*medias)
+
+    # Act
+    uploader._prepare_media_upload()
+
+    # Assert
+    assert not uploader._with_media_file_upload
+
+
+def test_hari_uploader_prepare_media_upload_with_upload(test_client):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=test_client, dataset_id=uuid.uuid4())
+
+    medias = [
+        hari_uploader.HARIMedia(
+            name="my_image_0",
+            back_reference="my_image_backref_0",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_0.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_1",
+            back_reference="my_image_backref_1",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_1.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_2",
+            back_reference="my_image_backref_2",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_2.jpg",
+        ),
+    ]
+    uploader.add_media(*medias)
+
+    # Act
+    uploader._prepare_media_upload()
+
+    # Assert
+    assert uploader._with_media_file_upload
+
+
+def test_hari_uploader_prepare_media_upload_fails_for_mixed_medias(test_client):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=test_client, dataset_id=uuid.uuid4())
+
+    medias = [
+        hari_uploader.HARIMedia(
+            name="my_image_0",
+            back_reference="my_image_backref_0",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_0.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_1",
+            back_reference="my_image_backref_1",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_2.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_2",
+            back_reference="my_image_backref_2",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_2.jpg",
+        ),
+    ]
+    uploader.add_media(*medias)
+
+    # Act + Assert
+    with pytest.raises(hari_uploader.HARIMediaUploadError):
+        uploader._prepare_media_upload()
+    # assert uploader._with_media_file_upload
