@@ -564,12 +564,24 @@ class HARIClient:
         self,
         subset: bool | None = False,
         visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
     ) -> list[models.DatasetResponse]:
-        """Returns all datasets that a user has access to.
+        """Returns datasets that a user has access to.
 
         Args:
             subset: Return also subsets. If False, returns only parent datasets
             visibility_statuses: Visibility statuses of the returned datasets
+            limit: limit the number of datasets returned
+            skip: skip the number of datasets returned
+            query: query parameters to filter the datasets
+            sort: sorting parameters to sort the datasets
+            name_filter: filter by dataset name
+            archived: if true, return only archived datasets; if false (default), return non-archived datasets.
 
         Returns:
             A list of datasets
@@ -582,6 +594,34 @@ class HARIClient:
             "/datasets",
             params=self._pack(locals()),
             success_response_item_model=list[models.DatasetResponse],
+        )
+
+    def get_datasets_count(
+        self,
+        visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns dataset count for the user.
+        Args:
+            visibility_statuses: Visibility statuses of the returned datasets
+            query: query parameters to filter the datasets
+            name_filter: filter by dataset name
+            archived: if true, count only archived datasets; if false (default), count non-archived datasets.
+
+        Returns:
+            The number of datasets
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/datasets:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
         )
 
     def get_subsets_for_dataset(
@@ -909,7 +949,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to get archived media
+            archived: if true, return only archived medias; if false (default), return non-archived medias.
             presign_medias: Whether to presign medias
             limit: The number of medias tu return
             skip: The number of medias to skip
@@ -1044,7 +1084,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             subset_id: The subset id or None, if the result for the whole dataset
-            archived: Whether to consider archived medias (default: False)
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
 
         Returns:
             Dictionary, where the key is the number of medias in the dataset having
@@ -1070,7 +1110,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to consider archived medias
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
             query: Query
 
         Returns:
@@ -1394,11 +1434,11 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
     ) -> list[models.MediaObjectResponse]:
-        """Queries the database based on the submitted parameters and returns a
+        """Queries the database based on the submitted parameters and returns a list of media objects
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, return only archived media objects; if false (default), return non-archived media objects.
             presign_medias: Presign Medias
             limit: Limit
             skip: Skip
@@ -1470,7 +1510,7 @@ class HARIClient:
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, consider only archived media objects; if false (default), consider only non-archived media objects.
             query: Query
 
         Returns:
@@ -1664,6 +1704,7 @@ class HARIClient:
         calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
+        compute_auto_attributes: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
 
@@ -1673,6 +1714,7 @@ class HARIClient:
             calculate_histograms: Calculate histograms if true
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
+            compute_auto_attributes: If True auto attributes will be computed
 
         Returns:
             The methods being executed
@@ -1854,7 +1896,7 @@ class HARIClient:
         frequency: dict[str, int] | None = None,
         question: str | None = None,
         repeats: int | None = None,
-        possible_values: list[str | int | float | bool] | None = None,
+        possible_values: list[str] | None = None,
     ) -> models.Attribute:
         """Create an attribute for a dataset.
 
@@ -1914,7 +1956,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: True if archived attributes should be returned
+            archived: if true, return only archived attributes; if false (default), return non-archived attributes.
             limit: The maximum number of attributes to return
             skip: The number of attributes to skip
             query: A query to filter attributes
@@ -2068,9 +2110,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Filters items based on their archived status (default: False):
-              - if set (True/False), returns only archived or non-archived items, respectively
-              - if None, returns all items, regardless of their archived status
+            archived: if true, return only archived attribute metadata; if false (default), return non-archived attribute metadata.
             query: A query to filter attribute metadata
 
          Returns:
@@ -2101,7 +2141,7 @@ class HARIClient:
 
         Args:
             dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
-            archived: Whether to include archived VisualisationConfigs (default: False)
+            archived: if true, return only archived visualisation configurations; if false (default), return non-archived visualisation configurations.
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             limit: How many visualisation_configs to return

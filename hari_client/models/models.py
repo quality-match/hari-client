@@ -952,7 +952,7 @@ class AttributeCreate(BaseModel):
     frequency: dict[str, int] | None = None
     question: str | None = None
     repeats: int | None = None
-    possible_values: list[str | int | float | bool] | None = None
+    possible_values: list[str] | None = None
 
     @pydantic.model_validator(mode="before")
     @classmethod
@@ -997,7 +997,7 @@ class Attribute(BaseModel):
     ml_probability_distributions: dict[str, float] | None = None
     cant_solve_ratio: float | None = None
     repeats: int | None = None
-    possible_values: list[str | int | float | bool] | None = None
+    possible_values: list[str] | None = None
 
 
 class AttributeResponse(BaseModel):
@@ -1064,7 +1064,7 @@ class AttributeResponse(BaseModel):
         title="Repeats",
         description="Number of repeats for this attribute",
     )
-    possible_values: list[str | int | float | bool] | None = pydantic.Field(
+    possible_values: list[str] | None = pydantic.Field(
         default=None,
         title="Possible Values",
         description="Possible values for this attribute",
