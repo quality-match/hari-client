@@ -426,6 +426,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             name=f"my image {i}",
             media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
+            file_path=f"images/image_{i}.jpg",
         )
         for k in range(2):
             media_object = hari_uploader.HARIMediaObject(
@@ -503,6 +504,7 @@ def test_hari_uploader_creates_single_batch_correctly(
             name=f"my image {i}",
             media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
+            file_path=f"images/image_{i}.jpg",
         )
         for k in range(2):
             media_object = hari_uploader.HARIMediaObject(
@@ -547,6 +549,89 @@ def test_hari_uploader_creates_single_batch_correctly(
     attribute_calls = attribute_spy.call_args_list
     assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 30
     assert uploader._attribute_cnt == 30
+
+
+def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_files(
+    create_configurable_mock_uploader_successful_single_batch, mocker
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        media_spy,
+        media_object_spy,
+        attribute_spy,
+        subset_create_spy,
+    ) = create_configurable_mock_uploader_successful_single_batch(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=5,
+        media_objects_cnt=10,
+        attributes_cnt=30,
+    )
+
+    mocker.patch.object(
+        uploader, "_dataset_uses_external_media_source", return_value=True
+    )
+    client_create_medias_spy = mocker.spy(client, "create_medias")
+
+    # 5 medias --> 1 batch
+    # 10 media_objects --> 1 batch
+    # 30 attributes --> 1 batch
+    for i in range(5):
+        media = hari_uploader.HARIMedia(
+            name=f"my image {i}",
+            media_type=models.MediaType.IMAGE,
+            back_reference=f"img_{i}",
+            media_url=f"s3://my_bucket/images/image_{i}.jpg",
+        )
+        for k in range(2):
+            media_object = hari_uploader.HARIMediaObject(
+                source=models.DataSource.REFERENCE,
+                back_reference=f"img_{i}_obj_{k}",
+            )
+            media.add_media_object(media_object)
+            media.add_attribute(
+                hari_uploader.HARIAttribute(
+                    id=uuid.uuid4(),
+                    name=f"attr_{i}_{k}",
+                    value=f"value_{i}_{k}",
+                )
+            )
+            for l in range(2):
+                media_object.add_attribute(
+                    hari_uploader.HARIAttribute(
+                        id=uuid.uuid4(),
+                        name=f"attr_{i}_{k}_{l}",
+                        value=f"value_{i}_{k}_{l}",
+                    )
+                )
+
+        uploader.add_media(media)
+
+    # Act
+    uploader.upload()
+
+    # Assert
+    # check every batch upload method's call
+    assert media_spy.call_count == 1
+    media_calls = media_spy.call_args_list
+    assert len(media_calls[0].kwargs["medias_to_upload"]) == 5
+    assert len(uploader._medias) == 5
+
+    assert media_object_spy.call_count == 1
+    media_object_calls = media_object_spy.call_args_list
+    assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 10
+    assert uploader._media_object_cnt == 10
+
+    assert attribute_spy.call_count == 1
+    attribute_calls = attribute_spy.call_args_list
+    assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 30
+    assert uploader._attribute_cnt == 30
+
+    # check client method spies
+    assert client_create_medias_spy.call_count == 1
+    create_medias_calls = client_create_medias_spy.call_args_list
+    assert create_medias_calls[0].kwargs["with_media_files_upload"] == False
 
 
 def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(
@@ -646,6 +731,7 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
         name="my image",
         media_type=models.MediaType.IMAGE,
         back_reference="img",
+        file_path="images/image.jpg",
     )
     media.add_media_object(
         hari_uploader.HARIMediaObject(
@@ -667,9 +753,10 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
     assert media.media_objects[0].media_id == "server_side_media_id"
 
 
-def test_hari_uploader_upload_without_specified_object_categories(mock_client):
+def test_hari_uploader_upload_without_specified_object_categories(mock_client, mocker):
     # Arrange
     uploader = hari_uploader.HARIUploader(mock_client[0], dataset_id=uuid.UUID(int=0))
+    mocker.patch.object(uploader, "_load_dataset", return_value=None)
     media_object_1 = hari_uploader.HARIMediaObject(
         source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
     )
@@ -685,7 +772,10 @@ def test_hari_uploader_upload_without_specified_object_categories(mock_client):
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -737,7 +827,10 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -783,7 +876,10 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -853,7 +949,10 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
     )
 
     media_1 = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
 
     # Act + Assert
@@ -1037,6 +1136,7 @@ def test_hari_uploader_unique_attributes_number_limit_error(
             name="my image",
             media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
+            file_path=f"images/image_{i}.jpg",
         )
         for j in range(5):
             attribute_media_id = uuid.uuid4()
@@ -1105,9 +1205,10 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
     )
 
     media = hari_uploader.HARIMedia(
-        name=f"my image",
+        name="my image",
         media_type=models.MediaType.IMAGE,
-        back_reference=f"img",
+        back_reference="img",
+        file_path="images/image.jpg",
     )
 
     new_attrs_number = 2
@@ -1135,3 +1236,193 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
     assert (
         e.value.intended_attributes_number == 1001
     )  # (1000 existing + 2 new) - 1 new that collides with existing
+
+
+@pytest.mark.parametrize(
+    "url, is_valid",
+    [
+        # valid
+        ("s3://my-bucket/path/to/file.jpg", True),
+        ("https://mybucket.s3.us-west-2.amazonaws.com/path/to/file.png", True),
+        ("https://mybucket.s3.eu-central-1.amazonaws.com/path/to/file.jpg", True),
+        ("https://mybucket.s3.some-region.amazonaws.com/path/to/file.png", True),
+        ("https://myaccount.blob.core.windows.net/container/blob.png", True),
+        ("https://myaccount.blob.core.windows.net/container/path/to/blob.png", True),
+        # invalid
+        ("/path/to/my_file.png", False),
+        ("path/to/my_file.png", False),
+        ("my_file.jpg", False),
+        ("https://my-custom.domain.com/path/to/file.png", False),  # unknown domain
+        ("https://my-custom-domain.com/path/to/file.png", False),  # unknown domain
+        ("https://mybucket.s3.amazonaws.com/path/to/file.jpg", False),  # missing region
+        (
+            "http://mybucket.s3.some-region.amazonaws.com/path/to/file.png",
+            False,
+        ),  # http not allowed
+        (
+            "http://myaccount.blob.core.windows.net/container/blob.jpg",
+            False,
+        ),  # http not allowed
+    ],
+)
+def test_hari_media_media_url_validation(url, is_valid):
+    if is_valid:
+        media = hari_uploader.HARIMedia(
+            name="my image",
+            back_reference="my_image_backref",
+            media_type=models.MediaType.IMAGE,
+            media_url=url,
+        )
+        assert media.media_url == url
+    else:
+        with pytest.raises(ValueError):
+            hari_uploader.HARIMedia(
+                name="my image",
+                back_reference="my_image_backref",
+                media_type=models.MediaType.IMAGE,
+                media_url=url,
+            )
+
+
+def test_determine_media_files_upload_behavior_without_upload(test_client, mocker):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=test_client, dataset_id=uuid.uuid4())
+    mocker.patch.object(
+        uploader, "_dataset_uses_external_media_source", return_value=True
+    )
+
+    medias = [
+        hari_uploader.HARIMedia(
+            name="my_image_0",
+            back_reference="my_image_backref_0",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_0.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_1",
+            back_reference="my_image_backref_1",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/imag_1.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_2",
+            back_reference="my_image_backref_2",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_2.jpg",
+        ),
+    ]
+    uploader.add_media(*medias)
+
+    # Act
+    uploader._determine_media_files_upload_behavior()
+
+    # Assert
+    assert not uploader._with_media_files_upload
+
+
+def test_determine_media_files_upload_behavior_with_upload(test_client, mocker):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=test_client, dataset_id=uuid.uuid4())
+    mocker.patch.object(
+        uploader, "_dataset_uses_external_media_source", return_value=False
+    )
+
+    medias = [
+        hari_uploader.HARIMedia(
+            name="my_image_0",
+            back_reference="my_image_backref_0",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_0.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_1",
+            back_reference="my_image_backref_1",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_1.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_2",
+            back_reference="my_image_backref_2",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_2.jpg",
+        ),
+    ]
+    uploader.add_media(*medias)
+
+    # Act
+    uploader._determine_media_files_upload_behavior()
+
+    # Assert
+    assert uploader._with_media_files_upload
+
+
+def test_determine_media_files_upload_behavior_throws_exception_for_missing_file_path(
+    test_client, mocker
+):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=test_client, dataset_id=uuid.uuid4())
+    mocker.patch.object(
+        uploader, "_dataset_uses_external_media_source", return_value=True
+    )
+
+    medias = [
+        hari_uploader.HARIMedia(
+            name="my_image_0",
+            back_reference="my_image_backref_0",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_0.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_1",
+            back_reference="my_image_backref_1",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_2.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_2",
+            back_reference="my_image_backref_2",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_2.jpg",
+        ),
+    ]
+    uploader.add_media(*medias)
+
+    # Act + Assert
+    with pytest.raises(hari_uploader.HARIMediaValidationError):
+        uploader._determine_media_files_upload_behavior()
+
+
+def test_determine_media_files_upload_behavior_throws_exception_for_missing_media_url(
+    test_client, mocker
+):
+    # Arrange
+    uploader = hari_uploader.HARIUploader(client=test_client, dataset_id=uuid.uuid4())
+    mocker.patch.object(
+        uploader, "_dataset_uses_external_media_source", return_value=False
+    )
+
+    medias = [
+        hari_uploader.HARIMedia(
+            name="my_image_0",
+            back_reference="my_image_backref_0",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_1.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_1",
+            back_reference="my_image_backref_1",
+            media_type=models.MediaType.IMAGE,
+            file_path="path/to/image_2.jpg",
+        ),
+        hari_uploader.HARIMedia(
+            name="my_image_2",
+            back_reference="my_image_backref_2",
+            media_type=models.MediaType.IMAGE,
+            media_url="s3://my-bucket/path/to/image_3.jpg",
+        ),
+    ]
+    uploader.add_media(*medias)
+
+    # Act + Assert
+    with pytest.raises(hari_uploader.HARIMediaValidationError):
+        uploader._determine_media_files_upload_behavior()

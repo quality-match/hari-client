@@ -1,5 +1,7 @@
 import copy
+import re
 import typing
+import urllib.parse
 import uuid
 
 import pydantic
@@ -88,6 +90,10 @@ class HARIMediaObjectUnknownObjectCategorySubsetNameError(Exception):
     pass
 
 
+class HARIMediaValidationError(Exception):
+    pass
+
+
 class HARIUniqueAttributesLimitExceeded(Exception):
     new_attributes_number: int
     existing_attributes_number: int
@@ -170,6 +176,43 @@ class HARIMedia(models.BulkMediaCreate):
             )
         return v
 
+    @pydantic.field_validator("media_url")
+    @classmethod
+    def media_url_is_valid(cls, v: str) -> str:
+        # In case we wanted to allow simple relative paths, too:
+        # if not v.startswith(("s3://", "http://", "https://")):
+        #     if re.match(r"^[^\s/]+(\.[a-zA-Z0-9]+)?$", v) or "/" in v:
+        #         return v
+        #     raise ValueError("Invalid URL or path format")
+
+        parsed_url = urllib.parse.urlparse(v)
+
+        if parsed_url.scheme not in ("https", "s3"):
+            raise ValueError("URL must start with https:// or s3://")
+
+        if parsed_url.scheme == "s3":
+            if not parsed_url.netloc:
+                raise ValueError("Invalid S3 URL format")
+        else:
+            # Azure Blob Storage HTTPS URL pattern
+            azure_pattern = re.compile(
+                r"^https://[a-z0-9]{3,24}\.blob\.core\.windows\.net/[^\s]+$",
+                re.IGNORECASE,
+            )
+
+            # AWS S3 HTTPS URL pattern (must include region)
+            aws_pattern = re.compile(
+                r"^https://([a-z0-9.-]+\.)?s3[.-][a-z0-9-]+\.amazonaws\.com/[^\s]+$",
+                re.IGNORECASE,
+            )
+
+            if not (azure_pattern.match(v) or aws_pattern.match(v)):
+                raise ValueError(
+                    "Invalid HTTPS URL format for S3 or Azure Blob Storage"
+                )
+
+        return v
+
 
 class HARIUploadResults(pydantic.BaseModel):
     medias: models.BulkResponse
@@ -205,6 +248,7 @@ class HARIUploader:
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         self._object_category_subsets: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
+        self._with_media_files_upload: bool = True
 
     # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
     # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
@@ -406,6 +450,15 @@ class HARIUploader:
         )
         self._assign_object_category_subsets()
 
+    def _load_dataset(self) -> models.DatasetResponse:
+        """Get the dataset from the HARI API."""
+        return self.client.get_dataset(dataset_id=self.dataset_id)
+
+    def _dataset_uses_external_media_source(self) -> bool:
+        """Returns whether the dataset uses an external media source."""
+        dataset = self._load_dataset()
+        return dataset and dataset.external_media_source is not None
+
     def validate_all_attributes(self) -> None:
         """Validates all attributes of medias and media objects."""
         all_attributes = []
@@ -414,6 +467,39 @@ class HARIUploader:
             for media_object in media.media_objects:
                 all_attributes.extend(media_object.attributes)
         validation.validate_attributes(all_attributes)
+
+    def validate_unique_attributes_limit(self) -> None:
+        existing_attr_metadata = self.client.get_attribute_metadata(
+            dataset_id=self.dataset_id
+        )
+        existing_attribute_ids = {attr.id for attr in existing_attr_metadata}
+        all_attribute_ids = existing_attribute_ids.union(self._unique_attribute_ids)
+
+        if len(all_attribute_ids) > MAX_ATTR_COUNT:
+            raise HARIUniqueAttributesLimitExceeded(
+                new_attributes_number=len(self._unique_attribute_ids),
+                existing_attributes_number=len(existing_attr_metadata),
+                intended_attributes_number=len(all_attribute_ids),
+            )
+
+    def _determine_media_files_upload_behavior(self) -> None:
+        """Checks whether media file_path or media_url are set according to whether the dataset uses an external media source or not.
+        When using an external media source, the media_url must be set, otherwise the file_path must be set.
+        """
+        if self._dataset_uses_external_media_source():
+            if any(not media.media_url for media in self._medias):
+                raise HARIMediaValidationError(
+                    f"Dataset with id {self.dataset_id} uses an external media source, "
+                    "but not all medias have a media_url set. Make sure to set their media_url."
+                )
+            self._with_media_files_upload = False
+        else:
+            if any(not media.file_path for media in self._medias):
+                raise HARIMediaValidationError(
+                    f"Dataset with id {self.dataset_id} requires media files to be uploaded, "
+                    "but not all medias have a file_path set. Make sure to set their file_path."
+                )
+            self._with_media_files_upload = True
 
     def upload(
         self,
@@ -430,6 +516,11 @@ class HARIUploader:
             exceeds the limit of MAX_ATTR_COUNT per dataset.
         """
 
+        # sync important information with the BE
+        self._load_dataset()
+        self._determine_media_files_upload_behavior()
+
+        # validations
         if len(self._medias) == 0:
             log.info(
                 "No medias to upload. Add them with HARIUploader::add_media() first "
@@ -437,21 +528,10 @@ class HARIUploader:
             )
             return None
 
-        existing_attr_metadata = self.client.get_attribute_metadata(
-            dataset_id=self.dataset_id
-        )
-        existing_attribute_ids = {attr.id for attr in existing_attr_metadata}
-        all_attribute_ids = existing_attribute_ids.union(self._unique_attribute_ids)
-
-        if len(all_attribute_ids) > MAX_ATTR_COUNT:
-            raise HARIUniqueAttributesLimitExceeded(
-                new_attributes_number=len(self._unique_attribute_ids),
-                existing_attributes_number=len(existing_attr_metadata),
-                intended_attributes_number=len(all_attribute_ids),
-            )
-
+        self.validate_unique_attributes_limit()
         self.validate_all_attributes()
 
+        # validation and object_category subset syncing
         self._handle_object_categories()
 
         # upload batches of medias
@@ -507,7 +587,9 @@ class HARIUploader:
 
         # upload media batch
         media_upload_response = self.client.create_medias(
-            dataset_id=self.dataset_id, medias=medias_to_upload
+            dataset_id=self.dataset_id,
+            medias=medias_to_upload,
+            with_media_files_upload=self._with_media_files_upload,
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
