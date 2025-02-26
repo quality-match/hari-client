@@ -239,7 +239,6 @@ class HARIUploader:
         self.client: HARIClient = client
         self.dataset_id: uuid.UUID = dataset_id
         self.object_categories = object_categories or set()
-        self._dataset: models.DatasetResponse | None = None
         self._config: HARIUploaderConfig = self.client.config.hari_uploader
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()
@@ -451,13 +450,14 @@ class HARIUploader:
         )
         self._assign_object_category_subsets()
 
-    def _load_dataset(self) -> None:
+    def _load_dataset(self) -> models.DatasetResponse:
         """Get the dataset from the HARI API."""
-        self._dataset = self.client.get_dataset(dataset_id=self.dataset_id)
+        return self.client.get_dataset(dataset_id=self.dataset_id)
 
     def _dataset_uses_external_media_source(self) -> bool:
         """Returns whether the dataset uses an external media source."""
-        return self._dataset and self._dataset.external_media_source is not None
+        dataset = self._load_dataset()
+        return dataset and dataset.external_media_source is not None
 
     def validate_all_attributes(self) -> None:
         """Validates all attributes of medias and media objects."""
@@ -486,28 +486,20 @@ class HARIUploader:
         """Checks whether media file_path or media_url are set according to whether the dataset uses an external media source or not.
         When using an external media source, the media_url must be set, otherwise the file_path must be set.
         """
-        medias_with_file_path_cnt = 0
-        medias_with_media_url_cnt = 0
-        for media in self._medias:
-            if media.file_path:
-                medias_with_file_path_cnt += 1
-            if media.media_url:
-                medias_with_media_url_cnt += 1
-
         if self._dataset_uses_external_media_source():
-            if medias_with_media_url_cnt == len(self._medias):
-                self._with_media_files_upload = False
-            else:
+            if any(not media.media_url for media in self._medias):
                 raise HARIMediaValidationError(
-                    f"Dataset with id {self.dataset_id} uses an external media source, but not all medias {medias_with_media_url_cnt}/{len(self._medias)} have a media_url set. Make sure to set their media_url."
+                    f"Dataset with id {self.dataset_id} uses an external media source, "
+                    "but not all medias have a media_url set. Make sure to set their media_url."
                 )
+            self._with_media_files_upload = False
         else:
-            if medias_with_file_path_cnt == len(self._medias):
-                self._with_media_files_upload = True
-            else:
+            if any(not media.file_path for media in self._medias):
                 raise HARIMediaValidationError(
-                    f"Dataset with id {self.dataset_id} requires media files to be uploaded, but not all medias {medias_with_file_path_cnt}/{len(self._medias)} have a file_path set. Make sure to set their file_path."
+                    f"Dataset with id {self.dataset_id} requires media files to be uploaded, "
+                    "but not all medias have a file_path set. Make sure to set their file_path."
                 )
+            self._with_media_files_upload = True
 
     def upload(
         self,
