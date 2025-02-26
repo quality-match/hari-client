@@ -13,8 +13,8 @@
   - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of media files. This way the upload will only create medias in HARI without uploading media files to QM storage.
 - added new arg to client method `create_media` [PR#74](https://github.com/quality-match/hari-client/pull/74)
   - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of the media file. This way the upload will only create medias in HARI without uploading media files to QM storage.
-- added new field `file_key` to models `Media`, `MediaCreate` and `MediaResponse`
-- updated HARIUploader utility to support using a dataset with an external media source [PR#74](https://github.com/quality-match/hari-client/pull/74)
+- added new field `file_key` to models `Media`, `MediaCreate` and `MediaResponse` [PR#77](https://github.com/quality-match/hari-client/pull/77)
+- updated HARIUploader utility to support using a dataset with an external media source [PR#74](https://github.com/quality-match/hari-client/pull/74) [PR#77](https://github.com/quality-match/hari-client/pull/77)
   - when your dataset is using an external media source, make sure to set the `file_key` field of `HARIMedia` to the key of the media file in your cloud storage and don't set the `file_path`.
   - when your dataset isn't using an external media source, make sure to set the `file_path` field of `HARIMedia` and don't set the `file_key`.
 
