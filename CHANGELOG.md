@@ -11,6 +11,8 @@
 - added new endpoint `get_external_media_source` [PR#73](https://github.com/quality-match/hari-client/pull/73)
 - added new arg to client method `create_medias` [PR#74](https://github.com/quality-match/hari-client/pull/74)
   - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of media files. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new arg to client method `create_media` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of the media file. This way the upload will only create medias in HARI without uploading media files to QM storage.
 - added format validations for `HARIMedia` field `media_url` [PR#74](https://github.com/quality-match/hari-client/pull/74)
   - the field was previously set automatically through the process of uploading media files.
   - in order to work with a dataset that uses an external media source, you have to set the field explicitly.
