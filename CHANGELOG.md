@@ -1,5 +1,9 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Internal
+
+- removed obsolete `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` client methods [PR#75](https://github.com/quality-match/hari-client/pull/75)
+
 ## [3.2.0] - 25-02-2025
 
 ### New features
