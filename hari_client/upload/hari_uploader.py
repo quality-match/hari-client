@@ -1,7 +1,5 @@
 import copy
-import re
 import typing
-import urllib.parse
 import uuid
 
 import pydantic
@@ -174,43 +172,6 @@ class HARIMedia(models.BulkMediaCreate):
                 "Detected empty back_reference in HARIMedia. It's encouraged that you "
                 "use a back_reference so that you can match HARI objects to your own."
             )
-        return v
-
-    @pydantic.field_validator("media_url")
-    @classmethod
-    def media_url_is_valid(cls, v: str) -> str:
-        # In case we wanted to allow simple relative paths, too:
-        # if not v.startswith(("s3://", "http://", "https://")):
-        #     if re.match(r"^[^\s/]+(\.[a-zA-Z0-9]+)?$", v) or "/" in v:
-        #         return v
-        #     raise ValueError("Invalid URL or path format")
-
-        parsed_url = urllib.parse.urlparse(v)
-
-        if parsed_url.scheme not in ("https", "s3"):
-            raise ValueError("URL must start with https:// or s3://")
-
-        if parsed_url.scheme == "s3":
-            if not parsed_url.netloc:
-                raise ValueError("Invalid S3 URL format")
-        else:
-            # Azure Blob Storage HTTPS URL pattern
-            azure_pattern = re.compile(
-                r"^https://[a-z0-9]{3,24}\.blob\.core\.windows\.net/[^\s]+$",
-                re.IGNORECASE,
-            )
-
-            # AWS S3 HTTPS URL pattern (must include region)
-            aws_pattern = re.compile(
-                r"^https://([a-z0-9.-]+\.)?s3[.-][a-z0-9-]+\.amazonaws\.com/[^\s]+$",
-                re.IGNORECASE,
-            )
-
-            if not (azure_pattern.match(v) or aws_pattern.match(v)):
-                raise ValueError(
-                    "Invalid HTTPS URL format for S3 or Azure Blob Storage"
-                )
-
         return v
 
 
@@ -483,14 +444,14 @@ class HARIUploader:
             )
 
     def _determine_media_files_upload_behavior(self) -> None:
-        """Checks whether media file_path or media_url are set according to whether the dataset uses an external media source or not.
-        When using an external media source, the media_url must be set, otherwise the file_path must be set.
+        """Checks whether media file_path or file_key are set according to whether the dataset uses an external media source or not.
+        When using an external media source, the file_key must be set, otherwise the file_path must be set.
         """
         if self._dataset_uses_external_media_source():
-            if any(not media.media_url for media in self._medias):
+            if any(not media.file_key for media in self._medias):
                 raise HARIMediaValidationError(
                     f"Dataset with id {self.dataset_id} uses an external media source, "
-                    "but not all medias have a media_url set. Make sure to set their media_url."
+                    "but not all medias have a file_key set. Make sure to set their file_key."
                 )
             self._with_media_files_upload = False
         else:

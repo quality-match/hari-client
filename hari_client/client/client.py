@@ -787,7 +787,7 @@ class HARIClient:
         visualisations: list[models.VisualisationUnion] | None = None,
         subset_ids: set[str] | None = None,
         metadata: models.ImageMetadata | models.PointCloudMetadata | None = None,
-        media_url: str | None = None,
+        file_key: str | None = None,
         with_media_files_upload: bool = True,
     ) -> models.Media:
         """Accepts a single file, uploads it, and creates the media in the db.
@@ -807,7 +807,7 @@ class HARIClient:
             visualisations: Visualisations of the media
             subset_ids: Subset ids the media occurs in
             metadata: Image metadata
-            media_url: Media url, to be used instead of file_path when the media file doesn't need to be uploaded
+            file_key: The file key is the key of the media file in cloud storage (excluding the bucket_name, container_name, etc.).
             with_media_files_upload: Whether the media file has to be uploaded or not
 
         Returns:
@@ -815,6 +815,8 @@ class HARIClient:
 
         Raises:
             APIException: If the request fails.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
         """
         if with_media_files_upload:
             # 1. upload file
@@ -831,10 +833,9 @@ class HARIClient:
                 dataset_id, file_paths={0: file_path}
             )
             media_url = media_upload_responses[0].media_url
-        elif not media_url:
-            raise errors.MediaCreateMissingMediaUrlError(
+        elif not file_key:
+            raise errors.MediaCreateMissingFileKeyError(
                 models.MediaCreate(
-                    media_url=media_url,
                     name=name,
                     media_type=media_type,
                     back_reference=back_reference,
@@ -878,8 +879,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
-            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
         """
 
         if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
@@ -906,8 +908,8 @@ class HARIClient:
         else:
             media_dicts = []
             for media in medias:
-                if not media.media_url:
-                    raise errors.MediaCreateMissingMediaUrlError(media)
+                if not media.file_key:
+                    raise errors.MediaCreateMissingFileKeyError(media)
                 media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
