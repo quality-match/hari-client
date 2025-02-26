@@ -879,7 +879,7 @@ class HARIClient:
         else:
             media_dicts = []
             for media in medias:
-                if not media.file_path:
+                if not media.media_url:
                     raise errors.MediaCreateMissingMediaUrlError(media)
                 media_dicts.append(media.model_dump())
 
