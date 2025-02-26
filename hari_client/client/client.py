@@ -844,7 +844,12 @@ class HARIClient:
         # 2. create the media in HARI
         json_body = self._pack(
             locals(),
-            ignore=["file_path", "dataset_id", "media_upload_responses"],
+            ignore=[
+                "file_path",
+                "dataset_id",
+                "media_upload_responses",
+                "with_media_files_upload",
+            ],
         )
         return self._request(
             "POST",
