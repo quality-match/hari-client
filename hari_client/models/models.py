@@ -313,7 +313,7 @@ class Dataset(BaseModel):
     visibility_status: VisibilityStatus | None = pydantic.Field(
         default="visible", title="VisibilityStatus"
     )
-    external_media_source: ExternalMediaSourceAPICreate | None = pydantic.Field(
+    external_media_source: uuid.UUID | None = pydantic.Field(
         None, title="External Media Source"
     )
 
@@ -342,7 +342,9 @@ class DatasetResponse(BaseModel):
     visibility_status: VisibilityStatus | None = pydantic.Field(
         default=VisibilityStatus.VISIBLE, title="VisibilityStatus"
     )
-    external_media_source: uuid.UUID | None = None
+    external_media_source: uuid.UUID | None = pydantic.Field(
+        None, title="External Media Source"
+    )
 
 
 class Pose3D(BaseModel):

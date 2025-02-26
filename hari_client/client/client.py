@@ -774,7 +774,7 @@ class HARIClient:
     def create_media(
         self,
         dataset_id: uuid.UUID,
-        file_path: str,
+        file_path: str | None,
         name: str,
         media_type: models.MediaType,
         back_reference: str,
@@ -787,6 +787,8 @@ class HARIClient:
         visualisations: list[models.VisualisationUnion] | None = None,
         subset_ids: set[str] | None = None,
         metadata: models.ImageMetadata | models.PointCloudMetadata | None = None,
+        media_url: str | None = None,
+        with_media_files_upload: bool = True,
     ) -> models.Media:
         """Accepts a single file, uploads it, and creates the media in the db.
 
@@ -805,6 +807,8 @@ class HARIClient:
             visualisations: Visualisations of the media
             subset_ids: Subset ids the media occurs in
             metadata: Image metadata
+            media_url: Media url, to be used instead of file_path when the media file doesn't need to be uploaded
+            with_media_files_upload: Whether the media file has to be uploaded or not
 
         Returns:
             Media that was just created
@@ -812,17 +816,40 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-
-        # 1. upload file
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths={0: file_path}
-        )
-        media_url = media_upload_responses[0].media_url
+        if with_media_files_upload:
+            # 1. upload file
+            if not file_path:
+                raise errors.MediaCreateMissingFilePathError(
+                    models.MediaCreate(
+                        file_path=file_path,
+                        name=name,
+                        media_type=media_type,
+                        back_reference=back_reference,
+                    )
+                )
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths={0: file_path}
+            )
+            media_url = media_upload_responses[0].media_url
+        elif not media_url:
+            raise errors.MediaCreateMissingMediaUrlError(
+                models.MediaCreate(
+                    media_url=media_url,
+                    name=name,
+                    media_type=media_type,
+                    back_reference=back_reference,
+                )
+            )
 
         # 2. create the media in HARI
         json_body = self._pack(
             locals(),
-            ignore=["file_path", "dataset_id", "media_upload_responses"],
+            ignore=[
+                "file_path",
+                "dataset_id",
+                "media_upload_responses",
+                "with_media_files_upload",
+            ],
         )
         return self._request(
             "POST",
@@ -832,7 +859,10 @@ class HARIClient:
         )
 
     def create_medias(
-        self, dataset_id: uuid.UUID, medias: list[models.BulkMediaCreate]
+        self,
+        dataset_id: uuid.UUID,
+        medias: list[models.BulkMediaCreate],
+        with_media_files_upload: bool = True,
     ) -> models.BulkResponse:
         """Accepts multiple media files, uploads them, and creates the media entries in the db.
         The limit is 500 per call.
@@ -840,6 +870,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             medias: A list of MediaCreate objects. Each object contains the file_path as a field.
+            with_media_files_upload: Whether the media files have to be uploaded or not.
 
         Returns:
             A BulkResponse with information on upload successes and failures.
@@ -855,23 +886,29 @@ class HARIClient:
             raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
+        if with_media_files_upload:
+            # 1. upload files - if necessary
+            file_paths: dict[int, str] = {}
+            for idx, media in enumerate(medias):
+                if not media.file_path:
+                    raise errors.MediaCreateMissingFilePathError(media)
+                file_paths[idx] = media.file_path
 
-        # 1. upload files
-        file_paths: dict[int, str] = {}
-        for idx, media in enumerate(medias):
-            if not media.file_path:
-                raise errors.MediaCreateMissingFilePathError(media)
-            file_paths[idx] = media.file_path
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths=file_paths
+            )
 
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths=file_paths
-        )
-
-        # 2. set media_urls on medias and parse them to dicts
-        media_dicts = []
-        for idx, media in enumerate(medias):
-            media.media_url = media_upload_responses[idx].media_url
-            media_dicts.append(media.model_dump())
+            # 2. set media_urls on medias and parse them to dicts
+            media_dicts = []
+            for idx, media in enumerate(medias):
+                media.media_url = media_upload_responses[idx].media_url
+                media_dicts.append(media.model_dump())
+        else:
+            media_dicts = []
+            for media in medias:
+                if not media.media_url:
+                    raise errors.MediaCreateMissingMediaUrlError(media)
+                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(

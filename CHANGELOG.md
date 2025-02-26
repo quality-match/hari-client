@@ -9,6 +9,16 @@
 - added support for defining external media sources when creating a dataset
   - new field `external_media_source` in the `create_dataset` method [PR#73](https://github.com/quality-match/hari-client/pull/73)
 - added new endpoint `get_external_media_source` [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new arg to client method `create_medias` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of media files. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new arg to client method `create_media` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of the media file. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added format validations for `HARIMedia` field `media_url` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - the field was previously set automatically through the process of uploading media files.
+  - in order to work with a dataset that uses an external media source, you have to set the field explicitly.
+- updated HARIUploader utility to support using a dataset with an external media source [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - when your dataset is using an external media source, make sure to set the `media_url` field of `HARIMedia` and don't set the `file_path`.
+  - when your dataset isn't using an external media source, make sure to set the `file_path` field of `HARIMedia` and don't set the `media_url`.
 
 ## [3.2.0] - 25-02-2025
 
