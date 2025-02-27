@@ -880,8 +880,8 @@ class HARIClient:
             APIException: If the request fails.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
             MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
-            MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
             MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
+            MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
         if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:

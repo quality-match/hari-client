@@ -1251,6 +1251,7 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
         ("https://mybucket.s3.eu-central-1.amazonaws.com/path/to/file.jpg", False),
         ("https://myaccount.blob.core.windows.net/container/path/to/blob.png", False),
         ("https://my-custom-domain.com/path/to/file.png", False),
+        ("http://my-custom-domain.com/path/to/file.png", False),
     ],
 )
 def test_hari_media_file_key_validation(file_key, is_valid):
