@@ -478,7 +478,6 @@ class HARIUploader:
         """
 
         # sync important information with the BE
-        self._load_dataset()
         self._determine_media_files_upload_behavior()
 
         # validations
