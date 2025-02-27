@@ -547,6 +547,7 @@ class Media(BaseModel):
     )
     type: str = pydantic.Field(default="Media", title="Type")
     media_url: str = pydantic.Field(title="Media Url")
+    file_key: str | None = pydantic.Field(default=None, title="File Key")
     pii_media_url: str = pydantic.Field(title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
     metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
@@ -581,6 +582,7 @@ class MediaResponse(BaseModel):
     )
     type: str | None = pydantic.Field(default=None, title="Type")
     media_url: str | None = pydantic.Field(default=None, title="Media Url")
+    file_key: str | None = pydantic.Field(default=None, title="File Key")
     pii_media_url: str | None = pydantic.Field(default=None, title="Pii Media Url")
     name: str | None = pydantic.Field(default=None, title="Name")
     metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
@@ -902,6 +904,7 @@ class MediaCreate(BaseModel):
     media_type: MediaType
     back_reference: str
     media_url: str | None = None
+    file_key: str | None = None
 
     archived: bool = False
     scene_id: str | None = None
@@ -913,6 +916,22 @@ class MediaCreate(BaseModel):
     frame_idx: int | None = None
     frame_timestamp: datetime.datetime | None = None
     back_reference_json: str | None = None
+
+    @pydantic.field_validator("file_key")
+    @classmethod
+    def file_key_is_valid(cls, v: str | None) -> str | None:
+        if v:
+            lower_cased_value = v.lower()
+            if (
+                lower_cased_value.startswith("/")
+                or lower_cased_value.startswith("s3://")
+                or lower_cased_value.startswith("http://")
+                or lower_cased_value.startswith("https://")
+            ):
+                raise ValueError(
+                    "file_key must not start with leading forward slash (/), s3://, http:// or https://"
+                )
+        return v
 
 
 class BulkMediaCreate(MediaCreate):

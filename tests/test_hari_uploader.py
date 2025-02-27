@@ -582,7 +582,7 @@ def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_fi
             name=f"my image {i}",
             media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
-            media_url=f"s3://my_bucket/images/image_{i}.jpg",
+            file_key=f"images/image_{i}.jpg",
         )
         for k in range(2):
             media_object = hari_uploader.HARIMediaObject(
@@ -1239,48 +1239,37 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
 
 
 @pytest.mark.parametrize(
-    "url, is_valid",
+    "file_key, is_valid",
     [
         # valid
-        ("s3://my-bucket/path/to/file.jpg", True),
-        ("https://mybucket.s3.us-west-2.amazonaws.com/path/to/file.png", True),
-        ("https://mybucket.s3.eu-central-1.amazonaws.com/path/to/file.jpg", True),
-        ("https://mybucket.s3.some-region.amazonaws.com/path/to/file.png", True),
-        ("https://myaccount.blob.core.windows.net/container/blob.png", True),
-        ("https://myaccount.blob.core.windows.net/container/path/to/blob.png", True),
+        (None, True),
+        ("path/to/my_file.png", True),
+        ("my_file.jpg", True),
         # invalid
         ("/path/to/my_file.png", False),
-        ("path/to/my_file.png", False),
-        ("my_file.jpg", False),
-        ("https://my-custom.domain.com/path/to/file.png", False),  # unknown domain
-        ("https://my-custom-domain.com/path/to/file.png", False),  # unknown domain
-        ("https://mybucket.s3.amazonaws.com/path/to/file.jpg", False),  # missing region
-        (
-            "http://mybucket.s3.some-region.amazonaws.com/path/to/file.png",
-            False,
-        ),  # http not allowed
-        (
-            "http://myaccount.blob.core.windows.net/container/blob.jpg",
-            False,
-        ),  # http not allowed
+        ("s3://my-bucket/path/to/file.jpg", False),
+        ("https://mybucket.s3.eu-central-1.amazonaws.com/path/to/file.jpg", False),
+        ("https://myaccount.blob.core.windows.net/container/path/to/blob.png", False),
+        ("https://my-custom-domain.com/path/to/file.png", False),
+        ("http://my-custom-domain.com/path/to/file.png", False),
     ],
 )
-def test_hari_media_media_url_validation(url, is_valid):
+def test_hari_media_file_key_validation(file_key, is_valid):
     if is_valid:
         media = hari_uploader.HARIMedia(
             name="my image",
             back_reference="my_image_backref",
             media_type=models.MediaType.IMAGE,
-            media_url=url,
+            file_key=file_key,
         )
-        assert media.media_url == url
+        assert media.file_key == file_key
     else:
         with pytest.raises(ValueError):
             hari_uploader.HARIMedia(
                 name="my image",
                 back_reference="my_image_backref",
                 media_type=models.MediaType.IMAGE,
-                media_url=url,
+                file_key=file_key,
             )
 
 
@@ -1296,19 +1285,19 @@ def test_determine_media_files_upload_behavior_without_upload(test_client, mocke
             name="my_image_0",
             back_reference="my_image_backref_0",
             media_type=models.MediaType.IMAGE,
-            media_url="s3://my-bucket/path/to/image_0.jpg",
+            file_key="path/to/image_0.jpg",
         ),
         hari_uploader.HARIMedia(
             name="my_image_1",
             back_reference="my_image_backref_1",
             media_type=models.MediaType.IMAGE,
-            media_url="s3://my-bucket/path/to/imag_1.jpg",
+            file_key="path/to/imag_1.jpg",
         ),
         hari_uploader.HARIMedia(
             name="my_image_2",
             back_reference="my_image_backref_2",
             media_type=models.MediaType.IMAGE,
-            media_url="s3://my-bucket/path/to/image_2.jpg",
+            file_key="path/to/image_2.jpg",
         ),
     ]
     uploader.add_media(*medias)
@@ -1376,7 +1365,7 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
             name="my_image_1",
             back_reference="my_image_backref_1",
             media_type=models.MediaType.IMAGE,
-            media_url="s3://my-bucket/path/to/image_2.jpg",
+            file_key="path/to/image_1.jpg",
         ),
         hari_uploader.HARIMedia(
             name="my_image_2",
@@ -1392,7 +1381,7 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
         uploader._determine_media_files_upload_behavior()
 
 
-def test_determine_media_files_upload_behavior_throws_exception_for_missing_media_url(
+def test_determine_media_files_upload_behavior_throws_exception_for_missing_file_key(
     test_client, mocker
 ):
     # Arrange
@@ -1406,19 +1395,19 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_medi
             name="my_image_0",
             back_reference="my_image_backref_0",
             media_type=models.MediaType.IMAGE,
-            media_url="s3://my-bucket/path/to/image_1.jpg",
+            file_key="path/to/image_0.jpg",
         ),
         hari_uploader.HARIMedia(
             name="my_image_1",
             back_reference="my_image_backref_1",
             media_type=models.MediaType.IMAGE,
-            file_path="path/to/image_2.jpg",
+            file_path="path/to/image_1.jpg",
         ),
         hari_uploader.HARIMedia(
             name="my_image_2",
             back_reference="my_image_backref_2",
             media_type=models.MediaType.IMAGE,
-            media_url="s3://my-bucket/path/to/image_3.jpg",
+            file_key="path/to/image_2.jpg",
         ),
     ]
     uploader.add_media(*medias)
