@@ -85,7 +85,6 @@ media_object_3 = hari_uploader.HARIMediaObject(
         closed=False,
     ),
 )
-
 media_object_3.set_object_category_subset_name("road_marking")
 media_3.add_media_object(media_object_3)
 
