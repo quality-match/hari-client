@@ -1,5 +1,12 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [3.2.1] - TBD
+
+### Deletions
+
+- added `compute_auto_attributes` param to `trigger_dataset_metadata_rebuild_job` [PR#78](https://github.com/quality-match/hari-client/pull/78)
+
+
 ## [3.2.0] - 25-02-2025
 
 ### New features
