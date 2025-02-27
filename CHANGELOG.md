@@ -1,11 +1,16 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [3.2.1] - TBD
+## [3.3.1] - TBD
 
 ### Deletions
 
 - added `compute_auto_attributes` param to `trigger_dataset_metadata_rebuild_job` [PR#78](https://github.com/quality-match/hari-client/pull/78)
 
+## [3.3.0] - 2025-02-27
+
+### New Features
+
+- added support for media objects of type segment  [PR#62](https://github.com/quality-match/hari-client/pull/62)
 
 ## [3.2.0] - 25-02-2025
 
