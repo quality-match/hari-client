@@ -9,6 +9,7 @@ import warnings
 import pydantic
 import requests
 from requests import adapters
+from tqdm import tqdm
 
 from hari_client.client import errors
 from hari_client.config import config
@@ -972,6 +973,62 @@ class HARIClient:
             success_response_item_model=list[models.MediaResponse],
         )
 
+    def get_medias_paged(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MediaResponse]:
+        """Get all medias of a dataset, but with paging, should be used for larger datasets
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            batch_size: The number of medias to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
+
+        Returns:
+            A list of all medias in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_medias: int = self.get_media_count(
+            dataset_id, archived, query
+        ).total_count
+
+        print(f"Fetching {total_medias} medias ...")
+
+        medias: list[models.MediaResponse] = []
+
+        # Loop through media pages until all are retrieved
+        for skip in tqdm(range(0, total_medias, batch_size)):
+            page_medias = self._request(
+                "GET",
+                f"/datasets/{dataset_id}/medias",
+                params={
+                    "query": query,
+                    "projection": projection,
+                    "sort": sort,
+                    "archived": archived,
+                    "limit": batch_size,
+                    "skip": skip,
+                },
+                success_response_item_model=list[models.MediaResponse],
+            )
+            medias.extend(page_medias)
+
+        print(f"Fetched {len(medias)} medias successfully.")
+
+        return medias
+
     def archive_media(self, dataset_id: uuid.UUID, media_id: str) -> str:
         """Archive the media
 
@@ -1433,6 +1490,7 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
+        projection: dict | None = None,
     ) -> list[models.MediaObjectResponse]:
         """Queries the database based on the submitted parameters and returns a list of media objects
 
@@ -1444,6 +1502,8 @@ class HARIClient:
             skip: Skip
             query: Query
             sort: Sort
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
 
         Returns:
             list
@@ -1458,6 +1518,62 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.MediaObjectResponse],
         )
+
+    def get_media_objects_paged(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MediaObjectResponse]:
+        """Get all media_objects of a dataset, but with paging, should be used for larger datasets
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            batch_size: The number of medias to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
+
+        Returns:
+            A list of all medias in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_medias: int = self.get_media_object_count(
+            dataset_id, archived, query
+        ).total_count
+
+        print(f"Fetching {total_medias} media_objects ...")
+
+        media_objects: list[models.MediaObjectResponse] = []
+
+        # Loop through media pages until all are retrieved
+        for skip in tqdm(range(0, total_medias, batch_size)):
+            page_medias = self._request(
+                "GET",
+                f"/datasets/{dataset_id}/mediaObjects",
+                params={
+                    "query": query,
+                    "projection": projection,
+                    "sort": sort,
+                    "archived": archived,
+                    "limit": batch_size,
+                    "skip": skip,
+                },
+                success_response_item_model=list[models.MediaObjectResponse],
+            )
+            media_objects.extend(page_medias)
+
+        print(f"Fetched {len(media_objects)} media_objects successfully.")
+
+        return media_objects
 
     def archive_media_object(self, dataset_id: uuid.UUID, media_object_id: str) -> str:
         """Delete (archive) a media object from the db.
@@ -1977,6 +2093,145 @@ class HARIClient:
             success_response_item_model=list[models.AttributeResponse],
         )
 
+    def get_attribute_value_count(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+    ) -> models.FilterCount:
+        """Calculates the number of attribute values for a given filter setting
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to consider archived medias
+            query: Query
+
+        Returns:
+             a FilterCount object containing the total count of attributes returned by the query.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues:count",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=models.FilterCount,
+        )
+
+    def get_attribute_value(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_id: str,
+        annotatable_id: str,
+        archived: bool | None = False,
+    ) -> models.AttributeValueResponse:
+        """Returns an attribute value with a given attribute_id.
+
+        Args:
+            dataset_id: The dataset id
+            attribute_id: The attribute id
+            annotatable_id: The id of the annotatable the attribute belongs to
+
+        Returns:
+            The attribute with the given attribute_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues/{attribute_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=models.AttributeValueResponse,
+        )
+
+    def get_attribute_values(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AttributeValueResponse]:
+        """Get all attribute values of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            limit: The number of medias tu return
+            skip: The number of medias to skip
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of all attribute values in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AttributeValueResponse],
+        )
+
+    def get_attribute_values_paged(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AttributeValueResponse]:
+        """Returns all attributes of a dataset, but with paging, should be used for larger datasets
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            batch_size: The number of medias to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of all medias in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_attributes: int = self.get_attribute_value_count(
+            dataset_id, archived, query
+        ).total_count
+
+        print(f"Fetching {total_attributes} attribute values ...")
+
+        medias: list[models.AttributeValueResponse] = []
+
+        # Loop through media pages until all are retrieved
+        for skip in tqdm(range(0, total_attributes, batch_size)):
+            page_medias = self._request(
+                "GET",
+                f"/datasets/{dataset_id}/attributeValues",
+                params={
+                    "query": query,
+                    "sort": sort,
+                    "archived": archived,
+                    "limit": batch_size,
+                    "skip": skip,
+                },
+                success_response_item_model=list[models.AttributeValueResponse],
+            )
+            medias.extend(page_medias)
+
+        print(f"Fetched {len(medias)} attribute values successfully.")
+
+        return medias
+
     def get_attribute(
         self, dataset_id: uuid.UUID, attribute_id: str, annotatable_id: str
     ) -> models.AttributeResponse:
@@ -2155,4 +2410,195 @@ class HARIClient:
             f"/datasets/{dataset_id}/visualisationConfigs",
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
+        )
+
+    def get_development_sets(
+        self,
+    ) -> list[models.DevelopmentSetResponse]:
+        """
+        Retrieve all available development sets.
+
+        Returns:
+            list[models.DevelopmentSetResponse]: A list of development set objects.
+        """
+        return self._request(
+            "GET",
+            f"/trainingSets",
+            # no params
+            success_response_item_model=list[models.DevelopmentSetResponse],
+        )
+
+    def get_development_set(
+        self, development_set_id: str
+    ) -> models.DevelopmentSetResponse:
+        """
+        Retrieve a single development set by its ID.
+
+        Args:
+            development_set_id: The unique identifier of the development set.
+
+        Returns:
+            models.DevelopmentSetResponse: The requested development set object.
+        """
+        return self._request(
+            "GET",
+            f"/trainingSets/{development_set_id}",
+            # no params
+            success_response_item_model=models.DevelopmentSetResponse,
+        )
+
+    def create_development_set(
+        self,
+        name: str,
+        training_attributes: list[models.TrainingAttribute],
+        user_group: str | None = None,
+    ) -> models.DevelopmentSetResponse:
+        """
+        Create a new development set.
+
+        Args:
+            name: A descriptive name for the development set.
+            training_attributes: The training attributes to be used by this set.
+            user_group: The user group for scoping the development set (default: None).
+
+        Returns:
+            models.DevelopmentSetResponse: The newly created development set object.
+        """
+        body = {
+            "name": name,
+            "training_attributes": training_attributes,
+            "user_group": user_group,
+        }
+
+        return self._request(
+            "POST",
+            "/trainingSets",
+            json=body,
+            success_response_item_model=models.DevelopmentSetResponse,
+        )
+
+    def get_aint_models(
+        self,
+    ) -> list[models.MlAnnotationModel]:
+        """
+        Retrieve all AI Nano Task (AINT) models.
+
+        Returns:
+            list[models.MlAnnotationModel]: A list of AI annotation model objects.
+        """
+        return self._request(
+            "GET",
+            f"/mlAnnotationModels",
+            # no params
+            success_response_item_model=list[models.MlAnnotationModel],
+        )
+
+    def get_aint_model(self, aint_model_id: str) -> models.MlAnnotationModel:
+        """
+        Retrieve a specific AI Nano Task (AINT) model by its ID.
+
+        Args:
+            aint_model_id: The unique identifier of the AI annotation model.
+
+        Returns:
+            models.MlAnnotationModel: The requested AI annotation model object.
+        """
+        return self._request(
+            "GET",
+            f"/mlAnnotationModels/{aint_model_id}",
+            # no params
+            success_response_item_model=models.MlAnnotationModel,
+        )
+
+    def train_aint_model(
+        self, name: str, development_set_id: str, user_group: str | None = None
+    ) -> models.MlAnnotationModel:
+        """
+        Train a new AI Nano Task (AINT) model on a specified development set.
+
+        Args:
+            name: A descriptive name for the AI model.
+            development_set_id: The unique identifier of the development set to use for training.
+            user_group: The user group for scoping this model (default: None).
+
+        Returns:
+            models.MlAnnotationModel: The newly trained AI annotation model.
+        """
+
+        body = {"name": name, "training_set_id": development_set_id}
+
+        return self._request(
+            "POST",
+            "/mlAnnotationModels",
+            json=body,
+            success_response_item_model=models.MlAnnotationModel,
+        )
+
+    def get_ai_annotation_runs(
+        self,
+    ) -> list[models.AiAnnotationRun]:
+        """
+        Retrieve all AI annotation runs.
+
+        Returns:
+            list[models.AiAnnotationRun]: A list of AI annotation run objects.
+        """
+        return self._request(
+            "GET",
+            f"/aiAnnotationRuns",
+            # no params
+            success_response_item_model=list[models.AiAnnotationRun],
+        )
+
+    def get_ai_annotation_run(self, run_id: str) -> models.AiAnnotationRun:
+        """
+        Retrieve a specific AI annotation run by its ID.
+
+        Args:
+            run_id: The unique identifier of the AI annotation run.
+
+        Returns:
+            models.AiAnnotationRun: The requested AI annotation run object.
+        """
+        return self._request(
+            "GET",
+            f"/aiAnnotationRuns/{run_id}",
+            # no params
+            success_response_item_model=models.AiAnnotationRun,
+        )
+
+    def start_ai_annotation_run(
+        self,
+        name: str,
+        dataset_id: str,
+        subset_id: str,
+        model_id: str,
+        user_group: str | None = None,
+    ) -> models.AiAnnotationRun:
+        """
+        Start a new AI annotation run. Applies the specified model to the datset and subset
+
+        Args:
+            name: A descriptive name for the AI annotation run.
+            dataset_id: The unique identifier of the dataset to be annotated.
+            subset_id: The unique identifier of the subset to be annotated.
+            model_id: The unique identifier of the AI annotation model to use.
+            user_group: The user group for scoping this annotation run (default: None).
+
+        Returns:
+            models.AiAnnotationRun: The newly created AI annotation run object.
+        """
+        body = {
+            "name": name,
+            "dataset_id": dataset_id,
+            "subset_id": subset_id,
+            "ml_annotation_model_id": model_id,
+            "user_group": user_group,
+        }
+
+        return self._request(
+            "POST",
+            "/aiAnnotationRuns",
+            json=body,
+            success_response_item_model=models.AiAnnotationRun,
         )
