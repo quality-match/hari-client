@@ -23,7 +23,7 @@ def test_create_medias_with_missing_file_paths(test_client):
         client.create_medias(dataset_id="1234", medias=[media_create])
 
 
-def test_create_medias_with_missing_media_urls(test_client):
+def test_create_medias_with_missing_file_keys(test_client):
     # Arrange
     client = test_client
     media_create = models.MediaCreate(
@@ -33,7 +33,7 @@ def test_create_medias_with_missing_media_urls(test_client):
     )
 
     # Act + Assert
-    with pytest.raises(errors.MediaCreateMissingMediaUrlError):
+    with pytest.raises(errors.MediaCreateMissingFileKeyError):
         client.create_medias(
             dataset_id="1234", medias=[media_create], with_media_files_upload=False
         )
@@ -48,7 +48,7 @@ def test_create_medias_without_media_files_upload(test_client_mocked, mocker):
         name="my test media",
         back_reference="my test media backref",
         media_type=models.MediaType.IMAGE,
-        media_url="https://mybucket.s3.eu-central-1.amazonaws.com/path/to/image_1.jpg",
+        file_key="path/to/image_1.jpg",
     )
 
     # Act
@@ -94,8 +94,8 @@ def test_create_media_with_missing_file_path(test_client_mocked, mocker):
         )
 
 
-def test_create_media_with_missing_media_url(test_client_mocked, mocker):
-    with pytest.raises(errors.MediaCreateMissingMediaUrlError):
+def test_create_media_with_missing_file_key(test_client_mocked, mocker):
+    with pytest.raises(errors.MediaCreateMissingFileKeyError):
         test_client_mocked.create_media(
             dataset_id=uuid.uuid4(),
             name="my test media",
@@ -141,7 +141,7 @@ def test_create_media_without_media_file_upload(test_client_mocked, mocker):
         back_reference="my test media backref",
         media_type=models.MediaType.IMAGE,
         file_path=None,
-        media_url="https://mybucket.s3.eu-central-1.amazonaws.com/path/to/image_1.jpg",
+        file_key="path/to/image_1.jpg",
         with_media_files_upload=False,
     )
 
