@@ -14,9 +14,10 @@ def trigger_and_display_metedata_update(
     """
     Trigger and wait for the metadata update jobs to finish, then print their statuses.
 
-    :param hari: An instance of HARIClient to interact with the HARI API.
-    :param dataset_id: The UUID of the dataset for which the metadata should be rebuilt.
-    :param subset_id: The UUID of a specific subset, or None to rebuild metadata for the entire dataset.
+    Args:
+        hari: An instance of HARIClient to interact with the HARI API.
+        dataset_id: The UUID of the dataset for which the metadata should be rebuilt.
+        subset_id: The UUID of a specific subset, or None to rebuild metadata for the entire dataset.
     """
     print("Triggering metadata updates...")
     # create a trace_id to track triggered metadata update jobs
@@ -56,11 +57,13 @@ def get_or_create_dataset(
     """
     Check if a dataset with the given name exists. If not, create it.
 
-    :param hari: An instance of HARIClient to interact with the HARI API.
-    :param dataset_name: The name of the dataset to check or create.
-    :param user_group: The user group under which the dataset should be created.
-    :param is_anonymized: Whether the dataset should be created with anonymized data.
-    :return: The UUID of the found or created dataset.
+    Args:
+        hari: An instance of HARIClient to interact with the HARI API.
+        dataset_name: The name of the dataset to check or create.
+        user_group: The user group under which the dataset should be created.
+        is_anonymized: Whether the dataset should be created with anonymized data.
+    Returns:
+         uuid: The UUID of the found or created dataset.
     """
     datasets = hari.get_datasets()
     dataset_names = [dataset.name for dataset in datasets]
@@ -89,13 +92,15 @@ def get_or_create_subset_for_all(
     """
     Check if a subset with the given name exists within a dataset. If not, create it.
 
-    :param hari: An instance of HARIClient to interact with the HARI API.
-    :param dataset_id: The UUID of the dataset.
-    :param subset_name: The name of the subset to check or create.
-    :param subset_type: The type of the subset to create if it doesn't exist.
-    :return: A tuple containing:
-        - The UUID of the found or created subset.
-        - A boolean indicating whether the subset was reused (True) or newly created (False).
+    Args:
+        hari: An instance of HARIClient to interact with the HARI API.
+        dataset_id: The UUID of the dataset.
+        subset_name: The name of the subset to check or create.
+        subset_type: The type of the subset to create if it doesn't exist.
+    Returns:
+        Tuple[uuid.UUID, bool] : tuple containing:
+            - The UUID of the found or created subset.
+            - A boolean indicating whether the subset was reused (True) or newly created (False).
     """
     subsets = hari.get_subsets_for_dataset(dataset_id)
     subset_names = [subset.name for subset in subsets]
@@ -127,12 +132,13 @@ def check_and_upload_dataset(
     Check and upload data to an existing or new dataset, optionally creating a new subset.
     If new data is uploaded, trigger a metadata rebuild.
 
-    :param hari: An instance of HARIClient to interact with the HARI API.
-    :param dataset_id: The UUID of the dataset to upload data to.
-    :param object_categories: A list of object categories to be associated with the data.
-    :param medias: A list of media objects to be uploaded.
-    :param new_subset_name: The name of the subset to create or use.
-    :param subset_type: The type of subset (e.g., MEDIA_OBJECT).
+    Args:
+        hari: An instance of HARIClient to interact with the HARI API.
+        dataset_id: The UUID of the dataset to upload data to.
+        object_categories: A list of object categories to be associated with the data.
+        medias: A list of media objects to be uploaded.
+        new_subset_name: The name of the subset to create or use.
+        subset_type: The type of subset (e.g., MEDIA_OBJECT).
     """
     print("Prepare Upload to HARI...")
 
