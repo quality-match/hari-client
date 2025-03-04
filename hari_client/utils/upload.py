@@ -50,7 +50,7 @@ def trigger_and_display_metedata_update(
     print(f"metadata_rebuild jobs finished with status {job_statuses=}")
 
 
-def check_and_create_dataset(
+def get_or_create_dataset(
     hari: HARIClient, dataset_name: str, user_group: str, is_anonymized: bool
 ) -> uuid.UUID:
     """
@@ -80,7 +80,7 @@ def check_and_create_dataset(
         return dataset_id
 
 
-def check_and_create_subset_for_all(
+def get_or_create_subset_for_all(
     hari: HARIClient,
     dataset_id: uuid.UUID,
     subset_name: str,
@@ -179,7 +179,7 @@ def check_and_upload_dataset(
     else:
         print("WARNING: No data for upload specified which is not already uploaded.")
 
-    new_subset_id, reused = check_and_create_subset_for_all(
+    new_subset_id, reused = get_or_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
     )
 
