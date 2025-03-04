@@ -1,8 +1,19 @@
+import json
+import math
+import statistics
+import uuid
+from collections import Counter
+from os.path import join
+
 import matplotlib.pyplot as plt
 import numpy as np
 import statsmodels.api as sm
+from pydantic import BaseModel
+from statsmodels.stats.proportion import proportion_confint
 from tqdm import tqdm
 
+from hari_client import HARIClient
+from hari_client.models.models import AnnotationResponse
 from hari_client.models.models import AttributeGroup
 from hari_client.models.models import AttributeMetadataResponse
 from hari_client.models.models import AttributeValueResponse
@@ -157,9 +168,12 @@ def create_soft_label_for_annotations(
             print(f"WARNING: {attribute_name} not found in {attr}")
             continue  # skip non defined attributes and questions
 
-        assert (additional_result is None) or (
-            getattr(attr, additional_result) is not None
-        ), f"You specified the additional value {additional_result} for {attr} but it is not defined in the attribute"
+        if (additional_result is not None) and (
+            getattr(attr, additional_result) is None
+        ):
+            print(
+                f"WARNING: You specified the additional value {additional_result} for {attr} but it is not defined in the attribute"
+            )
 
         # check if annotatable id is already used
         annotatable_id = attr.annotatable_id
@@ -692,3 +706,818 @@ def calculate_cutoff_thresholds(
             plt.show()
 
     return cutoff_thresholds
+
+
+# Pydantic data models for structured data handling
+class AnnotatorSummary(BaseModel):
+    annotator_name: str
+    total_annotations: int
+    total_cant_solves: int
+    percentage_cant_solves: float
+    frequency_answers: dict[str, int]
+    distribution_answers: dict[str, float]
+    average_duration: float
+    total_answered_reference_data: int
+    total_correct_reference_data: int
+    percentage_correct_reference_data: float
+
+
+def generate_reference_data_map(
+    hari, dataset_id, subset_id, annotation_run_node_id
+) -> dict:
+    """
+    Generates a map of annotation run node IDs to reference data.
+
+    Args:
+        annotations : A list of annotations.
+        batch_size (optional): Number of annotation run node IDs to fetch per batch. Defaults to 100.
+
+    Returns:
+        A map of annotation run node IDs to reference data.
+    """
+    reference_data_map = {}
+
+    assert annotation_run_node_id is not None, "Annotation Run Node ID not specified"
+    assert subset_id is not None, "Subset ID not specified"
+
+    in_subset = {
+        "attribute": "subset_ids",
+        "query_operator": "in",
+        "value": subset_id,
+    }
+
+    select_annotation_run_node = {
+        "attribute": "annotation_run_node_id",
+        "query_operator": "==",
+        "value": annotation_run_node_id,
+    }
+
+    # TODO expects media objects
+    media_objects_of_reference_subset = hari.get_media_objects_paged(
+        dataset_id,
+        query=json.dumps(in_subset),
+        projection={
+            "projection[id]": True,
+        },
+    )
+    media_object_ids_of_reference_subset = [
+        m.id for m in media_objects_of_reference_subset
+    ]
+    # TODO no paging , might break for large datasets
+    reference_attributes = hari.get_attributes(
+        dataset_id, query=json.dumps(select_annotation_run_node)
+    )
+
+    # create map annotateable id to expected value
+    for attr in reference_attributes:
+        if attr.annotatable_id in media_object_ids_of_reference_subset:
+            # relevant media objects
+            frequency = attr.frequency
+            frequency["cant_solve"] = attr.cant_solves
+
+            # Step 1: Find the maximum value in the dictionary
+            max_value = max(frequency.values())
+
+            # Step 2: Collect all keys that have this maximum value
+            max_keys = [key for key, value in frequency.items() if value == max_value]
+
+            # ensure only one value
+            if len(max_keys) == 1:
+                # maybe do not allow it since it is ambiguous
+                reference_data_map[attr.annotatable_id] = max_keys[0]
+            else:
+                print(
+                    "WARNING: tried to load reference data with ambiguous label which is not allowed @",
+                    attr.annotatable_id,
+                )
+
+    return reference_data_map
+
+
+def get_annotator_summary(
+    annotator_id: str, annotations: list[AnnotationResponse], reference_data_map: dict
+) -> AnnotatorSummary:
+    """
+    Gets detailed annotation information for a specific annotator.
+
+    Args:
+        annotator_id : The ID of the annotator.
+        annotations : A list of annotations.
+        reference_data_map : A map of reference data.
+
+    Returns:
+        Detailed information about the annotator's annotations and summary.
+    """
+    annotations_list = []
+    total_duration = 0
+    frequency_answers = {}
+    total_answered_reference_data = 0
+    total_correct_reference_data = 0
+
+    for annotation in tqdm(
+        annotations, desc=f"Annotations of Annotator {annotator_id}"
+    ):
+        # Convert duration from milliseconds to seconds
+        duration_s = annotation.duration_ms / 1000
+
+        # Determine answer and cant_solve flag
+        result = annotation.result
+        cant_solve = annotation.cant_solve
+        answer = result
+        if not result and cant_solve:
+            answer = "cant_solve"
+
+        # update frequency
+        frequency_answers[answer] = frequency_answers.get(answer, 0) + 1
+
+        if annotation.annotatable_id in reference_data_map:
+            if reference_data_map[annotation.annotatable_id] == "cant_solve":
+                continue  # cant solve
+            # found entry
+            total_answered_reference_data += 1
+            # check correct
+            if answer == reference_data_map[annotation.annotatable_id]:
+                total_correct_reference_data += 1
+
+        total_duration += duration_s
+
+    # Calculate total annotations and average duration
+    total_annotations = len(annotations)
+    average_duration = (
+        total_duration / total_annotations if total_annotations > 0 else 0
+    )
+
+    # Create and return the AnnotatorDetails object
+    total_cant_solves = frequency_answers.get("cant_solve", 0)
+    return AnnotatorSummary(
+        annotator_name=annotator_id,
+        total_annotations=total_annotations,
+        total_cant_solves=total_cant_solves,
+        percentage_cant_solves=float(total_cant_solves) / float(total_annotations)
+        if total_annotations > 0
+        else 0,
+        frequency_answers=frequency_answers,
+        distribution_answers={
+            k: v / total_annotations if total_annotations > 0 else 0
+            for k, v in frequency_answers.items()
+        },
+        average_duration=average_duration,
+        total_answered_reference_data=total_answered_reference_data,
+        total_correct_reference_data=total_correct_reference_data,
+        percentage_correct_reference_data=total_correct_reference_data
+        / total_answered_reference_data
+        if total_answered_reference_data > 0
+        else 0,
+    )
+
+
+def generate_annotator_analysis(
+    dataset_id: uuid.UUID,
+    dataset_name: str,
+    annotation_run_id: uuid.UUID,
+    question: str,
+    annotator_details_list: list,
+) -> dict:
+    """
+    Constructs the final report.
+
+    Args:
+        dataset_name : The name of the dataset.
+        annotator_details_list : A list of annotator details.
+
+    Returns:
+        The final report.
+    """
+    print("Constructing final report...")
+    return {
+        "annotatorReport": {
+            "dataset_id": str(dataset_id),
+            "dataset_name": dataset_name,
+            "annotation_run_id": str(annotation_run_id),
+            "question": question,
+            "annotators": [
+                details.dict(exclude_none=True) for details in annotator_details_list
+            ],
+        }
+    }
+
+
+def write_json_report(final_report: dict, output_directory: str, output_name: str):
+    """
+    Writes the final report to a JSON file.
+
+    Args:
+        final_report : The final report.
+        output_name : The name of the dataset.
+    """
+    json_file_name = f"annotator_report_{output_name}.json"
+    with open(
+        join(output_directory, json_file_name), "w", encoding="utf-8"
+    ) as jsonfile:
+        json.dump(final_report, jsonfile, ensure_ascii=False, indent=4)
+    print("JSON file created successfully:", join(output_directory, json_file_name))
+
+
+def visualize_annotator_analysis(
+    annotator_analysis: dict,
+    columns: int = 4,
+    rows: int = 3,
+    output_directory: str = None,
+    output_name: str = None,
+) -> None:
+    print("Visualizing annotator report...")
+    report = annotator_analysis["annotatorReport"]
+    annotators = report["annotators"]
+    dataset_name = report["dataset_name"]
+    question = report["question"]
+
+    """
+        Creates bar plots for each annotator with the following metrics on the x-axis:
+          - average_duration
+          - percentage_correct_reference_data
+          - all keys from distribution_answers
+        Overlays aggregated stats (mean, 95% CI, median, outliers) from all annotators.
+
+        :param annotators: List of annotator dictionaries.
+        :param columns: Number of columns in the figure grid.
+        :param rows: Number of rows in the figure grid.
+        """
+    # ----------------------------------------------------------------
+    # 1) Collect the metric names from the first annotator (or all)
+    #    We assume all annotators share the same distribution_answers keys.
+    # ----------------------------------------------------------------
+    all_distribution_keys = set()
+    for ann in annotators:
+        dist_answers = ann.get("distribution_answers", {})
+        all_distribution_keys.update(dist_answers.keys())
+
+    # Base metrics + distribution keys
+    metrics = ["average_duration", "percentage_correct_reference_data"] + sorted(
+        list(all_distribution_keys)
+    )
+
+    # ----------------------------------------------------------------
+    # 2) Gather all values for each metric across all annotators
+    #    to compute mean, median, 95% CI, etc.
+    # ----------------------------------------------------------------
+    # Dictionary: metric_name -> list of values from each annotator
+    metric_values = {m: [] for m in metrics}
+    for ann in annotators:
+        for m in metrics:
+            if m in ["average_duration", "percentage_correct_reference_data"]:
+                value = ann.get(m, 0.0)  # default 0.0 if missing
+            else:
+                # distribution_answers
+                dist_answers = ann.get("distribution_answers", {})
+                value = dist_answers.get(m, 0.0)
+            metric_values[m].append(value)
+
+    # Precompute aggregated stats for each metric
+    # We'll store: mean, median, std, 95% CI, outliers (if you want them)
+    aggregated_stats = {}
+    n_annotators = len(annotators)
+    for m in metrics:
+        vals = metric_values[m]
+        mean_val = statistics.mean(vals) if vals else 0.0
+        med_val = statistics.median(vals) if vals else 0.0
+        std_val = statistics.pstdev(vals) if vals else 0.0  # population stdev
+        # For a sample, you might use statistics.stdev(vals)
+
+        # 95% CI => mean ± 1.96 * (std / sqrt(n)) if n > 1
+        if n_annotators > 1:
+            ci = 1.96 * (std_val / math.sqrt(n_annotators))
+        else:
+            ci = 0.0
+
+        aggregated_stats[m] = {
+            "mean": mean_val,
+            "median": med_val,
+            "std": std_val,
+            "ci_95": ci,
+            "values": vals,
+        }
+
+    # ----------------------------------------------------------------
+    # 3) Plot each annotator's data in subplots of size (rows x columns).
+    #    Create a new figure after filling one grid.
+    # ----------------------------------------------------------------
+    plots_per_figure = rows * columns
+    num_annotators = len(annotators)
+
+    # index for counting annotation reports
+    popup_window_counter = 0
+
+    # We’ll track how many plots we've made so far
+    for idx, ann in enumerate(annotators):
+        # If we need a new figure
+        if idx % plots_per_figure == 0:
+            # If not the first figure, show the previous figure (blocking)
+            if idx != 0:
+                if output_directory is None:
+                    plt.show()
+                else:
+                    plt.savefig(
+                        join(
+                            output_directory,
+                            f"annotator_report_{output_name}_{popup_window_counter}.png",
+                        )
+                    )
+                popup_window_counter += 1
+            fig = plt.figure(figsize=(columns * 5, rows * 4))
+            fig.canvas.manager.set_window_title(
+                f"Annotator Analysis - {dataset_name} - {question}"
+            )
+
+        # Make a subplot with twin y-axis
+        subplot_index = (idx % plots_per_figure) + 1
+        ax1 = plt.subplot(rows, columns, subplot_index)
+        ax2 = ax1.twinx()
+
+        # Separate metrics: "average_duration" vs. the rest (percent)
+        duration_metrics = ["average_duration"]
+        percentage_metrics = [m for m in metrics if m not in duration_metrics]
+
+        # Collect values for this annotator
+        ann_duration_values = []
+        ann_percentage_values = []
+        uncertainty_values = []
+
+        # side calculations for unceratinta
+        total_annotations = ann.get("total_annotations", 0.0)
+        total_reference_annotations = ann.get("total_answered_reference_data", 0.0)
+
+        for m in duration_metrics:
+            value = ann.get(m, 0.0)
+            ann_duration_values.append(value)
+
+        for m in percentage_metrics:
+            if m in ["percentage_correct_reference_data"]:
+                value = ann.get(m, 0.0)
+                ann_percentage_values.append(value * 100.0)
+                total = total_reference_annotations
+            else:
+                # distribution_answers keys are also percentages 0..1 => multiply by 100
+                dist_answers = ann.get("distribution_answers", {})
+                value = dist_answers.get(m, 0.0)
+                ann_percentage_values.append(value * 100.0)
+                total = total_annotations
+
+            (
+                p_hat,
+                p_adjusted,
+                ci_lower,
+                ci_upper,
+                m,
+                n,
+                invalids,
+            ) = caluclate_confidence_interval_scores(
+                "", value * total, total, verbose=False
+            )
+            uncertainty_values.append(
+                (p_adjusted * 100.0, (p_adjusted - ci_lower) * 100.0)
+            )
+
+        # X-axis indices
+        x_positions = range(len(metrics))
+
+        # ----------------------------------------------------------------
+        # Plot the bar for the current annotator
+        # ----------------------------------------------------------------
+
+        # TODO add uncertainty bars based on total numbers, is important for quality estimation
+
+        x_duration = [0]  # one bar for average_duration
+        ax1.bar(
+            x_duration,
+            ann_duration_values,
+            color="skyblue",
+            width=0.4,
+            label=f"Duration [s]",
+        )
+        ax1.set_ylabel("Seconds")
+
+        # Plot percentage bars on ax2
+        x_percent = range(1, len(percentage_metrics) + 1)
+        ax2.bar(
+            x_percent,
+            ann_percentage_values,
+            color="orange",
+            width=0.4,
+            label=f"Value [%]",
+        )
+        ax2.set_ylabel("Percent")
+
+        # ----------------------------------------------------------------
+        # Overlay the aggregated stats for each metric
+        # We'll plot:
+        #   - Mean with 95% CI as an error bar
+        #   - Median as a small 'x'
+        #   - Individual outliers can be shown as points around the mean
+        # ----------------------------------------------------------------
+        # We artificially offset them horizontally so they don't overlap the bar
+        offset = 0.0
+        for i, m in enumerate(metrics):
+            stats_m = aggregated_stats[m]
+            mean_val = stats_m["mean"]
+            ci_95 = stats_m["ci_95"]
+            median_val = stats_m["median"]
+            all_vals = stats_m["values"]
+
+            # Convert percentage values to 0..100
+            if m != "average_duration":
+                mean_val *= 100.0
+                ci_95 *= 100.0
+                median_val *= 100.0
+                all_vals = [v * 100.0 for v in all_vals]
+
+            # Decide which axis we’re using
+            if m == "average_duration":
+                x_pos = 0
+                axis = ax1
+            else:
+                x_pos = i  # because distribution metrics start at 1, shift accordingly
+                axis = ax2
+
+            offsets_additions = 0.1
+
+            # Plot mean ± 95% CI as error bar
+            axis.errorbar(
+                x_pos + offsets_additions,  # slide offset
+                mean_val,
+                yerr=ci_95,
+                fmt="o",
+                color="darkred",
+                capsize=5,
+                label=None,
+            )
+
+            # plot uncerainty as CI
+            if i > 0:
+                # draw only for percentages
+                axis.errorbar(
+                    x_pos - offsets_additions,
+                    uncertainty_values[i - 1][0],  # update index
+                    yerr=uncertainty_values[i - 1][1],
+                    fmt="d",
+                    color="darkblue",
+                    capsize=5,
+                    label=None,
+                )
+
+            # Plot median as 'x'
+            axis.plot(
+                x_pos + offsets_additions,
+                median_val,
+                marker="x",
+                color="green",
+                markersize=8,
+                label=None,
+            )
+
+            # Plot outliers only
+            for val in all_vals:
+                lower = mean_val - ci_95
+                upper = mean_val + ci_95
+                if val < lower or val > upper:
+                    axis.plot(
+                        x_pos + offsets_additions,
+                        val,
+                        marker=".",
+                        color="gray",
+                        markersize=5,
+                    )
+
+        # ----------------------------------------------------------------
+        # Cosmetics and labeling
+        # ----------------------------------------------------------------
+        ax1.set_title(f"Annotator: {ann.get('annotator_name', 'N/A')}")
+        all_metric_labels = ["average_duration"] + percentage_metrics
+        xticks_positions = range(len(all_metric_labels))
+        ax1.set_xticks(xticks_positions)
+        ax1.set_xticklabels(all_metric_labels, rotation=45, ha="right")
+
+        # Avoid repeating legend labels
+        # Show legend only on the first subplot of each figure (optional)
+        if subplot_index == 1:
+            ax1.legend(loc="upper left")
+            ax2.legend(loc="upper right")
+
+    # Show the final figure if any subplots remain
+    plt.tight_layout()
+    if output_directory is None:
+        plt.show()
+    else:
+        plt.savefig(
+            join(
+                output_directory,
+                f"annotator_report_{output_name}_{popup_window_counter}.png",
+            )
+        )
+
+    plt.close()
+
+
+def create_annotator_analysis(
+    hari: HARIClient,
+    dataset_id: uuid.UUID,
+    annotation_run_node_id: uuid.UUID,
+    reference_subset_id: uuid.UUID | None = None,
+    reference_annotation_run_node_id: uuid.UUID | None = None,
+    visualize: bool = True,
+    output_name: str = None,
+    output_directory: str = None,
+):
+    dataset = hari.get_dataset(dataset_id)
+    dataset_name = dataset.name
+
+    if output_name is None:
+        output_name = dataset_name
+
+    query = {
+        "attribute": "annotation_run_node_id",
+        "query_operator": "==",
+        "value": annotation_run_node_id,
+    }
+
+    annotations: list[AnnotationResponse] = hari.get_annotations(
+        dataset_id=dataset_id, query=json.dumps(query)
+    )
+    # print(annotations[0])
+
+    if len(annotations) == 0:
+        print("ERROR: No annotations found, aborting.")
+        return
+    question = annotations[0].question
+
+    # Collect unique annotator IDs from annotations
+    annotator_ids = {
+        ann.annotator.annotator_id
+        for ann in tqdm(annotations, desc="Collecting annotator IDs")
+    }
+
+    # Generate reference data map
+    if reference_subset_id is None or reference_annotation_run_node_id is None:
+        reference_data_map = {}
+    else:
+        reference_data_map = generate_reference_data_map(
+            hari, dataset_id, reference_subset_id, reference_annotation_run_node_id
+        )
+
+    # Initialize list to store annotator details
+    annotator_summaries = []
+
+    for annotator_id in tqdm(
+        annotator_ids, desc="Generating report for each annotator"
+    ):
+        # Filter annotations for the current annotator_id
+        annotator_annotations = [
+            ann
+            for ann in tqdm(
+                annotations,
+                desc=f"Filtering annotator {annotator_id} annotations",
+            )
+            if ann.annotator.annotator_id == annotator_id
+        ]
+
+        # Generate annotator details
+        annotator_summary = get_annotator_summary(
+            annotator_id, annotator_annotations, reference_data_map
+        )
+
+        # Append annotator details to the list
+        annotator_summaries.append(annotator_summary)
+
+    # Construct the final report
+    analysis_report = generate_annotator_analysis(
+        dataset_id, dataset_name, annotation_run_node_id, question, annotator_summaries
+    )
+
+    # Write the results to a JSON file
+    if output_directory is not None:
+        write_json_report(analysis_report, output_directory, output_name)
+
+    # Optional: visualize report
+    if visualize:
+        visualize_annotator_analysis(
+            analysis_report, output_directory=output_directory, output_name=output_name
+        )
+
+
+def get_annotation_run_node_id_for_attribute_id(
+    hari, dataset_id: uuid.UUID, attribute_id: uuid.UUID
+):
+    query = {
+        "attribute": "id",
+        "query_operator": "==",
+        "value": attribute_id,
+    }
+    # get attribute values to get annotations and thus linked annotation run
+    # TODO check if this works for multi node pipelines
+    attributes = hari.get_attribute_values(
+        dataset_id=dataset_id, query=json.dumps(query), limit=1
+    )
+    assert (
+        len(attributes) == 1
+    ), f"Found no entries for the attribute {attribute_id} in dataset {dataset_id}"
+    annotations = attributes[0].annotations
+    assert (
+        len(annotations) > 0
+    ), f"Found no annotations for attribute {attribute_id} in dataset {dataset_id}"
+    annotation_id = annotations[0]["annotation_id"]
+    annotation = hari.get_annotation(dataset_id, annotation_id)
+    annotation_run_node_id = annotation.annotation_run_node_id
+
+    return annotation_run_node_id
+
+
+def plot_histogram_with_wilson_ci(
+    name, data: list, number_of_buckets=-1, output_directory=None
+):
+    """
+    Plots a histogram of percentages with 95% Wilson confidence intervals
+    (centered at the midpoint of the CI).
+
+    - If number_of_buckets == -1, treats 'data' as discrete
+      and plots one bar per unique value.
+    - Otherwise, divides the data into 'number_of_buckets' bins
+      (assumed in [0, 1], but can be adjusted below).
+    """
+    data = np.array([d for d in data if d is not None])  # filter out Nones
+    n = len(data)
+    if n == 0:
+        print("No data to plot.")
+        return
+
+    # Helper function to get Wilson interval for k out of n
+    def wilson_interval(k, n, alpha=0.05):
+        # returns (ci_lower, ci_upper) in fraction form (0..1)
+        return proportion_confint(count=k, nobs=n, alpha=alpha, method="wilson")
+
+    # Decide how to group data
+    if number_of_buckets == -1:
+        # ----- Discrete Data -----
+        counter = Counter(data)
+        values = sorted(counter.keys())
+        counts = np.array([counter[v] for v in values])
+    else:
+        # ----- Binned Data -----
+        num_bins = number_of_buckets
+        counts, bin_edges = np.histogram(
+            data, bins=num_bins, range=(np.min(data), np.max(data))
+        )
+        # Use bin centers to represent each bin
+        values = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+        counts = np.array(counts)
+
+    # Calculate fraction of total for each unique value/bin
+    fractions = counts / n
+
+    # Wilson confidence intervals (in fraction)
+    ci_lower = []
+    ci_upper = []
+    for k in counts:
+        low, up = wilson_interval(k, n, alpha=0.05)
+        ci_lower.append(low)
+        ci_upper.append(up)
+
+    # Convert fractions & intervals to percentage
+    fractions_pct = fractions * 100
+    ci_lower_pct = np.array(ci_lower) * 100
+    ci_upper_pct = np.array(ci_upper) * 100
+
+    # Center the bar at the midpoint of the CI, not necessarily at fractions_pct
+    # Because Wilson intervals may not be symmetric around the raw proportion
+    ci_mid = 0.5 * (ci_lower_pct + ci_upper_pct)
+
+    # Error is difference from center
+    y_err_lower = ci_mid - ci_lower_pct
+    y_err_upper = ci_upper_pct - ci_mid
+
+    # ----- Plot -----
+    plt.figure(figsize=(8, 5))
+    value_offset = 0.0
+
+    if number_of_buckets == -1:
+        # Discrete: bar positions are integer indices
+        x_positions = np.arange(len(values))
+        plt.bar(x_positions, fractions_pct, color="skyblue", edgecolor="black")
+        for x, y in zip(x_positions, fractions_pct):
+            plt.text(x + value_offset, y + value_offset, f"{y:.2f}%")
+        plt.errorbar(
+            x_positions,
+            ci_mid,
+            yerr=[y_err_lower, y_err_upper],
+            fmt="none",
+            ecolor="red",
+            capsize=5,
+            label="95% Wilson CI",
+        )
+        plt.xticks(x_positions, values)
+        plt.xlabel("Discrete Values")
+    else:
+        # Binned: bar positions at bin centers
+        bar_width = (bin_edges[1] - bin_edges[0]) * 0.8
+        plt.bar(
+            values,
+            fractions_pct,
+            width=bar_width,
+            color="skyblue",
+            edgecolor="black",
+            align="center",
+        )
+        for x, y in zip(values, fractions_pct):
+            plt.text(x + value_offset, y + value_offset, f"{y:.2f}%")
+        plt.errorbar(
+            values,
+            ci_mid,
+            yerr=[y_err_lower, y_err_upper],
+            fmt="none",
+            ecolor="red",
+            capsize=5,
+            label="95% Wilson CI",
+        )
+        plt.xlabel("Value Range (binned)")
+
+    plt.ylabel("Percentage of Data (%)")
+    plt.title(f"Histogram of {name}")
+    plt.legend()
+    plt.tight_layout()
+    if output_directory is not None:
+        plt.savefig(join(output_directory, f"{name}.png"))
+    else:
+        plt.show()
+
+
+def histograms_for_nanotask(
+    ID2annotation,
+    ID2ambiguity,
+    attribute_id,
+    ID2groupby_value={},
+    groupy_name=None,
+    groupby_values=None,
+    output_directory=None,
+):
+    # Ensure is called at least once
+    if groupby_values is None:
+        groupby_values = [None]
+
+    for groupby_value in groupby_values:
+        groupby_naming = (
+            ""
+            if groupby_value is None
+            else f" grouped by {groupy_name}={groupby_value}"
+        )
+
+        # majority vote class histogram
+        plot_histogram_with_wilson_ci(
+            "Majority Vote Classification" + groupby_naming,
+            [
+                max(
+                    soft_label_dict[attribute_id], key=soft_label_dict[attribute_id].get
+                )
+                if attribute_id in soft_label_dict
+                else None
+                for media_object_id, soft_label_dict in ID2annotation.items()
+                if ID2groupby_value.get(media_object_id, None) == groupby_value
+            ],
+            number_of_buckets=-1,
+            output_directory=output_directory,
+        )
+
+        # ambiguity histogram
+        plot_histogram_with_wilson_ci(
+            "Ambiguity" + groupby_naming,
+            [
+                ambiguity_dict.get(attribute_id, None)
+                for media_object_id, ambiguity_dict in ID2ambiguity.items()
+                if ID2groupby_value.get(media_object_id, None) == groupby_value
+            ],
+            number_of_buckets=10,
+            output_directory=output_directory,
+        )
+
+        # per class soft distribution
+        ## calculate possible classes
+        class_labels = None
+        for media_object_id, soft_label_dict in ID2annotation.items():
+            if attribute_id in soft_label_dict:
+                # found one ID with labels
+                class_labels = list(soft_label_dict[attribute_id].keys())
+                break
+            # else continue
+
+        if class_labels is None:
+            print("WARNING: No entries for attribute_id ", attribute_id)
+        else:
+            ## plot histogram per class
+            for class_label in class_labels:
+                plot_histogram_with_wilson_ci(
+                    f"Soft Label for {class_label}" + groupby_naming,
+                    [
+                        soft_label_dict.get(attribute_id, {}).get(class_label, None)
+                        for media_object_id, soft_label_dict in ID2annotation.items()
+                        if ID2groupby_value.get(media_object_id, None) == groupby_value
+                    ],
+                    number_of_buckets=10,
+                    output_directory=output_directory,
+                )
