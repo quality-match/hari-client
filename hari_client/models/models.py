@@ -871,7 +871,7 @@ class MediaCreate(BaseModel):
 
     id: str | None = pydantic.Field(
         default=None, title="Id"
-    )  # used to identify already uploaded medias
+    )  # TODO should be added in seperate instance: used to identify already uploaded medias
 
     archived: bool = False
     scene_id: str | None = None
@@ -910,7 +910,7 @@ class MediaObjectCreate(BaseModel):
 
     id: str | None = pydantic.Field(
         default=None, title="Id"
-    )  # used to identify already uploaded medias
+    )  # # TODO should be added in seperate instance:  used to identify already uploaded medias
 
     archived: bool = False
     scene_id: str | None = None
