@@ -649,9 +649,11 @@ class HARIUploader:
             )
         except APIError as e:
             # TODO try to parse as Bulk response, might only be a conflict
-            # Motivation for attributes we also show these errors
+            # Motivation we added manual error messages for all duplicated
             # We realigned and the default behavior should that they are successful, this is also true for attributes
-            #
+            # So here the error needs to be catched and shown as success
+            # TODO Error in implementation: This could actually be a lot of errors e.g. if cant_solve is specified as possible value
+            # In this case this parsing returns an empty array while it should show the actual errors.
             response = _parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )
