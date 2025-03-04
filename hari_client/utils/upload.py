@@ -185,11 +185,11 @@ def check_and_upload_dataset(
     else:
         print("WARNING: No data for upload specified which is not already uploaded.")
 
-    new_subset_id, reused = get_or_create_subset_for_all(
+    new_subset_id, exists = get_or_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
     )
 
-    if reused:
+    if exists:
         print(
             "WARNING: You did not create a new subset since the name already exists. "
             "If you added new images during upload the metadata update will be skipped for the new images. "
