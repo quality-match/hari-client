@@ -742,9 +742,11 @@ class DevelopmentSetResponse(BaseModel):
     subset_id: str | None = pydantic.Field(default=None, title="Subset Id")
 
 
-MLAnnotationModelStatus = typing.Literal[
-    "created", "training", "training_failed", "training_done"
-]
+class MLAnnotationModelStatus(str, enum.Enum):
+    CREATED = "created"
+    TRAINING = "training"
+    TRAINING_FAILED = "training_failed"
+    TRAINING_DONE = "training_done"
 
 
 class MlAnnotationModel(BaseModel):
