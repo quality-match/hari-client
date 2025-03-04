@@ -1,5 +1,26 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [3.3.1] - 2025-02-2028
+
+### Fixes
+
+- added `compute_auto_attributes` param to `trigger_dataset_metadata_rebuild_job` [PR#78](https://github.com/quality-match/hari-client/pull/78)
+
+## [3.3.0] - 2025-02-27
+
+### New Features
+
+- added support for media objects of type segment  [PR#62](https://github.com/quality-match/hari-client/pull/62)
+
+## [3.2.0] - 25-02-2025
+
+### New features
+
+- added `compute_auto_attributes` param to `trigger_metadata_rebuild_job` [PR#71](https://github.com/quality-match/hari-client/pull/71)
+- add `skip`, `limit`, `sort`, `query`, `name_filter` and `archived` parameters to `get_datasets` method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+- add `get_datasets_count` method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+- restricted attribute `possible_values` to be a list of strings [PR#66](https://github.com/quality-match/hari-client/pull/66)
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features

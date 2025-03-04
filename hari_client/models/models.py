@@ -185,6 +185,23 @@ class BBox2DCenterPoint(BaseModel):
     height: typing.Any = pydantic.Field(title="Height")
 
 
+class SegmentType(str, enum.Enum):
+    SEGMENT_RLE_COMPRESSED = "segment_rle_compressed"
+
+
+class SegmentRLECompressed(pydantic.BaseModel):
+    """
+    RLE compressed segment representation.
+
+    counts: the actual RLE encoded string, which describes the binary mask (example: "61X13mN000`0")
+    size: the dimensions of the binary mask that RLE represents - [height, width] (example: [9, 10])
+    """
+
+    type: str = SegmentType.SEGMENT_RLE_COMPRESSED
+    counts: str = pydantic.Field(title="Counts")
+    size: list[int] = pydantic.Field(title="Size")
+
+
 class DataSource(str, enum.Enum):
     QM = "QM"
     REFERENCE = "REFERENCE"
@@ -785,6 +802,7 @@ GeometryUnion = (
     | BoundingBox2DAggregation
     | Point2DAggregation
     | Point3DAggregation
+    | SegmentRLECompressed
 )
 
 
@@ -952,7 +970,7 @@ class AttributeCreate(BaseModel):
     frequency: dict[str, int] | None = None
     question: str | None = None
     repeats: int | None = None
-    possible_values: list[str | int | float | bool] | None = None
+    possible_values: list[str] | None = None
 
     @pydantic.model_validator(mode="before")
     @classmethod
@@ -997,7 +1015,7 @@ class Attribute(BaseModel):
     ml_probability_distributions: dict[str, float] | None = None
     cant_solve_ratio: float | None = None
     repeats: int | None = None
-    possible_values: list[str | int | float | bool] | None = None
+    possible_values: list[str] | None = None
 
 
 class AttributeResponse(BaseModel):
@@ -1064,7 +1082,7 @@ class AttributeResponse(BaseModel):
         title="Repeats",
         description="Number of repeats for this attribute",
     )
-    possible_values: list[str | int | float | bool] | None = pydantic.Field(
+    possible_values: list[str] | None = pydantic.Field(
         default=None,
         title="Possible Values",
         description="Possible values for this attribute",
