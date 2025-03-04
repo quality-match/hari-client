@@ -72,11 +72,7 @@ def load_data(root_directory, source_dataset_name: str):
     #   one answer are written
 
     answer_frequencies = {
-        image_path: {
-            cat_name: answer_cnt
-            for cat_name, answer_cnt in frequency.items()
-            if answer_cnt > 0
-        }
+        image_path: {cat_name: answer_cnt for cat_name, answer_cnt in frequency.items()}
         for image_path, frequency in (df_answers_pivot.to_dict(orient="index").items())
     }
 
