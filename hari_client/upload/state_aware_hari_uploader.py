@@ -530,6 +530,9 @@ class HARIUploader:
         media_upload_response.summary.total += len(medias_skipped)
         media_upload_response.results.extend(
             [
+                # TODO we add here manually error messages for skipped entries
+                # Motivation for attributes we also show these errors
+                # We realigned and the default behavior should that they are successful, this is also true for attributes
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
                     status=models.ResponseStatesEnum.CONFLICT,
@@ -645,7 +648,10 @@ class HARIUploader:
                 dataset_id=self.dataset_id, attributes=attributes_to_upload
             )
         except APIError as e:
-            # try to parse as Bulk response, might only be a conflict
+            # TODO try to parse as Bulk response, might only be a conflict
+            # Motivation for attributes we also show these errors
+            # We realigned and the default behavior should that they are successful, this is also true for attributes
+            #
             response = _parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )
@@ -679,6 +685,10 @@ class HARIUploader:
         media_objects_skipped = [mo for mo in media_objects_to_upload if mo.uploaded]
         response.summary.failed += len(media_objects_skipped)
         response.summary.total += len(media_objects_skipped)
+
+        # TODO we add here manually error messages for skipped entries
+        # Motivation for attributes we also show these errors
+        # We realigned and the default behavior should that they are successful, this is also true for attributes
         response.results.extend(
             [
                 models.AnnotatableCreateResponse(
