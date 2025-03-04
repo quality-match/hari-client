@@ -5,7 +5,7 @@ from typing import Tuple
 from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
-from hari_client.models.models import Media
+from hari_client.upload.hari_uploader import HARIMedia
 
 
 def trigger_and_display_metedata_update(
@@ -123,8 +123,8 @@ def get_or_create_subset_for_all(
 def check_and_upload_dataset(
     hari: HARIClient,
     dataset_id: uuid.UUID,
-    object_categories: list[str],
-    medias: list[Media],
+    object_categories: set[str] | None,
+    medias: list[HARIMedia],
     new_subset_name: str = "All media objects",
     subset_type: models.SubsetType = models.SubsetType.MEDIA_OBJECT,
 ):
