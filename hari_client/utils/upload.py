@@ -205,6 +205,8 @@ def check_and_upload_dataset(
     )
 
     if exists:
+        # TODO This is not optimal, if data is appended to a dataset
+        #  The subset is not updated and only this error message is shown
         print(
             "WARNING: You did not create a new subset since the name already exists. "
             "If you added new images during upload the metadata update will be skipped for the new images. "
