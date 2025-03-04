@@ -263,7 +263,7 @@ class HARIUploader:
         existing_attr_metadata = self.client.get_attribute_metadata(
             dataset_id=self.dataset_id
         )
-        attribute_name2IDs: dict[str, str | uuid.UUID] = {
+        attribute_name_to_ids: dict[str, str | uuid.UUID] = {
             attr.name: attr.id for attr in existing_attr_metadata
         }
 
@@ -274,9 +274,9 @@ class HARIUploader:
             # set annotatable type
             for attr in media.attributes:
                 # check that all attribute ids are correctly set or create new ones
-                if attr.name not in attribute_name2IDs:
-                    attribute_name2IDs[attr.name] = uuid.uuid4()
-                attr.id = attribute_name2IDs[attr.name]
+                if attr.name not in attribute_name_to_ids:
+                    attribute_name_to_ids[attr.name] = uuid.uuid4()
+                attr.id = attribute_name_to_ids[attr.name]
 
                 # annotatable_type is optional for a HARIAttribute, but can already be set here
                 attr.annotatable_type = models.DataBaseObjectType.MEDIA
@@ -287,9 +287,9 @@ class HARIUploader:
                 # set annotatable type
                 for attr in media_object.attributes:
                     # check that all attribute ids are correctly set or create new ones
-                    if attr.name not in attribute_name2IDs:
-                        attribute_name2IDs[attr.name] = uuid.uuid4()
-                    attr.id = attribute_name2IDs[attr.name]
+                    if attr.name not in attribute_name_to_ids:
+                        attribute_name_to_ids[attr.name] = uuid.uuid4()
+                    attr.id = attribute_name_to_ids[attr.name]
 
                     # annotatable_type is optional for a HARIAttribute, but can already be set here
                     attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
@@ -297,12 +297,12 @@ class HARIUploader:
         # Raises an error if any requirements for attribute consistency aren't met.
         validation.validate_attributes(all_attributes)
 
-        if len(attribute_name2IDs) > MAX_ATTR_COUNT:
+        if len(attribute_name_to_ids) > MAX_ATTR_COUNT:
             raise HARIUniqueAttributesLimitExceeded(
-                new_attributes_number=len(attribute_name2IDs)
+                new_attributes_number=len(attribute_name_to_ids)
                 - len(existing_attr_metadata),
                 existing_attributes_number=len(existing_attr_metadata),
-                intended_attributes_number=len(attribute_name2IDs),
+                intended_attributes_number=len(attribute_name_to_ids),
             )
 
         return all_attributes
