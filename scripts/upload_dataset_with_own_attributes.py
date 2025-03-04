@@ -11,8 +11,8 @@ from sklearn.utils import Bunch
 import hari_client as hc
 from hari_client import Config
 from hari_client import HARIClient
-from hari_client.utils.upload import check_and_create_dataset
 from hari_client.utils.upload import check_and_upload_dataset
+from hari_client.utils.upload import get_or_create_dataset
 
 
 def load_data(root_directory, source_dataset_name: str):
@@ -72,11 +72,7 @@ def load_data(root_directory, source_dataset_name: str):
     #   one answer are written
 
     answer_frequencies = {
-        image_path: {
-            cat_name: answer_cnt
-            for cat_name, answer_cnt in frequency.items()
-            if answer_cnt > 0
-        }
+        image_path: {cat_name: answer_cnt for cat_name, answer_cnt in frequency.items()}
         for image_path, frequency in (df_answers_pivot.to_dict(orient="index").items())
     }
 
@@ -107,7 +103,7 @@ def upload_dataset_with_own_attributes(
     dataset_name: str = (
         target_dataset_name if target_dataset_name is not None else source_dataset_name
     )
-    dataset_id = check_and_create_dataset(hari, dataset_name, user_group, is_anonymized)
+    dataset_id = get_or_create_dataset(hari, dataset_name, user_group, is_anonymized)
 
     # load actual data for uplod
     data = load_data(root_directory, source_dataset_name)

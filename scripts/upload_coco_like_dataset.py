@@ -9,8 +9,8 @@ from hari_client import Config
 from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
-from hari_client.utils.upload import check_and_create_dataset
 from hari_client.utils.upload import check_and_upload_dataset
+from hari_client.utils.upload import get_or_create_dataset
 
 
 def load_data(filename: str):
@@ -63,7 +63,7 @@ def load_data(filename: str):
 def upload_coco_like_dataset(
     hari, dataset_name, images_dir, annotations_file, user_group, is_anonymized
 ):
-    dataset_id = check_and_create_dataset(
+    dataset_id = get_or_create_dataset(
         hari, dataset_name, user_group, is_anonymized=is_anonymized
     )
 
