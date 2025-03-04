@@ -986,6 +986,7 @@ class MediaObjectCreate(BaseModel):
     source: DataSource = DataSource.REFERENCE
     back_reference: str
 
+    # TODO should not be here
     id: str | None = pydantic.Field(
         default=None, title="Id"
     )  # used to identify already uploaded medias
