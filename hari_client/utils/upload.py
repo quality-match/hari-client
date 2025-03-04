@@ -95,7 +95,7 @@ def check_and_create_subset_for_all(
     :param subset_type: The type of the subset to create if it doesn't exist.
     :return: A tuple containing:
         - The UUID of the found or created subset.
-        - A boolean indicating whether the subset was reused (True) or newly created (False).
+        - A boolean indicating whether the subset with the given name already exists.
     """
     subsets = hari.get_subsets_for_dataset(dataset_id)
     subset_names = [subset.name for subset in subsets]
