@@ -2,7 +2,7 @@ import time
 import uuid
 from typing import Tuple
 
-from hari_client import hari_uploader
+import hari_client.upload.state_aware_hari_uploader as hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.upload.hari_uploader import HARIMedia
