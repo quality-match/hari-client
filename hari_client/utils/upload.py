@@ -65,10 +65,11 @@ def get_or_create_dataset(
     Returns:
          uuid: The UUID of the found or created dataset.
     """
-    datasets = hari.get_datasets()
-    dataset_names = [dataset.name for dataset in datasets]
 
     assert user_group is not None, "User group is required."
+
+    datasets = hari.get_datasets()
+    dataset_names = [dataset.name for dataset in datasets]
 
     if dataset_name not in dataset_names:
         new_dataset = hari.create_dataset(
