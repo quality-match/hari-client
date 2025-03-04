@@ -870,7 +870,7 @@ class MediaCreate(BaseModel):
     media_url: str | None = None
 
     id: str | None = pydantic.Field(
-        default=None, title="Id"
+        default=None, title="Id", exclude=True
     )  # TODO should be added in seperate instance: used to identify already uploaded medias
 
     archived: bool = False
@@ -909,7 +909,7 @@ class MediaObjectCreate(BaseModel):
     back_reference: str
 
     id: str | None = pydantic.Field(
-        default=None, title="Id"
+        default=None, title="Id", exclude=True
     )  # # TODO should be added in seperate instance:  used to identify already uploaded medias
 
     archived: bool = False
