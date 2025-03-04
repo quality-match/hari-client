@@ -332,7 +332,7 @@ class HARIUploader:
                 if media_object.back_reference in self._media_object_back_references:
                     log.warning(
                         f"Found duplicate media_object back_reference: "
-                        f"{media.back_reference}. If you want to be able to match HARI "
+                        f"{media_object.back_reference}. If you want to be able to match HARI "
                         f"objects 1:1 to your own, consider using unique "
                         f"back_references."
                     )
@@ -351,7 +351,7 @@ class HARIUploader:
         Args:
             medias: The list of medias intended for upload.
         """
-        uploaded_medias = self.client.get_medias(
+        uploaded_medias = self.client.get_medias_paged(
             self.dataset_id
         )  # TODO paging and faster query, might be needed for larger datasets
 
@@ -367,7 +367,7 @@ class HARIUploader:
         Args:
             media_objects: The list of media objects intended for upload.
         """
-        uploaded_mos = self.client.get_media_objects(
+        uploaded_mos = self.client.get_media_objects_paged(
             self.dataset_id
         )  # TODO paging and faster query, might be needed for larger datasets
 
@@ -389,6 +389,7 @@ class HARIUploader:
         # build look up table for back references
         # add warning if multiple of the same backreference are given, value will be overwritten
         uploaded_back_references = {}
+        uploaded_ids = []
         for m in objectsUploaded:
             if m.back_reference in uploaded_back_references:
                 log.warning(
@@ -396,11 +397,15 @@ class HARIUploader:
                     f"overwriting previous value."
                 )
             uploaded_back_references[m.back_reference] = m.id
+            uploaded_ids.append(m.id)
 
         for m in objectsToUpload:
             # ensure uploaded marked are always having an id
-            m.uploaded = m.back_reference in uploaded_back_references
-            m.id = uploaded_back_references.get(m.back_reference, None)
+            if m.id in uploaded_ids and m.id is not None:
+                m.uploaded = True
+            else:
+                m.uploaded = m.back_reference in uploaded_back_references
+                m.id = uploaded_back_references.get(m.back_reference, None)
 
     def upload(
         self,
@@ -646,6 +651,7 @@ class HARIUploader:
             )
         except APIError as e:
             # try to parse as Bulk response, might only be a conflict
+            # TODO but could actually be a lot of errors e.g. if cant_solve is specified as possible value
             response = _parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )
