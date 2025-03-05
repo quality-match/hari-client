@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [TBD] - TBD
+
 ### Internal
 
 - removed obsolete `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` client methods [PR#75](https://github.com/quality-match/hari-client/pull/75)
