@@ -1806,6 +1806,7 @@ class HARIClient:
         calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
+        compute_auto_attributes: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
 
@@ -1816,6 +1817,7 @@ class HARIClient:
             calculate_histograms: Calculate histograms if true.
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
+            compute_auto_attributes: If True auto attributes will be computed
 
         Returns:
             The methods being executed
@@ -1824,6 +1826,7 @@ class HARIClient:
             "anonymize": anonymize,
             "calculate_histograms": calculate_histograms,
             "force_recreate": force_recreate,
+            "compute_auto_attributes": compute_auto_attributes,
         }
         if subset_id:
             params["subset_id"] = subset_id

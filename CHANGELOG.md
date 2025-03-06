@@ -1,6 +1,6 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [3.3.0] - DD-MM-YYYY
+## [major.minor.patch] - DD-MM-YYYY
 
 ### New features
 
@@ -17,6 +17,18 @@
 - updated HARIUploader utility to support using a dataset with an external media source [PR#74](https://github.com/quality-match/hari-client/pull/74) [PR#77](https://github.com/quality-match/hari-client/pull/77)
   - when your dataset is using an external media source, make sure to set the `file_key` field of `HARIMedia` to the key of the media file in your cloud storage and don't set the `file_path`.
   - when your dataset isn't using an external media source, make sure to set the `file_path` field of `HARIMedia` and don't set the `file_key`.
+
+## [3.3.1] - 2025-02-2028
+
+### Fixes
+
+- added `compute_auto_attributes` param to `trigger_dataset_metadata_rebuild_job` [PR#78](https://github.com/quality-match/hari-client/pull/78)
+
+## [3.3.0] - 2025-02-27
+
+### New Features
+
+- added support for media objects of type segment [PR#62](https://github.com/quality-match/hari-client/pull/62)
 
 ## [3.2.0] - 25-02-2025
 
