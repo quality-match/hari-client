@@ -1645,47 +1645,6 @@ class HARIClient:
         )
 
     ### metadata ###
-    def trigger_thumbnails_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Triggers the creation of thumbnails for a given dataset.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            max_size: The maximum size of the thumbnails
-            aspect_ratio: The aspect ratio of the thumbnails
-            force_recreate: If True already existing thumbnails will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: the methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/thumbnails",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
     def trigger_histograms_update_job(
         self,
         dataset_id: uuid.UUID,
@@ -1714,51 +1673,6 @@ class HARIClient:
             "PUT",
             f"/datasets/{dataset_id}/histograms",
             params=params,
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
-    def trigger_crops_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        padding_percent: int | None = None,
-        padding_minimum: int | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Creates the crops for a given dataset if the correct api key is provided in the request.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            padding_percent: The padding (in percent) to add to the crops
-            padding_minimum: The minimum padding to add to the crops
-            max_size: The max size of the crops
-            aspect_ratio: The aspect ratio of the crops
-            force_recreate: If True already existing crops will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: The methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/crops",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
             success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 

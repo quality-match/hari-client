@@ -18,7 +18,11 @@
   - when your dataset is using an external media source, make sure to set the `file_key` field of `HARIMedia` to the key of the media file in your cloud storage and don't set the `file_path`.
   - when your dataset isn't using an external media source, make sure to set the `file_path` field of `HARIMedia` and don't set the `file_key`.
 
-## [3.3.1] - 2025-02-2028
+### Internal
+
+- removed obsolete `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` client methods [PR#75](https://github.com/quality-match/hari-client/pull/75)
+
+## [3.3.1] - 2025-02-28
 
 ### Fixes
 
