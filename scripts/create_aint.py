@@ -95,7 +95,7 @@ if __name__ == "__main__":
     print(f"Created development data with ID: {development_data_id}")
 
     # Start AINT Training
-    aint_id = hari.train_aint_model(name, development_data_id, user_group=user_group)
+    aint_id = hari.train_ml_model(name, development_data_id, user_group=user_group)
 
     print(
         "The AINT training can take a while please wait. You will be getting notified via HARI / Email when the training is done."

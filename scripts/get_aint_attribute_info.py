@@ -83,10 +83,10 @@ if __name__ == "__main__":
     # get AINT model for Attribute ID
 
     # OPTIONAL if you want to get all models
-    models = hari.get_aint_models()
+    models = hari.get_ml_models()
     print(f"Found {len(models)} models")
 
-    model = hari.get_aint_model(model_id)
+    model = hari.get_ml_model(model_id)
     print(model)
 
     # get development data for AINT Model

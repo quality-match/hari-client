@@ -46,7 +46,7 @@ if __name__ == "__main__":
     hari: HARIClient = HARIClient(config=config)
 
     # get development data for AINT ID
-    model = hari.get_aint_model(aint_id)
+    model = hari.get_ml_model(aint_id)
     print(model.dataset_id)
     print(model.test_subset_id)
 

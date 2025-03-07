@@ -933,7 +933,7 @@ class HARIClient:
             success_response_item_model=list[models.MediaResponse],
         )
 
-    def get_medias_paged(
+    def get_medias_paginated(
         self,
         dataset_id: uuid.UUID,
         archived: bool | None = False,
@@ -1479,7 +1479,7 @@ class HARIClient:
             success_response_item_model=list[models.MediaObjectResponse],
         )
 
-    def get_media_objects_paged(
+    def get_media_objects_paginated(
         self,
         dataset_id: uuid.UUID,
         archived: bool | None = False,
@@ -1506,16 +1506,16 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        total_medias: int = self.get_media_object_count(
+        total_media_objects: int = self.get_media_object_count(
             dataset_id, archived, query
         ).total_count
 
-        print(f"Fetching {total_medias} media_objects ...")
+        print(f"Fetching {total_media_objects} media_objects ...")
 
         media_objects: list[models.MediaObjectResponse] = []
 
         # Loop through media pages until all are retrieved
-        for skip in tqdm(range(0, total_medias, batch_size)):
+        for skip in tqdm(range(0, total_media_objects, batch_size)):
             page_medias = self._request(
                 "GET",
                 f"/datasets/{dataset_id}/mediaObjects",
@@ -2138,7 +2138,7 @@ class HARIClient:
             success_response_item_model=list[models.AttributeValueResponse],
         )
 
-    def get_attribute_values_paged(
+    def get_attribute_values_paginated(
         self,
         dataset_id: uuid.UUID,
         archived: bool | None = False,
@@ -2168,7 +2168,7 @@ class HARIClient:
 
         print(f"Fetching {total_attributes} attribute values ...")
 
-        medias: list[models.AttributeValueResponse] = []
+        attributeValues: list[models.AttributeValueResponse] = []
 
         # Loop through media pages until all are retrieved
         for skip in tqdm(range(0, total_attributes, batch_size)):
@@ -2184,11 +2184,11 @@ class HARIClient:
                 },
                 success_response_item_model=list[models.AttributeValueResponse],
             )
-            medias.extend(page_medias)
+            attributeValues.extend(page_medias)
 
-        print(f"Fetched {len(medias)} attribute values successfully.")
+        print(f"Fetched {len(attributeValues)} attribute values successfully.")
 
-        return medias
+        return attributeValues
 
     def get_attribute(
         self, dataset_id: uuid.UUID, attribute_id: str, annotatable_id: str
@@ -2437,7 +2437,7 @@ class HARIClient:
             success_response_item_model=models.DevelopmentSetResponse,
         )
 
-    def get_aint_models(
+    def get_ml_models(
         self,
     ) -> list[models.MlAnnotationModel]:
         """
@@ -2453,7 +2453,7 @@ class HARIClient:
             success_response_item_model=list[models.MlAnnotationModel],
         )
 
-    def get_aint_model(self, aint_model_id: str) -> models.MlAnnotationModel:
+    def get_ml_model(self, aint_model_id: str) -> models.MlAnnotationModel:
         """
         Retrieve a specific AI Nano Task (AINT) model by its ID.
 
@@ -2470,7 +2470,7 @@ class HARIClient:
             success_response_item_model=models.MlAnnotationModel,
         )
 
-    def train_aint_model(
+    def train_ml_model(
         self, name: str, development_set_id: str, user_group: str | None = None
     ) -> models.MlAnnotationModel:
         """
@@ -2506,23 +2506,24 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aiAnnotationRuns",
-            # no params
             success_response_item_model=list[models.AiAnnotationRun],
         )
 
-    def get_ai_annotation_run(self, run_id: str) -> models.AiAnnotationRun:
+    def get_ai_annotation_run(
+        self, ai_annotation_run_id: str
+    ) -> models.AiAnnotationRun:
         """
         Retrieve a specific AI annotation run by its ID.
 
         Args:
-            run_id: The unique identifier of the AI annotation run.
+            ai_annotation_run_id: The unique identifier of the AI annotation run.
 
         Returns:
             models.AiAnnotationRun: The requested AI annotation run object.
         """
         return self._request(
             "GET",
-            f"/aiAnnotationRuns/{run_id}",
+            f"/aiAnnotationRuns/{ai_annotation_run_id}",
             # no params
             success_response_item_model=models.AiAnnotationRun,
         )
