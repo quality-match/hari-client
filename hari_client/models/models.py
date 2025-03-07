@@ -260,6 +260,52 @@ class VisualisationType(str, enum.Enum):
     RENDERED = "Rendered"
 
 
+class ExternalMediaSourceCredentialsType(str, enum.Enum):
+    AZURE_SAS_TOKEN = "azure_sas_token"
+    S3_CROSS_ACCOUNT_ACCESS = "s3_cross_account_access"
+
+
+class ExternalMediaSourceS3CrossAccountAccessInfo(BaseModel):
+    type: ExternalMediaSourceCredentialsType = (
+        ExternalMediaSourceCredentialsType.S3_CROSS_ACCOUNT_ACCESS
+    )
+    bucket_name: str
+    region: str
+
+
+class ExternalMediaSourceAzureCredentials(pydantic.BaseModel):
+    type: ExternalMediaSourceCredentialsType = (
+        ExternalMediaSourceCredentialsType.AZURE_SAS_TOKEN
+    )
+    container_name: str
+    account_name: str
+    sas_token: str
+
+
+class ExternalMediaSourceAPICreate(BaseModel):
+    credentials: (
+        ExternalMediaSourceS3CrossAccountAccessInfo
+        | ExternalMediaSourceAzureCredentials
+    )
+
+
+class ExternalMediaSourceCredentialsDB(pydantic.BaseModel):
+    type: ExternalMediaSourceCredentialsType
+    container_name: str | None
+    account_name: str | None
+    bucket_name: str | None
+    region: str | None
+
+
+class ExternalMediaSourceAPIResponse(BaseModel):
+    id: uuid.UUID
+    user_group: str
+    owner: uuid.UUID
+    # credentials field doesn't contain secrets
+    credentials: ExternalMediaSourceCredentialsDB
+    creation_timestamp: datetime.datetime
+
+
 class Dataset(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
@@ -283,6 +329,9 @@ class Dataset(BaseModel):
     )
     visibility_status: VisibilityStatus | None = pydantic.Field(
         default="visible", title="VisibilityStatus"
+    )
+    external_media_source: uuid.UUID | None = pydantic.Field(
+        None, title="External Media Source"
     )
 
 
@@ -309,6 +358,9 @@ class DatasetResponse(BaseModel):
     license: str | None = pydantic.Field(default=None, title="License")
     visibility_status: VisibilityStatus | None = pydantic.Field(
         default=VisibilityStatus.VISIBLE, title="VisibilityStatus"
+    )
+    external_media_source: uuid.UUID | None = pydantic.Field(
+        None, title="External Media Source"
     )
 
 
@@ -512,6 +564,7 @@ class Media(BaseModel):
     )
     type: str = pydantic.Field(default="Media", title="Type")
     media_url: str = pydantic.Field(title="Media Url")
+    file_key: str | None = pydantic.Field(default=None, title="File Key")
     pii_media_url: str = pydantic.Field(title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
     metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
@@ -546,6 +599,7 @@ class MediaResponse(BaseModel):
     )
     type: str | None = pydantic.Field(default=None, title="Type")
     media_url: str | None = pydantic.Field(default=None, title="Media Url")
+    file_key: str | None = pydantic.Field(default=None, title="File Key")
     pii_media_url: str | None = pydantic.Field(default=None, title="Pii Media Url")
     name: str | None = pydantic.Field(default=None, title="Name")
     metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
@@ -868,6 +922,7 @@ class MediaCreate(BaseModel):
     media_type: MediaType
     back_reference: str
     media_url: str | None = None
+    file_key: str | None = None
 
     archived: bool = False
     scene_id: str | None = None
@@ -879,6 +934,22 @@ class MediaCreate(BaseModel):
     frame_idx: int | None = None
     frame_timestamp: datetime.datetime | None = None
     back_reference_json: str | None = None
+
+    @pydantic.field_validator("file_key")
+    @classmethod
+    def file_key_is_valid(cls, v: str | None) -> str | None:
+        if v:
+            lower_cased_value = v.lower()
+            if (
+                lower_cased_value.startswith("/")
+                or lower_cased_value.startswith("s3://")
+                or lower_cased_value.startswith("http://")
+                or lower_cased_value.startswith("https://")
+            ):
+                raise ValueError(
+                    "file_key must not start with leading forward slash (/), s3://, http:// or https://"
+                )
+        return v
 
 
 class BulkMediaCreate(MediaCreate):
