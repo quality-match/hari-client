@@ -1,8 +1,8 @@
 import argparse
-import json
 import os
+import random
 import uuid
-from pathlib import Path
+from os.path import join
 
 import pandas as pd
 from PIL import Image
@@ -16,77 +16,101 @@ from hari_client.utils.upload import get_or_create_dataset
 
 
 def load_data(root_directory, source_dataset_name: str):
-    # We have no explicit image objects
-    # An image implicitly represents an image object
-    # We therefore need the dimensions of the images
+    # This is the place where you need to specify the data, for the purpose of this example we will use random data
 
-    image_sizes = dict(
-        [
-            (image_path.as_posix(), Image.open(image_path).size)
-            for image_path in (
-                Path(os.path.join(root_directory, source_dataset_name)).rglob(
-                    "fold[0-9]*/**/*.png"
-                )
-            )
-        ]
-    )
+    # ----- Configuration -----
+    num_images = 128
+    categories = ["cat", "dog", "car"]  # Example class labels
+    min_box_size = 20  # Minimal size of a bounding box in pixels
+    dataset_folder = join(root_directory, source_dataset_name)
 
-    # change image_path name to be cut of after before source dataset name
-    image_sizes = {
-        source_dataset_name
-        + image_path.split(source_dataset_name)[1]: image_sizes[image_path]
-        for image_path in image_sizes.keys()
-    }
+    # ----- Generate Dummy Images and Save Them -----
 
-    # Read the annotation file
-    # Assumed to be in the top-level folder of each dataset,
-    # named `annotations.json`
+    # Ensure the dataset folder exists
+    os.makedirs(dataset_folder, exist_ok=True)
 
-    annotation_file_path = (
-        Path(os.path.join(root_directory, source_dataset_name)) / "annotations.json"
-    )
-    with open(annotation_file_path, "r") as fp:
-        # The json yields a list containing one object
-        raw_data = json.load(fp)
+    image_sizes = {}
+    for i in range(1, num_images + 1):
+        # Construct image path, e.g., "dummy_dataset/image_001.png"
+        image_path = join(dataset_folder, f"image_{i:03d}.png")
+        # Random image size (width and height between 200 and 800 pixels)
+        width = random.randint(200, 800)
+        height = random.randint(200, 800)
+        image_sizes[str(image_path)] = (width, height)
 
-    # get all annotation slices
-    annotations = [anno for slice in raw_data for anno in slice["annotations"]]
-
-    df_answers = pd.DataFrame(annotations)
-    categories = df_answers.class_label.unique().tolist()
-
-    df_answers_pivot = (
-        pd.pivot_table(
-            data=df_answers,
-            index="image_path",
-            columns="class_label",
-            values="class_label",
-            aggfunc="count",
+        # Create a dummy image with a random background color
+        img = Image.new(
+            "RGB",
+            (width, height),
+            (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)),
         )
-        .fillna(0)
-        .astype(int)
+
+        # Save the image to disk
+        img.save(image_path)
+
+    # ----- Generate Random Annotations with Bounding Boxes -----
+    annotations = []
+    for image_path_str, (width, height) in image_sizes.items():
+        num_bboxes = random.randint(1, 3)
+        for bbox_count in range(num_bboxes):
+            # Generate a random bounding box within the image dimensions
+            x1 = random.randint(0, width - min_box_size)
+            y1 = random.randint(0, height - min_box_size)
+            box_width = random.randint(min_box_size, width - x1)
+            box_height = random.randint(min_box_size, height - y1)
+
+            # Calculate the center
+            x_center = x1 + box_width / 2
+            y_center = y1 + box_height / 2
+            norm_width = box_width
+            norm_height = box_height
+            bbox = [x_center, y_center, norm_width, norm_height]
+
+            bbox_id = f"{image_path_str}+{bbox_count}"
+
+            num_annotations = random.randint(5, 11)
+            for _ in range(num_annotations):
+                annotations.append(
+                    {
+                        "image_path": image_path_str,
+                        "bbox_id": bbox_id,
+                        "class_label": random.choice(categories),
+                        "bbox": bbox,
+                    }
+                )
+
+    # Create a DataFrame from the annotations
+    df_answers = pd.DataFrame(annotations)
+
+    # Create a pivot table counting how many times each class label appears per image
+    df_answers_pivot = (
+        df_answers.groupby(["bbox_id", "class_label"])
+        .size()  # count rows in each group
+        .unstack(fill_value=0)
     )
 
-    # We create a dictionary that maps `image_path`s to response frequencies
-    # We filter the answers so that only categories that have received at least
-    #   one answer are written
-
+    # Build a dictionary mapping image paths to frequency dictionaries
     answer_frequencies = {
-        image_path: {cat_name: answer_cnt for cat_name, answer_cnt in frequency.items()}
-        for image_path, frequency in (df_answers_pivot.to_dict(orient="index").items())
+        bbox_id: dict(freq)
+        for bbox_id, freq in df_answers_pivot.to_dict(orient="index").items()
     }
 
-    # We would also like to report the majority vote for each object
-    # { image_path => majority category }
+    # Determine the majority vote for each image (the class with the highest count)
+    majority_votes = {
+        bbox_id: (max(freq, key=freq.get) if max(freq.values()) > 0 else None)
+        for bbox_id, freq in df_answers_pivot.to_dict(orient="index").items()
+    }
 
-    majority_votes = df_answers_pivot.idxmax(axis="columns").to_dict()
-
-    return Bunch(
+    # Bundle everything into a simple namespace (Bunch)
+    data = Bunch(
         categories=categories,
         image_sizes=image_sizes,
         frequencies=answer_frequencies,
         majority_votes=majority_votes,
+        annotations=annotations,
     )
+
+    return data
 
 
 def upload_dataset_with_own_attributes(
@@ -105,22 +129,18 @@ def upload_dataset_with_own_attributes(
     )
     dataset_id = get_or_create_dataset(hari, dataset_name, user_group, is_anonymized)
 
-    # load actual data for uplod
+    # load actual data for upload
     data = load_data(root_directory, source_dataset_name)
 
     medias = {
         image_path: hc.hari_uploader.HARIMedia(
-            file_path=str(Path(os.path.join(root_directory, image_path))),
+            file_path=image_path,
             name=image_path,
             back_reference=image_path,
             media_type=hc.models.MediaType.IMAGE,
         )
-        for image_path in data.frequencies
+        for image_path in data.image_sizes
     }
-
-    # medias == media objects
-    # but we still need to explicity create them
-    # using dummy geometries
 
     # We also assign annotation results to an attribute
 
@@ -136,35 +156,47 @@ def upload_dataset_with_own_attributes(
     # calculate average number of annotations to be defined as target value of repeats
     # This is important for AINT execution
     number_annotations = [
-        sum(data.frequencies.get(image_path).values()) for image_path in medias
+        sum(data.frequencies.get(bbox_id).values()) for bbox_id in data.frequencies
     ]
     avg_number_annotions = int(round(sum(number_annotations) / len(number_annotations)))
 
-    for image_path, media in medias.items():
-        width, height = data.image_sizes.get(image_path)
-        frequency = data.frequencies.get(image_path)
-        majority_vote = data.majority_votes.get(image_path)
+    media_objects = {}
+    for anno in data.annotations:
+        image_path = anno["image_path"]
+        bbox_id = anno["bbox_id"]
+        class_label = anno["class_label"]
+        bbox = anno["bbox"]
+        x_center, y_center, width, height = bbox
 
-        media_object = hc.hari_uploader.HARIMediaObject(
-            back_reference=image_path,
-            reference_data=hc.models.BBox2DCenterPoint(
-                type=hc.models.BBox2DType.BBOX2D_CENTER_POINT,
-                x=width / 2,
-                y=height / 2,
-                width=width,
-                height=height,
-            ),
-        )
-        attribute = hc.hari_uploader.HARIAttribute(
-            value=majority_vote,
-            frequency=frequency,
-            cant_solves=0,
-            repeats=avg_number_annotions,
-            **annotatable_attribute
-        )
-        media_object.add_attribute(attribute)
-        media_object.set_object_category_subset_name(majority_vote)
-        media.add_media_object(media_object)
+        media = medias[image_path]
+
+        # width, height = data.image_sizes.get(image_path)
+        frequency = data.frequencies.get(bbox_id)
+        majority_vote = data.majority_votes.get(bbox_id)
+
+        if bbox_id not in media_objects:
+            media_object = hc.hari_uploader.HARIMediaObject(
+                back_reference=bbox_id,
+                reference_data=hc.models.BBox2DCenterPoint(
+                    type=hc.models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=x_center,
+                    y=y_center,
+                    width=width,
+                    height=height,
+                ),
+            )
+            media_objects[bbox_id] = media_object
+            media.add_media_object(media_object)
+
+            attribute = hc.hari_uploader.HARIAttribute(
+                value=majority_vote,
+                frequency=frequency,
+                cant_solves=0,
+                repeats=avg_number_annotions,
+                **annotatable_attribute,
+            )
+            media_object.add_attribute(attribute)
+            media_object.set_object_category_subset_name(majority_vote)
 
     check_and_upload_dataset(
         hari, dataset_id, data.categories, medias=list(medias.values())
