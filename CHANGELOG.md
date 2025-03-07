@@ -1,6 +1,6 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [major.minor.patch] - DD-MM-YYYY
+## [3.4.0] - 07-03-2025
 
 ### New features
 
