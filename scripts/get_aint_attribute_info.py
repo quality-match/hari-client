@@ -3,7 +3,41 @@ import argparse
 from hari_client import Config
 from hari_client import HARIClient
 from hari_client.models import models
-from hari_client.utils.download import get_ai_annotation_run_for_attribute_id
+
+
+def get_ai_annotation_run_for_attribute_id(
+    hari, aint_attribute_id: str, ai_annoation_runs: list[models.AiAnnotationRun] = None
+) -> models.AiAnnotationRun | None:
+    """
+    Find an AI Annotation Run corresponding to a given attribute ID.
+
+    If a list of AI Annotation Runs is not provided, this function retrieves them from the
+    HARI client, then searches for the run whose `attribute_metadata_id` matches the
+    specified attribute ID.
+
+    Args:
+        hari: The HARI client instance used to retrieve AI annotation runs if not provided.
+        aint_attribute_id (str): The identifier of the attribute to match.
+        ai_annoation_runs (list[models.AiAnnotationRun], optional): An existing list of runs
+            to search. If None, the function will call `hari.get_ai_annotation_runs()`.
+
+    Returns:
+        models.AiAnnotationRun | None: The matching AI Annotation Run if found, otherwise None.
+    """
+
+    if ai_annoation_runs is None:
+        ai_annoation_runs: list[models.AiAnnotationRun] = hari.get_ai_annotation_runs()
+        print(f"Found {len(ai_annoation_runs)} AI Annotation Runs")
+
+    # search for the desired annotation run
+    ai_annotation_run: models.AiAnnotationRun = None
+    for run in ai_annoation_runs:
+        if run.attribute_metadata_id == aint_attribute_id:
+            ai_annotation_run = run
+            break
+
+    return ai_annotation_run
+
 
 if __name__ == "__main__":
     # Argument parser setup.
