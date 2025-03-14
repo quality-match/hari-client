@@ -1,5 +1,21 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [3.5.0] - TBD
+
+### New Features
+
+#### Consistency in partially failed uploads
+
+- partially failed bulk uploads of medias and media objects are now handled consistently
+  - for failed media uploads, any media_objects and attributes for these medias will not be tried to be uploaded
+  - for media_objects, any attributes for these media_objects will not be tried to be uploaded
+
+#### Better reporting of failed and skipped uploads
+
+- improved reporting of failed and skipped uploads
+  - failed uploads are now reported in the `HARIUploadResults.failures` field
+  - skipped uploads are now reported in the `HARIUploadResults.failures.skipped_media_objects` and `HARIUploadResults.failures.skipped_attributes` fields
+
 ## [3.4.0] - 07-03-2025
 
 ### New features
