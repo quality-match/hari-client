@@ -175,10 +175,43 @@ class HARIMedia(models.BulkMediaCreate):
         return v
 
 
+class HARIUploadFailure(pydantic.BaseModel):
+    """Tracks failed uploads and their dependencies that will be skipped."""
+
+    failed_medias: list[HARIMedia] = pydantic.Field(default_factory=list)
+    failed_media_objects: list[HARIMediaObject] = pydantic.Field(default_factory=list)
+    failed_attributes: list[HARIAttribute] = pydantic.Field(default_factory=list)
+    skipped_media_objects: list[HARIMediaObject] = pydantic.Field(default_factory=list)
+    skipped_attributes: list[HARIAttribute] = pydantic.Field(default_factory=list)
+
+    def add_failed_media(self, media: HARIMedia) -> None:
+        """Add a failed media and track its dependent objects that will be skipped."""
+        self.failed_medias.append(media)
+        # Media objects and their attributes will be skipped since their related media failed
+        self.skipped_media_objects.extend(media.media_objects)
+        self.skipped_attributes.extend(media.attributes)
+        for media_object in media.media_objects:
+            # Attributes will be skipped since their related media object failed
+            self.skipped_attributes.extend(media_object.attributes)
+
+    def add_failed_media_object(self, media_object: HARIMediaObject) -> None:
+        """Add a failed media object and track its dependent attributes that will be skipped."""
+        self.failed_media_objects.append(media_object)
+        # Attributes will be skipped since their related media object failed
+        self.skipped_attributes.extend(media_object.attributes)
+
+    def add_failed_attribute(self, attribute: HARIAttribute) -> None:
+        """Add a failed attribute."""
+        self.failed_attributes.append(attribute)
+
+
 class HARIUploadResults(pydantic.BaseModel):
     medias: models.BulkResponse
     media_objects: models.BulkResponse
     attributes: models.BulkResponse
+    # TODO: just adding this for now is a non-breaking change but makes this a bit inconsistent because we include the failures in the bulk responses as well
+    # TODO: would be cleaner to split it into "success" and "failure"
+    failures: HARIUploadFailure
 
 
 class HARIUploader:
@@ -515,6 +548,9 @@ class HARIUploader:
         attribute_upload_responses: list[models.BulkResponse] = []
 
         for idx in range(0, len(self._medias), self._config.media_upload_batch_size):
+            # TODO: make this more modular
+            # TODO: upload_media_batch should only upload the medias and not also trigger the upload of media objects and attributes
+            # TODO: this should happen afterwards in this method
             medias_to_upload = self._medias[
                 idx : idx + self._config.media_upload_batch_size
             ]
@@ -535,6 +571,7 @@ class HARIUploader:
             medias=_merge_bulk_responses(*media_upload_responses),
             media_objects=_merge_bulk_responses(*media_object_upload_responses),
             attributes=_merge_bulk_responses(*attribute_upload_responses),
+            failures=HARIUploadFailure(),
         )
 
     def _upload_media_batch(
