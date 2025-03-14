@@ -1415,3 +1415,226 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
     # Act + Assert
     with pytest.raises(hari_uploader.HARIMediaValidationError):
         uploader._determine_media_files_upload_behavior()
+
+
+@pytest.mark.parametrize(
+    "bulk_operation_status, response_status_responses, uploader_result",
+    [
+        (
+            models.BulkOperationStatusEnum.SUCCESS,
+            [
+                models.ResponseStatesEnum.SUCCESS,
+                models.ResponseStatesEnum.SUCCESS,
+            ],
+            {
+                "num_failed_medias": 0,
+                "num_skipped_media_objects": 0,
+                "num_skipped_attributes": 0,
+            },
+        ),
+        (
+            models.BulkOperationStatusEnum.PARTIAL_SUCCESS,
+            [
+                models.ResponseStatesEnum.SUCCESS,
+                models.ResponseStatesEnum.CONFLICT,
+            ],
+            {
+                "num_failed_medias": 1,
+                "num_skipped_media_objects": 1,
+                "num_skipped_attributes": 4,
+            },
+        ),
+        (
+            models.BulkOperationStatusEnum.PARTIAL_SUCCESS,
+            [
+                models.ResponseStatesEnum.SUCCESS,
+                models.ResponseStatesEnum.MISSING_DATA,
+            ],
+            {
+                "num_failed_medias": 1,
+                "num_skipped_media_objects": 1,
+                "num_skipped_attributes": 4,
+            },
+        ),
+        (
+            models.BulkOperationStatusEnum.FAILURE,
+            [
+                models.ResponseStatesEnum.SERVER_ERROR,
+                models.ResponseStatesEnum.MISSING_DATA,
+            ],
+            {
+                "num_failed_medias": 2,
+                "num_skipped_media_objects": 3,
+                "num_skipped_attributes": 10,
+            },
+        ),
+    ],
+)
+def test_hari_uploader_skips_dependencies_when_media_upload_fails(
+    create_configurable_mock_uploader_successful_single_batch,
+    bulk_operation_status,
+    response_status_responses,
+    uploader_result,
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        media_spy,
+        media_object_spy,
+        attribute_spy,
+        subset_create_spy,
+    ) = create_configurable_mock_uploader_successful_single_batch(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=2,
+        media_objects_cnt=3,
+        attributes_cnt=6,
+    )
+
+    # Create first media that will fail
+    media_1 = hari_uploader.HARIMedia(
+        name="failed_media",
+        media_type=models.MediaType.IMAGE,
+        back_reference="failed_media_ref",
+        file_path="images/failed.jpg",
+    )
+
+    # Add media objects and attributes that should be skipped
+    media_obj_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference="failed_media_obj_1",
+    )
+    media_obj_1.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="attr1",
+            value="value1",
+        )
+    )
+    media_obj_1.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="attr2",
+            value="value2",
+        )
+    )
+
+    media_obj_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference="failed_media_obj_2",
+    )
+    media_obj_2.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="attr3",
+            value="value3",
+        )
+    )
+    media_obj_2.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="attr4",
+            value="value4",
+        )
+    )
+
+    media_1.add_media_object(media_obj_1, media_obj_2)
+    media_1.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="media_attr1",
+            value="media_value1",
+        )
+    )
+    media_1.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="media_attr2",
+            value="media_value2",
+        )
+    )
+
+    # Create second media that will succeed
+    media_2 = hari_uploader.HARIMedia(
+        name="success_media",
+        media_type=models.MediaType.IMAGE,
+        back_reference="success_media_ref",
+        file_path="images/success.jpg",
+    )
+
+    media_obj_3 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference="success_media_obj",
+    )
+    media_obj_3.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="success_attr1",
+            value="success_value1",
+        )
+    )
+    media_obj_3.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="success_attr2",
+            value="success_value2",
+        )
+    )
+
+    media_2.add_media_object(media_obj_3)
+    media_2.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="success_media_attr1",
+            value="success_media_value1",
+        )
+    )
+    media_2.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.uuid4(),
+            name="success_media_attr2",
+            value="success_media_value2",
+        )
+    )
+
+    # Mock the create_medias response to make the first media fail
+    def mock_create_medias(*args, **kwargs):
+        medias = kwargs.get("medias", [])
+        results = []
+        for media in medias:
+            if media.name == "failed_media":
+                results.append(
+                    models.AnnotatableCreateResponse(
+                        item_id=None,
+                        status=response_status_responses[0],
+                        bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
+                    )
+                )
+            else:
+                results.append(
+                    models.AnnotatableCreateResponse(
+                        item_id="success_id",
+                        status=response_status_responses[1],
+                        bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
+                    )
+                )
+        return models.BulkResponse(results=results, status=bulk_operation_status)
+
+    client.create_medias = mock_create_medias
+
+    # Add both medias to uploader
+    uploader.add_media(media_1, media_2)
+
+    # Act
+    results = uploader.upload()
+
+    # Assert
+    assert len(results.failures.failed_medias) == uploader_result["num_failed_medias"]
+    assert (
+        len(results.failures.skipped_media_objects)
+        == uploader_result["num_skipped_media_objects"]
+    )
+    assert (
+        len(results.failures.skipped_attributes)
+        == uploader_result["num_skipped_attributes"]
+    )

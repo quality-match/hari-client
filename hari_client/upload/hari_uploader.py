@@ -764,34 +764,45 @@ class HARIUploader:
 
     def _handle_media_upload_response(
         self,
-        medias_to_upload: list[HARIMedia],
-        media_upload_response: models.BulkResponse,
+        medias: list[HARIMedia],
+        upload_response: models.BulkResponse,
     ) -> tuple[list[HARIMediaObject], list[HARIAttribute]]:
         """Handles the response of a media upload by updating item its of depending objects, marks failed media uploads accordingly, and marks depending objects as to skipped."""
         # TODO: optimization possibility - repetitive iterations over the same data for code readability
         self._update_hari_media_object_media_ids(
-            medias_to_upload=medias_to_upload,
-            media_upload_bulk_response=media_upload_response,
+            medias_to_upload=medias,
+            media_upload_bulk_response=upload_response,
         )
         self._update_hari_attribute_media_ids(
-            medias_to_upload=medias_to_upload,
-            media_upload_bulk_response=media_upload_response,
+            medias_to_upload=medias,
+            media_upload_bulk_response=upload_response,
         )
         skipped_media_objects, skipped_attributes = [], []
-        for media in medias_to_upload:
-            media_result = next(
-                (
-                    result
-                    for result in media_upload_response.results
-                    if result.bulk_operation_annotatable_id
-                    == media.bulk_operation_annotatable_id
-                ),
-                None,
-            )
-            if (
-                media_result
-                and media_result.status == models.BulkOperationStatusEnum.FAILURE
-            ):
+        if upload_response.status == models.BulkOperationStatusEnum.PARTIAL_SUCCESS:
+            for media in medias:
+                media_result = next(
+                    (
+                        result
+                        for result in upload_response.results
+                        if result.bulk_operation_annotatable_id
+                        == media.bulk_operation_annotatable_id
+                    ),
+                    None,
+                )
+                if media_result and media_result.status in (
+                    models.ResponseStatesEnum.MISSING_DATA,
+                    models.ResponseStatesEnum.SERVER_ERROR,
+                    models.ResponseStatesEnum.BAD_DATA,
+                    models.ResponseStatesEnum.CONFLICT,
+                ):
+                    (
+                        media_objects,
+                        attributes,
+                    ) = self.mark_media_failed_and_dependencies_skipped(media)
+                    skipped_media_objects.extend(media_objects)
+                    skipped_attributes.extend(attributes)
+        elif upload_response.status == models.BulkOperationStatusEnum.FAILURE:
+            for media in medias:
                 (
                     media_objects,
                     attributes,
@@ -861,20 +872,29 @@ class HARIUploader:
             media_object_upload_bulk_response=upload_response,
         )
         skipped_attributes = []
-        for media_object in media_objects:
-            media_object_result = next(
-                (
-                    result
-                    for result in upload_response.results
-                    if result.bulk_operation_annotatable_id
-                    == media_object.bulk_operation_annotatable_id
-                ),
-                None,
-            )
-            if (
-                media_object_result
-                and media_object_result.status == models.BulkOperationStatusEnum.FAILURE
-            ):
+        if upload_response.status == models.BulkOperationStatusEnum.PARTIAL_SUCCESS:
+            for media_object in media_objects:
+                media_object_result = next(
+                    (
+                        result
+                        for result in upload_response.results
+                        if result.bulk_operation_annotatable_id
+                        == media_object.bulk_operation_annotatable_id
+                    ),
+                    None,
+                )
+                if media_object_result and media_object_result.status in (
+                    models.ResponseStatesEnum.MISSING_DATA,
+                    models.ResponseStatesEnum.SERVER_ERROR,
+                    models.ResponseStatesEnum.BAD_DATA,
+                    models.ResponseStatesEnum.CONFLICT,
+                ):
+                    attributes = self.mark_media_object_failed_and_dependencies_skipped(
+                        media_object
+                    )
+                    skipped_attributes.extend(attributes)
+        elif upload_response.status == models.BulkOperationStatusEnum.FAILURE:
+            for media_object in media_objects:
                 attributes = self.mark_media_object_failed_and_dependencies_skipped(
                     media_object
                 )
