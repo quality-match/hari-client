@@ -65,10 +65,11 @@ def get_or_create_dataset(
     Returns:
          uuid: The UUID of the found or created dataset.
     """
+    if user_group is not None:
+        raise ValueError("User group is required.")
+
     datasets = hari.get_datasets()
     dataset_names = [dataset.name for dataset in datasets]
-
-    assert user_group is not None, "User group is required."
 
     if dataset_name not in dataset_names:
         new_dataset = hari.create_dataset(
@@ -111,7 +112,7 @@ def get_or_create_subset_for_all(
             subset_name=subset_name,
         )
         print(f"Created new subset with id {new_subset_id}")
-        return new_subset_id, False
+        return uuid.UUID(new_subset_id), False
     else:
         subset = subsets[subset_names.index(subset_name)]
         new_subset_id = subset.id
@@ -123,8 +124,8 @@ def get_or_create_subset_for_all(
 def check_and_upload_dataset(
     hari: HARIClient,
     dataset_id: uuid.UUID,
-    object_categories: set[str] | None,
     medias: list[HARIMedia],
+    object_categories: set[str] | None = None,
     new_subset_name: str = "All media objects",
     subset_type: models.SubsetType = models.SubsetType.MEDIA_OBJECT,
 ):
@@ -146,44 +147,28 @@ def check_and_upload_dataset(
         client=hari, dataset_id=dataset_id, object_categories=object_categories
     )
 
-    uploaded_medias = hari.get_medias(dataset_id)
-    uploaded_back_references = [m.back_reference for m in uploaded_medias]
+    uploader.add_media(*medias)
+    upload_results = uploader.upload()
 
-    elements_to_upload = 0
-    for media in medias:
-        if media.back_reference not in uploaded_back_references:
-            uploader.add_media(media)
-            elements_to_upload += 1
+    # Inspect upload results
+    print(f"media upload status: {upload_results.medias.status.value}")
+    print(f"media upload summary\n  {upload_results.medias.summary}")
 
-    if elements_to_upload > 0:
-        upload_results = uploader.upload()
+    print(f"media object upload status: {upload_results.media_objects.status.value}")
+    print(f"media object upload summary\n  {upload_results.media_objects.summary}")
 
-        # Inspect upload results
-        print(f"media upload status: {upload_results.medias.status.value}")
-        print(f"media upload summary\n  {upload_results.medias.summary}")
+    print(f"attribute upload status: {upload_results.attributes.status.value}")
+    print(f"attribute upload summary\n  {upload_results.attributes.summary}")
 
+    if (
+        upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
+        or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
+        or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
+    ):
         print(
-            f"media object upload status: {upload_results.media_objects.status.value}"
+            "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
         )
-        print(f"media object upload summary\n  {upload_results.media_objects.summary}")
-
-        print(f"attribute upload status: {upload_results.attributes.status.value}")
-        print(f"attribute upload summary\n  {upload_results.attributes.summary}")
-
-        if (
-            upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
-            or upload_results.media_objects.status
-            != models.BulkOperationStatusEnum.SUCCESS
-            or upload_results.attributes.status
-            != models.BulkOperationStatusEnum.SUCCESS
-        ):
-            print(
-                "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
-            )
-            print(f"media upload details: {upload_results.medias.results}")
-
-    else:
-        print("WARNING: No data for upload specified which is not already uploaded.")
+        print(f"media upload details: {upload_results.medias.results}")
 
     new_subset_id, exists = get_or_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
