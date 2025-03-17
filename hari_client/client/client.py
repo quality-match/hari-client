@@ -1330,7 +1330,7 @@ class HARIClient:
 
         # 1. parse media_objects to dicts before upload
         media_object_dicts = [
-            media_object.model_dump(exclude={"uploaded", "id"})
+            media_object.model_dump(exclude={"uploaded"})
             for media_object in media_objects
         ]
 
