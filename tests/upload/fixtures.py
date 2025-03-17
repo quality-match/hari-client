@@ -146,6 +146,9 @@ def mock_uploader_for_batching(test_client, mocker):
         "_set_bulk_operation_annotatable_id",
         side_effect=id_setter_mock,
     )
+
+    mocker.patch.object(uploader, "_load_dataset", return_value=None)
+
     yield uploader, media_spy, media_object_spy, attribute_spy
 
 
@@ -209,6 +212,8 @@ def mock_uploader_for_bulk_operation_annotatable_id_setter(test_client, mocker):
     )
     id_setter_spy = mocker.spy(uploader, "_set_bulk_operation_annotatable_id")
 
+    mocker.patch.object(uploader, "_load_dataset", return_value=None)
+
     return uploader, id_setter_spy
 
 
@@ -230,6 +235,7 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
 
     mocked HARIUploader methods:
      - _set_bulk_operation_annotatable_id
+     - _load_dataset
 
     HARIUploader method spies:
      - _upload_media_batch
@@ -339,6 +345,7 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
             "_set_bulk_operation_annotatable_id",
             side_effect=id_setter_mock,
         )
+        mocker.patch.object(uploader, "_load_dataset", return_value=None)
         media_spy = mocker.spy(uploader, "_upload_media_batch")
         media_object_spy = mocker.spy(uploader, "_upload_media_object_batch")
         attribute_spy = mocker.spy(uploader, "_upload_attribute_batch")

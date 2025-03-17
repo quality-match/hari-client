@@ -1,6 +1,28 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [3.3.1] - 2025-02-2028
+## [3.4.0] - 07-03-2025
+
+### New features
+
+#### Support for external media sources
+
+- added support for defining external media sources when creating a dataset
+  - new field `external_media_source` in the `create_dataset` method [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new endpoint `get_external_media_source` [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new arg to client method `create_medias` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of media files. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new arg to client method `create_media` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of the media file. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new field `file_key` to models `Media`, `MediaCreate` and `MediaResponse` [PR#77](https://github.com/quality-match/hari-client/pull/77)
+- updated HARIUploader utility to support using a dataset with an external media source [PR#74](https://github.com/quality-match/hari-client/pull/74) [PR#77](https://github.com/quality-match/hari-client/pull/77)
+  - when your dataset is using an external media source, make sure to set the `file_key` field of `HARIMedia` to the key of the media file in your cloud storage and don't set the `file_path`.
+  - when your dataset isn't using an external media source, make sure to set the `file_path` field of `HARIMedia` and don't set the `file_key`.
+
+### Internal
+
+- removed obsolete `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` client methods [PR#75](https://github.com/quality-match/hari-client/pull/75)
+
+## [3.3.1] - 2025-02-28
 
 ### Fixes
 
@@ -10,7 +32,7 @@
 
 ### New Features
 
-- added support for media objects of type segment  [PR#62](https://github.com/quality-match/hari-client/pull/62)
+- added support for media objects of type segment [PR#62](https://github.com/quality-match/hari-client/pull/62)
 
 ## [3.2.0] - 25-02-2025
 

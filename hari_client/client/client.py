@@ -455,6 +455,7 @@ class HARIClient:
         ) = models.VisibilityStatus.VISIBLE,
         data_root: str | None = "custom_upload",
         id: str | None = None,
+        external_media_source: models.ExternalMediaSourceAPICreate | None = None,
     ) -> models.Dataset:
         """Creates an empty dataset in the database.
 
@@ -478,6 +479,7 @@ class HARIClient:
             visibility_status: Visibility status of the new dataset
             data_root: Data root
             id: ID of the newly created dataset
+            external_media_source: External Media Source
 
         Returns:
             The created dataset
@@ -485,6 +487,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if external_media_source:
+            external_media_source = external_media_source.model_dump()
+
         return self._request(
             "POST",
             "/datasets",
@@ -743,12 +748,33 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-        ### media ###
+    ### external media source ###
+    def get_external_media_source(
+        self, external_media_source_id: uuid.UUID
+    ) -> models.ExternalMediaSourceAPIResponse:
+        """Returns an external media source with a given external_media_source_id.
 
+        Args:
+            external_media_source_id: external media source id
+
+        Returns:
+            The external media source with the given external_media_source_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/externalMediaSources/{external_media_source_id}",
+            params=self._pack(locals()),
+            success_response_item_model=models.ExternalMediaSourceAPIResponse,
+        )
+
+    ### media ###
     def create_media(
         self,
         dataset_id: uuid.UUID,
-        file_path: str,
+        file_path: str | None,
         name: str,
         media_type: models.MediaType,
         back_reference: str,
@@ -761,6 +787,8 @@ class HARIClient:
         visualisations: list[models.VisualisationUnion] | None = None,
         subset_ids: set[str] | None = None,
         metadata: models.ImageMetadata | models.PointCloudMetadata | None = None,
+        file_key: str | None = None,
+        with_media_files_upload: bool = True,
     ) -> models.Media:
         """Accepts a single file, uploads it, and creates the media in the db.
 
@@ -779,24 +807,50 @@ class HARIClient:
             visualisations: Visualisations of the media
             subset_ids: Subset ids the media occurs in
             metadata: Image metadata
+            file_key: The file key is the key of the media file in cloud storage (excluding the bucket_name, container_name, etc.).
+            with_media_files_upload: Whether the media file has to be uploaded or not
 
         Returns:
             Media that was just created
 
         Raises:
             APIException: If the request fails.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
         """
-
-        # 1. upload file
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths={0: file_path}
-        )
-        media_url = media_upload_responses[0].media_url
+        if with_media_files_upload:
+            # 1. upload file
+            if not file_path:
+                raise errors.MediaCreateMissingFilePathError(
+                    models.MediaCreate(
+                        file_path=file_path,
+                        name=name,
+                        media_type=media_type,
+                        back_reference=back_reference,
+                    )
+                )
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths={0: file_path}
+            )
+            media_url = media_upload_responses[0].media_url
+        elif not file_key:
+            raise errors.MediaCreateMissingFileKeyError(
+                models.MediaCreate(
+                    name=name,
+                    media_type=media_type,
+                    back_reference=back_reference,
+                )
+            )
 
         # 2. create the media in HARI
         json_body = self._pack(
             locals(),
-            ignore=["file_path", "dataset_id", "media_upload_responses"],
+            ignore=[
+                "file_path",
+                "dataset_id",
+                "media_upload_responses",
+                "with_media_files_upload",
+            ],
         )
         return self._request(
             "POST",
@@ -806,7 +860,10 @@ class HARIClient:
         )
 
     def create_medias(
-        self, dataset_id: uuid.UUID, medias: list[models.BulkMediaCreate]
+        self,
+        dataset_id: uuid.UUID,
+        medias: list[models.BulkMediaCreate],
+        with_media_files_upload: bool = True,
     ) -> models.BulkResponse:
         """Accepts multiple media files, uploads them, and creates the media entries in the db.
         The limit is 500 per call.
@@ -814,6 +871,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             medias: A list of MediaCreate objects. Each object contains the file_path as a field.
+            with_media_files_upload: Whether the media files have to be uploaded or not.
 
         Returns:
             A BulkResponse with information on upload successes and failures.
@@ -821,7 +879,8 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
-            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
@@ -829,23 +888,29 @@ class HARIClient:
             raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
+        if with_media_files_upload:
+            # 1. upload files - if necessary
+            file_paths: dict[int, str] = {}
+            for idx, media in enumerate(medias):
+                if not media.file_path:
+                    raise errors.MediaCreateMissingFilePathError(media)
+                file_paths[idx] = media.file_path
 
-        # 1. upload files
-        file_paths: dict[int, str] = {}
-        for idx, media in enumerate(medias):
-            if not media.file_path:
-                raise errors.MediaCreateMissingFilePathError(media)
-            file_paths[idx] = media.file_path
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths=file_paths
+            )
 
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths=file_paths
-        )
-
-        # 2. set media_urls on medias and parse them to dicts
-        media_dicts = []
-        for idx, media in enumerate(medias):
-            media.media_url = media_upload_responses[idx].media_url
-            media_dicts.append(media.model_dump(exclude={"uploaded"}))
+            # 2. set media_urls on medias and parse them to dicts
+            media_dicts = []
+            for idx, media in enumerate(medias):
+                media.media_url = media_upload_responses[idx].media_url
+                media_dicts.append(media.model_dump(exclude={"uploaded"}))
+        else:
+            media_dicts = []
+            for media in medias:
+                if not media.file_key:
+                    raise errors.MediaCreateMissingFileKeyError(media)
+                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(
@@ -1581,47 +1646,6 @@ class HARIClient:
         )
 
     ### metadata ###
-    def trigger_thumbnails_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Triggers the creation of thumbnails for a given dataset.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            max_size: The maximum size of the thumbnails
-            aspect_ratio: The aspect ratio of the thumbnails
-            force_recreate: If True already existing thumbnails will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: the methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/thumbnails",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
     def trigger_histograms_update_job(
         self,
         dataset_id: uuid.UUID,
@@ -1650,51 +1674,6 @@ class HARIClient:
             "PUT",
             f"/datasets/{dataset_id}/histograms",
             params=params,
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
-    def trigger_crops_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        padding_percent: int | None = None,
-        padding_minimum: int | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Creates the crops for a given dataset if the correct api key is provided in the request.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            padding_percent: The padding (in percent) to add to the crops
-            padding_minimum: The minimum padding to add to the crops
-            max_size: The max size of the crops
-            aspect_ratio: The aspect ratio of the crops
-            force_recreate: If True already existing crops will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: The methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/crops",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
             success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
