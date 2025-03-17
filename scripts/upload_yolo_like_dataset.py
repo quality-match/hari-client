@@ -105,17 +105,17 @@ def load_yolo_data(image_dir: str, labels_dir: str, classes_filename: str):
                     # We label the class as "class_{ID}"
                     # Convert the class index to its string label:
                     if str(class_idx) in class_names:
-                        cat_name = class_names[str(class_idx)]
+                        category_name = class_names[str(class_idx)]
                     else:
-                        cat_name = f"unknown_{class_idx}"  # or skip
+                        category_name = f"unknown_{class_idx}"  # or skip
 
-                    category_name_set.add(cat_name)
+                    category_name_set.add(category_name)
 
                     annotation_records.append(
                         {
                             "annotation_id": annotation_id_counter,
                             "image_id": image_id_counter,
-                            "category": cat_name,
+                            "category": category_name,
                             # bounding box center-based
                             "x": x_center,
                             "y": y_center,
