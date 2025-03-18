@@ -4,15 +4,15 @@ The purpose of this folder is a collection of scripts for common use cases.
 The scripts use the HARI client to access the API of HARI.
 You can use the scripts in three major ways:
 1. Execute the script directly with python. Please remember to add the `.env` to your working directory.
-1. Use the defined functions in larger scripts
-2. Take the code as inspiration for your personalised scripts.
+2. Use the defined functions in larger scripts
+3. Take the code as inspiration for your personalised scripts.
 
 Please be aware that this folder is currently under construction and may include outdated code.
 We are working on including more use cases in the future.
 Below you can find a description of the different available scripts.
 
 *How to find out your user group?*
-This is the group your users is associated with. It is usually a project name we provide to you during setup. Please contact us if this information is not known.
+This is the group your user is associated with. It is usually a project name we provide to you during setup. Please contact us if this information is not known.
 
 ## Available scripts
 
