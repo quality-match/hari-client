@@ -6,6 +6,9 @@ from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.upload.hari_uploader import HARIMedia
+from hari_client.utils import logger
+
+log = logger.setup_logger(__name__)
 
 
 def trigger_and_display_metadata_update(
@@ -19,10 +22,10 @@ def trigger_and_display_metadata_update(
         dataset_id: The UUID of the dataset for which the metadata should be rebuilt.
         subset_id: The UUID of a specific subset, or None to rebuild metadata for the entire dataset.
     """
-    print("Triggering metadata updates...")
+    log.info("Triggering metadata updates...")
     # create a trace_id to track triggered metadata update jobs
     metadata_rebuild_trace_id = uuid.uuid4()
-    print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
+    log.info(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
     metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
         dataset_id=dataset_id, trace_id=metadata_rebuild_trace_id, subset_id=subset_id
     )
@@ -45,10 +48,10 @@ def trigger_and_display_metadata_update(
             ]
         )
         if jobs_are_still_running:
-            print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
+            log.info(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
             time.sleep(10)
 
-    print(f"metadata_rebuild jobs finished with status {job_statuses=}")
+    log.info(f"metadata_rebuild jobs finished with status {job_statuses=}")
 
 
 def get_or_create_dataset(
@@ -75,11 +78,11 @@ def get_or_create_dataset(
         new_dataset = hari.create_dataset(
             name=dataset_name, user_group=user_group, is_anonymized=is_anonymized
         )
-        print("Dataset created with id:", new_dataset.id)
+        log.info("Dataset created with id:", new_dataset.id)
         return new_dataset.id
     else:
         dataset_id = datasets[dataset_names.index(dataset_name)].id
-        print("Found existing dataset with id:", dataset_id)
+        log.info("Found existing dataset with id:", dataset_id)
 
         return dataset_id
 
@@ -111,12 +114,12 @@ def get_or_create_subset_for_all(
             subset_type=subset_type,
             subset_name=subset_name,
         )
-        print(f"Created new subset with id {new_subset_id}")
+        log.info(f"Created new subset with id {new_subset_id}")
         return uuid.UUID(new_subset_id), False
     else:
         subset = subsets[subset_names.index(subset_name)]
         new_subset_id = subset.id
-        print("Found subset with id:", new_subset_id)
+        log.info("Found existing subset with id:", new_subset_id)
 
         return new_subset_id, True
 
@@ -141,7 +144,7 @@ def check_and_upload_dataset(
         new_subset_name: The name of the subset to create or use.
         subset_type: The type of subset (e.g., MEDIA_OBJECT).
     """
-    print("Prepare Upload to HARI...")
+    log.info("Prepare Upload to HARI...")
 
     uploader = hari_uploader.HARIUploader(
         client=hari, dataset_id=dataset_id, object_categories=object_categories
@@ -151,32 +154,32 @@ def check_and_upload_dataset(
     upload_results = uploader.upload()
 
     # Inspect upload results
-    print(f"media upload status: {upload_results.medias.status.value}")
-    print(f"media upload summary\n  {upload_results.medias.summary}")
+    log.info(f"media upload status: {upload_results.medias.status.value}")
+    log.info(f"media upload summary\n  {upload_results.medias.summary}")
 
-    print(f"media object upload status: {upload_results.media_objects.status.value}")
-    print(f"media object upload summary\n  {upload_results.media_objects.summary}")
+    log.info(f"media object upload status: {upload_results.media_objects.status.value}")
+    log.info(f"media object upload summary\n  {upload_results.media_objects.summary}")
 
-    print(f"attribute upload status: {upload_results.attributes.status.value}")
-    print(f"attribute upload summary\n  {upload_results.attributes.summary}")
+    log.info(f"attribute upload status: {upload_results.attributes.status.value}")
+    log.info(f"attribute upload summary\n  {upload_results.attributes.summary}")
 
     if (
         upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
         or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
         or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
     ):
-        print(
+        log.info(
             "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
         )
-        print(f"media upload details: {upload_results.medias.results}")
+        log.info(f"media upload details: {upload_results.medias.results}")
 
     new_subset_id, exists = get_or_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
     )
 
     if exists:
-        print(
-            "WARNING: You did not create a new subset since the name already exists. "
+        log.warning(
+            "You did not create a new subset since the name already exists. "
             "If you added new images during upload the metadata update will be skipped for the new images. "
             "If you added new images please provide a new subset name or delete the old one."
         )
