@@ -24,8 +24,8 @@ This is the group your users is associated with. It is usually a project name we
   - RUN with `python upload_coco_like_dataset.py --dataset_name <Dataset Name> --image_directory <Path> --annotations_file <Path> --classes_filename <Path> --user_group <USER_GROUP>`
 - `upload_yolo_like_dataset` Uploads a complete dataset in the YOLO Format
   - RUN with `python upload_yolo_like_dataset.py --dataset_name <Dataset Name> --image_directory <Path> --labels_directory <Path> --user_group <USER_GROUP>`
-- `upload_dataset_with_annotation_attributes` Uploads dataset with the user's own annotation attributes e.g. for training AINTs. This example makes up data during the upload and must be filled with your data.
-  - RUN with `python upload_dataset_with_annotation_attributes.py --root_directory <Path> --source_dataset_name <Name> --question "<Question describing task> --attribute_name <Name of Attribute> --user_group <USER_GROUP>"`
+- `upload_dataset_with_own_annotation_attributes` Uploads dataset with the user's own annotation attributes e.g. for training AINTs. This example makes up data during the upload and must be filled with your data.
+  - RUN with `python upload_dataset_with_own_annotation_attributes.py --root_directory <Path> --source_dataset_name <Name> --question "<Question describing task> --attribute_name <Name of Attribute> --user_group <USER_GROUP>"`
 - `trigger_metadata_rebuild` Triggers the dataset metadata rebuild that includes creating default visualizations for thumbnails and crops, updating the histograms for advanced filtering, etc.
   - RUN with `python trigger_metadata_rebuild.py --dataset_id <Dataset ID> --subset_id <Attribute ID>`
 

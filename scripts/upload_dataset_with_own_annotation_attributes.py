@@ -8,9 +8,10 @@ import pandas as pd
 from PIL import Image
 from sklearn.utils import Bunch
 
-import hari_client as hc
 from hari_client import Config
+from hari_client import hari_uploader
 from hari_client import HARIClient
+from hari_client import models
 from hari_client.utils.upload import check_and_upload_dataset
 from hari_client.utils.upload import get_or_create_dataset
 
@@ -114,7 +115,7 @@ def load_data(root_directory, source_dataset_name: str):
 
 
 def upload_dataset_with_own_attributes(
-    hari: hc.HARIClient,
+    hari: HARIClient,
     root_directory,
     source_dataset_name: str,
     target_dataset_name: str,
@@ -133,11 +134,11 @@ def upload_dataset_with_own_attributes(
     data = load_data(root_directory, source_dataset_name)
 
     medias = {
-        image_path: hc.hari_uploader.HARIMedia(
+        image_path: hari_uploader.HARIMedia(
             file_path=image_path,
             name=image_path,
             back_reference=image_path,
-            media_type=hc.models.MediaType.IMAGE,
+            media_type=models.MediaType.IMAGE,
         )
         for image_path in data.image_sizes
     }
@@ -147,8 +148,8 @@ def upload_dataset_with_own_attributes(
     annotatable_attribute = dict(
         id=str(uuid.uuid4()),
         name=attribute_name,
-        attribute_group=hc.models.AttributeGroup.AnnotationAttribute,
-        attribute_type=hc.models.AttributeType.Categorical,
+        attribute_group=models.AttributeGroup.AnnotationAttribute,
+        attribute_type=models.AttributeType.Categorical,
         question=question,
         possible_values=data.categories,
     )
@@ -175,10 +176,10 @@ def upload_dataset_with_own_attributes(
         majority_vote = data.majority_votes.get(bbox_id)
 
         if bbox_id not in media_objects:
-            media_object = hc.hari_uploader.HARIMediaObject(
+            media_object = hari_uploader.HARIMediaObject(
                 back_reference=bbox_id,
-                reference_data=hc.models.BBox2DCenterPoint(
-                    type=hc.models.BBox2DType.BBOX2D_CENTER_POINT,
+                reference_data=models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
                     x=x_center,
                     y=y_center,
                     width=width,
@@ -188,7 +189,7 @@ def upload_dataset_with_own_attributes(
             media_objects[bbox_id] = media_object
             media.add_media_object(media_object)
 
-            attribute = hc.hari_uploader.HARIAttribute(
+            attribute = hari_uploader.HARIAttribute(
                 value=majority_vote,
                 frequency=frequency,
                 cant_solves=0,
