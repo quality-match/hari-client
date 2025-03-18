@@ -1075,7 +1075,7 @@ class HARIClient:
 
         # Loop through media pages until all are retrieved
         for skip in tqdm(range(0, total_medias, batch_size)):
-            page_medias = self._request(
+            medias_page = self._request(
                 "GET",
                 f"/datasets/{dataset_id}/medias",
                 params={
@@ -1088,7 +1088,7 @@ class HARIClient:
                 },
                 success_response_item_model=list[models.MediaResponse],
             )
-            medias.extend(page_medias)
+            medias.extend(medias_page)
 
         print(f"Fetched {len(medias)} medias successfully.")
 
@@ -1615,13 +1615,13 @@ class HARIClient:
             dataset_id, archived, query
         ).total_count
 
-        print(f"Fetching {total_media_objects} media_objects ...")
+        print(f"Fetching {total_media_objects} media objects ...")
 
         media_objects: list[models.MediaObjectResponse] = []
 
         # Loop through media pages until all are retrieved
         for skip in tqdm(range(0, total_media_objects, batch_size)):
-            page_medias = self._request(
+            media_objects_page = self._request(
                 "GET",
                 f"/datasets/{dataset_id}/mediaObjects",
                 params={
@@ -1634,9 +1634,9 @@ class HARIClient:
                 },
                 success_response_item_model=list[models.MediaObjectResponse],
             )
-            media_objects.extend(page_medias)
+            media_objects.extend(media_objects_page)
 
-        print(f"Fetched {len(media_objects)} media_objects successfully.")
+        print(f"Fetched {len(media_objects)} media objects successfully.")
 
         return media_objects
 
@@ -2192,11 +2192,11 @@ class HARIClient:
 
         print(f"Fetching {total_attributes} attribute values ...")
 
-        attributeValues: list[models.AttributeValueResponse] = []
+        attribute_values: list[models.AttributeValueResponse] = []
 
         # Loop through media pages until all are retrieved
         for skip in tqdm(range(0, total_attributes, batch_size)):
-            page_medias = self._request(
+            attribute_values_page = self._request(
                 "GET",
                 f"/datasets/{dataset_id}/attributeValues",
                 params={
@@ -2208,11 +2208,11 @@ class HARIClient:
                 },
                 success_response_item_model=list[models.AttributeValueResponse],
             )
-            attributeValues.extend(page_medias)
+            attribute_values.extend(attribute_values_page)
 
-        print(f"Fetched {len(attributeValues)} attribute values successfully.")
+        print(f"Fetched {len(attribute_values)} attribute values successfully.")
 
-        return attributeValues
+        return attribute_values
 
     def get_attribute(
         self, dataset_id: uuid.UUID, attribute_id: str, annotatable_id: str
@@ -2406,7 +2406,6 @@ class HARIClient:
         return self._request(
             "GET",
             f"/trainingSets",
-            # no params
             success_response_item_model=list[models.DevelopmentSetResponse],
         )
 
@@ -2425,7 +2424,6 @@ class HARIClient:
         return self._request(
             "GET",
             f"/trainingSets/{development_set_id}",
-            # no params
             success_response_item_model=models.DevelopmentSetResponse,
         )
 
@@ -2471,7 +2469,6 @@ class HARIClient:
         return self._request(
             "GET",
             f"/mlAnnotationModels",
-            # no params
             success_response_item_model=list[models.MlAnnotationModel],
         )
 
@@ -2488,7 +2485,6 @@ class HARIClient:
         return self._request(
             "GET",
             f"/mlAnnotationModels/{aint_model_id}",
-            # no params
             success_response_item_model=models.MlAnnotationModel,
         )
 
@@ -2546,7 +2542,6 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aiAnnotationRuns/{ai_annotation_run_id}",
-            # no params
             success_response_item_model=models.AiAnnotationRun,
         )
 

@@ -40,5 +40,4 @@ class Config(pydantic_settings.BaseSettings):
     hari_auth_url: str = "https://auth.quality-match.com/auth"
     hari_username: str
     hari_password: str
-    data_directory: str | None = None  # default data directory
     hari_uploader: HARIUploaderConfig = HARIUploaderConfig()
