@@ -1,5 +1,59 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+- updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - added Pydantic Models for DevelopmentSet, MLAnnotationModel, AIAnnotationRun, AttributeValue
+  - updated/added missing entries for Pydantic Models related to data download and AINTs
+- added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - paged download of media, media_objects and attributes to the client to enable download of large datasets, otherwise the request would just time out
+  - added handling of attribute values
+  - added getting and creating of DevelopmentSet, MLAnnotationModel and AIAnnotationRun
+- added scripts for data download and aint analysis [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - added util classes `analysis` and `download` for backend logic
+  - added executable scripts `aint_anaylsis`, `apply_aint_generic`, `apply_aint_on_test_data`, `create_aint`, `download_data`, `get_aint_attribute_info`
+
+## [3.4.0] - 07-03-2025
+
+### New features
+
+#### Support for external media sources
+
+- added support for defining external media sources when creating a dataset
+  - new field `external_media_source` in the `create_dataset` method [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new endpoint `get_external_media_source` [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new arg to client method `create_medias` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of media files. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new arg to client method `create_media` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of the media file. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new field `file_key` to models `Media`, `MediaCreate` and `MediaResponse` [PR#77](https://github.com/quality-match/hari-client/pull/77)
+- updated HARIUploader utility to support using a dataset with an external media source [PR#74](https://github.com/quality-match/hari-client/pull/74) [PR#77](https://github.com/quality-match/hari-client/pull/77)
+  - when your dataset is using an external media source, make sure to set the `file_key` field of `HARIMedia` to the key of the media file in your cloud storage and don't set the `file_path`.
+  - when your dataset isn't using an external media source, make sure to set the `file_path` field of `HARIMedia` and don't set the `file_key`.
+
+### Internal
+
+- removed obsolete `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` client methods [PR#75](https://github.com/quality-match/hari-client/pull/75)
+
+## [3.3.1] - 2025-02-28
+
+### Fixes
+
+- added `compute_auto_attributes` param to `trigger_dataset_metadata_rebuild_job` [PR#78](https://github.com/quality-match/hari-client/pull/78)
+
+## [3.3.0] - 2025-02-27
+
+### New Features
+
+- added support for media objects of type segment [PR#62](https://github.com/quality-match/hari-client/pull/62)
+
+## [3.2.0] - 25-02-2025
+
+### New features
+
+- added `compute_auto_attributes` param to `trigger_metadata_rebuild_job` [PR#71](https://github.com/quality-match/hari-client/pull/71)
+- add `skip`, `limit`, `sort`, `query`, `name_filter` and `archived` parameters to `get_datasets` method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+- add `get_datasets_count` method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+- restricted attribute `possible_values` to be a list of strings [PR#66](https://github.com/quality-match/hari-client/pull/66)
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features
@@ -25,17 +79,6 @@
   - attribute value types have to be consistent
   - attributes with a list as value have to have a single consistent value type for their list elements
   - attributes with the same name and annotatable_type have to reuse the same attribute id
-- updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
-  - added Pydantic Models for DevelopmentSet, MLAnnotationModel, AIAnnotationRun, AttributeValue
-  - updated/added missing entries for Pydantic Models related to data download and AINTs
-- added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
-  - paged download of media, media_objects and attributes to the client to enable download of large datasets, otherwise the request would just time out
-  - added handling of attribute values
-  - added getting and creating of DevelopmentSet, MLAnnotationModel and AIAnnotationRun
-- added scripts for data download and aint analysis [PR#63](https://github.com/quality-match/hari-client/pull/63)
-  - added util classes `analysis` and `download` for backend logic
-  - added executable scripts `aint_anaylsis`, `apply_aint_generic`, `apply_aint_on_test_data`, `create_aint`, `download_data`, `get_aint_attribute_info`
-
 
 ### Fixes
 
