@@ -13,17 +13,6 @@ Below you can find a description of the different available scripts.
 
 ## Available scripts
 
-### Download & Analysis
-
-- `download_data` Downloads the complete specified dataset for local analysis and caches the results locally
-  - Call with: `python aint_analysis.py --dataset_id <Dataset ID> -c <Cache Directory>`
-  - Example: `python aint_analysis.py --dataset_id 12345678-aaaa-bbbb-cccc-123456789de -c /path/to/cache`
-- `aint_anaylsis` Download the specified subset of the desired datasets.
-   On this dataset slice a comparison between the provided human and ai annotation run is calculated which includes accuracy, Kullback-leibler divergence between the two annotation runs.
-   Moreover, the confidence thresholds for a specified quality and the confidence intervals are calculated.
-  - Call with: `python aint_analysis.py --dataset_id <Dataset ID> —subset_id <Optional Subset ID> -c <Cache Directory> -ha <Name of human annotation run> -aa <ID of ai annotation run>`
-  - Example: `python aint_analysis.py --dataset_id 12345678-aaaa-bbbb-cccc-123456789de —subset_id 12345678-aaaa-bbbb-cccc-123456789de -c /path/to/cache -ha name_annoation_run -aa 12345678-aaaa-bbbb-cccc-123456789de`
-
 ### Subsets
 
 - `create_subsets_from_attribute.py` Creates subsets in a HARI dataset based on all aggregated values of an attribute.
@@ -32,7 +21,7 @@ Below you can find a description of the different available scripts.
     - Example: `python --dataset_id 12345678-aaaa-bbbb-cccc-123456789de --attribute_id 12345678-aaaa-bbbb-cccc-123456789de --prefix testing`
 
 
-### AINT
+### AINT (AI Nano Tasks)
 
 - `get_aint_attribute_info` Get all linked AINT info for an AI annotation run attribute
   - Call with: `python get_aint_attribute_info.py --aint_attribute_id <Attribute ID: UUID>`

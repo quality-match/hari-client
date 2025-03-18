@@ -4,12 +4,11 @@
   - added Pydantic Models for DevelopmentSet, MLAnnotationModel, AIAnnotationRun, AttributeValue
   - updated/added missing entries for Pydantic Models related to data download and AINTs
 - added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
-  - paged download of media, media_objects and attributes to the client to enable download of large datasets, otherwise the request would just time out
+  - paginated download of media, media_objects and attributes to the client to enable download of large dataset data to prevent download timeout
   - added handling of attribute values
   - added getting and creating of DevelopmentSet, MLAnnotationModel and AIAnnotationRun
 - added scripts for data download and aint analysis [PR#63](https://github.com/quality-match/hari-client/pull/63)
-  - added util classes `analysis` and `download` for backend logic
-  - added executable scripts `aint_anaylsis`, `apply_aint_generic`, `apply_aint_on_test_data`, `create_aint`, `download_data`, `get_aint_attribute_info`
+  - added executable scripts `apply_aint_generic`, `apply_aint_on_test_data`, `create_aint`, `get_aint_attribute_info`
 
 ## [3.4.0] - 07-03-2025
 
