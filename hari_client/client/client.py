@@ -1011,7 +1011,7 @@ class HARIClient:
         sort: list[models.SortingParameter] | None = None,
         projection: dict[str, bool] | None = None,
     ) -> list[models.MediaResponse]:
-        """Get all medias of a dataset
+        """Get medias of a dataset
 
         Args:
             dataset_id: The dataset id
@@ -1048,7 +1048,7 @@ class HARIClient:
         sort: list[models.SortingParameter] | None = None,
         projection: dict[str, bool] | None = None,
     ) -> list[models.MediaResponse]:
-        """Get all medias of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
+        """Get medias of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
 
         Args:
             dataset_id: The dataset id
@@ -1593,7 +1593,7 @@ class HARIClient:
         sort: list[models.SortingParameter] | None = None,
         projection: dict[str, bool] | None = None,
     ) -> list[models.MediaObjectResponse]:
-        """Get all media objects of a dataset, pagination, could be used for larger datasets to avoid timeouts.
+        """Get media objects of a dataset, pagination, could be used for larger datasets to avoid timeouts.
 
         Args:
             dataset_id: The dataset id
@@ -2086,11 +2086,11 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to consider archived medias
+            archived: Whether to consider archived attribute values
             query: Query
 
         Returns:
-             a FilterCount object containing the total count of attributes returned by the query.
+             a FilterCount object containing the total count of attribute values returned by the query.
 
         Raises:
             APIException: If the request fails.
@@ -2116,6 +2116,7 @@ class HARIClient:
             dataset_id: The dataset id
             attribute_id: The attribute id
             annotatable_id: The id of the annotatable the attribute belongs to
+            archived: Whether to return archived attribute values
 
         Returns:
             The attribute with the given attribute_id
@@ -2139,7 +2140,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
     ) -> list[models.AttributeValueResponse]:
-        """Get all attribute values of a dataset
+        """Get attribute values of a dataset
 
         Args:
             dataset_id: The dataset id
@@ -2150,7 +2151,7 @@ class HARIClient:
             sort: The list of sorting parameters
 
         Returns:
-            A list of all attribute values in a dataset
+            A list of attribute values in a dataset
 
         Raises:
             APIException: If the request fails.
@@ -2171,7 +2172,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
     ) -> list[models.AttributeValueResponse]:
-        """Returns all attribute values of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
+        """Returns attribute values of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
 
         Args:
             dataset_id: The dataset id
@@ -2181,7 +2182,7 @@ class HARIClient:
             sort: The list of sorting parameters
 
         Returns:
-            A list of all medias in a dataset
+            A list of attribute values in a dataset
 
         Raises:
             APIException: If the request fails.
@@ -2340,7 +2341,7 @@ class HARIClient:
         archived: bool | None = False,
         query: models.QueryList | None = None,
     ) -> list[models.AttributeMetadataResponse]:
-        """Returns all attribute metadata of a dataset.
+        """Returns attribute metadata of a dataset.
 
         Args:
             dataset_id: The dataset id
