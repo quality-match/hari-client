@@ -564,7 +564,9 @@ class Media(BaseModel):
     archived: bool | None = pydantic.Field(default=False, title="Archived")
     back_reference: str = pydantic.Field(title="Back Reference")
     subset_ids: list = pydantic.Field(default=[], title="Subset Ids")
-    attributes: list = pydantic.Field(default=[], title="Attributes")
+    attributes: list[AttributeValueResponse] = pydantic.Field(
+        default=[], title="Attributes"
+    )
     thumbnails: dict[str, typing.Any] = pydantic.Field(default={}, title="Thumbnails")
     visualisations: list[VisualisationUnion] | None = pydantic.Field(
         default=None, title="Visualisations"
