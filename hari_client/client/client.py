@@ -1991,9 +1991,11 @@ class HARIClient:
         cumulated_frequency: typing.Any | None = None,
         frequency: dict[str, int] | None = None,
         question: str | None = None,
+        ml_predictions: dict[str, float] | None = None,
+        ml_probability_distributions: dict[str, float] | None = None,
         repeats: int | None = None,
         possible_values: list[str] | None = None,
-    ) -> models.Attribute:
+    ) -> models.AttributeResponse:
         """Create an attribute for a dataset.
 
         Args:
@@ -2023,10 +2025,11 @@ class HARIClient:
             cumulated_frequency: The cumulated frequency value
             frequency: The frequency value
             question: The question value
-            archived: The archived value
             range: The range value
             possible_values: The possible values for the given attribute
             repeats: The number of times the attribute was annotated
+            ml_predictions: The ML predictions for the attribute
+            ml_probability_distributions: The ML probability distributions for the attribute
 
         Returns:
             The created attribute.
@@ -2035,7 +2038,7 @@ class HARIClient:
             "POST",
             f"/datasets/{dataset_id}/attributes",
             json=self._pack(locals(), ignore=["dataset_id"], not_none=["question"]),
-            success_response_item_model=models.Attribute,
+            success_response_item_model=models.AttributeResponse,
         )
 
     def get_attributes(
@@ -2259,7 +2262,7 @@ class HARIClient:
         archived: bool | None = None,
         ml_predictions: dict[str, float] | None = None,
         ml_probability_distributions: dict[str, float] | None = None,
-    ) -> models.Attribute:
+    ) -> models.AttributeResponse:
         """Updates the attribute with the given id.
 
         Args:
@@ -2305,7 +2308,7 @@ class HARIClient:
             json=self._pack(
                 locals(), ignore=["dataset_id", "attribute_id", "annotatable_id"]
             ),
-            success_response_item_model=models.Attribute,
+            success_response_item_model=models.AttributeResponse,
         )
 
     def delete_attribute(

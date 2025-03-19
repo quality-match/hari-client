@@ -266,6 +266,11 @@ class VisualisationType(str, enum.Enum):
     RENDERED = "Rendered"
 
 
+class AnnotationAnswer(BaseModel):
+    annotation_id: str
+    value: typeT
+
+
 class ExternalMediaSourceCredentialsType(str, enum.Enum):
     AZURE_SAS_TOKEN = "azure_sas_token"
     S3_CROSS_ACCOUNT_ACCESS = "s3_cross_account_access"
@@ -806,7 +811,7 @@ class DevelopmentSetResponse(BaseModel):
         default_factory=list, title="Training Attributes"
     )
     question: str | None = pydantic.Field(default=None, title="Question")
-    possible_answers: list[str | int | bool] = pydantic.Field(
+    possible_answers: list[str] = pydantic.Field(
         default_factory=list, title="Possible Answers"
     )
     repeats: int | None = pydantic.Field(default=None, title="Repeats")
@@ -1141,6 +1146,8 @@ class AttributeCreate(BaseModel):
     cumulated_frequency: typing.Any | None = None
     frequency: dict[str, int] | None = None
     question: str | None = None
+    ml_predictions: dict[str, float] | None = None
+    ml_probability_distributions: dict[str, float] | None = None
     repeats: int | None = None
     possible_values: list[str] | None = None
 
@@ -1155,46 +1162,10 @@ class AttributeCreate(BaseModel):
         return values
 
 
-class Attribute(BaseModel):
-    # AttributeValue + AttributeMetadata = Attribute
-    id: str = pydantic.Field(title="ID")
-    name: str
-    question: str
-    annotatable_id: str
-    annotatable_type: DataBaseObjectType
-    subset_ids: set[str] = set()
-    attribute_type: AttributeType | None = None
-    attribute_group: AttributeGroup
-    value: typeT
-    min: typeT | None = None
-    max: typeT | None = None
-    sum: typeT | None = None
-    cant_solves: int | None = None
-    solvability: float | None = None
-    aggregate: typeT | None = None
-    modal: typeT | None = None
-    credibility: float | None = None
-    convergence: float | None = None
-    confidence: float | None = None
-    ambiguity: float | None = None
-    median: typeT | None = None
-    variance: float | None = None
-    standard_deviation: float | None = None
-    range: typing.Any | None = None
-    average_absolute_deviation: float | None = None
-    cumulated_frequency: typing.Any | None = None
-    frequency: dict[str, int] | None = None
-    question: str | None = None
-    ml_predictions: dict[str, float] | None = None
-    ml_probability_distributions: dict[str, float] | None = None
-    cant_solve_ratio: float | None = None
-    repeats: int | None = None
-    possible_values: list[str] | None = None
-
-
 class AttributeResponse(BaseModel):
     # AttributeValue + AttributeMetadata = Attribute
     id: str | None = pydantic.Field(default=None, title="Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
@@ -1211,6 +1182,15 @@ class AttributeResponse(BaseModel):
     )
     attribute_group: AttributeGroup | None = pydantic.Field(
         default=None, title="Attribute Group"
+    )
+    pipeline_project: dict | None = pydantic.Field(
+        default=None, title="Pipeline Project"
+    )
+    annotation_run_node_id: str | None = pydantic.Field(
+        default=None, title="Annotation Run Node ID"
+    )
+    annotation_run_id: str | None = pydantic.Field(
+        default=None, title="Annotation Run ID"
     )
     value: typeT | None = pydantic.Field(default=None, title="Value")
     min: typeT | None = pydantic.Field(default=None, title="Min")
@@ -1263,12 +1243,28 @@ class AttributeResponse(BaseModel):
         title="Possible Values",
         description="Possible values for this attribute",
     )
+    annotations: list[AnnotationAnswer] | None = pydantic.Field(
+        default=None,
+        title="Annotations",
+        description="Annotations for this attribute",
+    )
+    visualisation_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation ID",
+        description="Visualisation ID for this attribute",
+    )
+    visualisation_config_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation Config ID",
+        description="Visualisation Config ID for this attribute",
+    )
 
 
 class AttributeValueResponse(BaseModel):
     # AttributeValue + AttributeMetadata = Attribute
     id: str | None = pydantic.Field(default=None, title="Id")
     dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
     annotatable_id: str | None = pydantic.Field(default=None, title="Annotatable ID")
@@ -1315,6 +1311,21 @@ class AttributeValueResponse(BaseModel):
         description="A point estimate for the probability associated with each category,"
         " obtained from the full Dirichlet distribution predicted by the model.",
     )
+    annotations: list[AnnotationAnswer] | None = pydantic.Field(
+        default=None,
+        title="Annotations",
+        description="Annotations for this attribute",
+    )
+    visualisation_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation ID",
+        description="Visualisation ID for this attribute",
+    )
+    visualisation_config_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation Config ID",
+        description="Visualisation Config ID for this attribute",
+    )
 
 
 class AttributeMetadataResponse(BaseModel):
@@ -1345,10 +1356,15 @@ class AttributeMetadataResponse(BaseModel):
     pipeline_project: dict | None = pydantic.Field(
         default=None, title="Pipeline Project"
     )
-    possible_values: list[str | int | float | bool] | None = pydantic.Field(
+    possible_values: list[str] | None = pydantic.Field(
         default=None,
         title="Possible Values",
         description="Possible values for this attribute",
+    )
+    repeats: int | None = pydantic.Field(
+        default=None,
+        title="Repeats",
+        description="Number of repeats for this attribute",
     )
 
 
