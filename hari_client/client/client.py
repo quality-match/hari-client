@@ -1042,16 +1042,18 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         archived: bool | None = False,
+        presign_medias: bool | None = True,
         batch_size: int = 100,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         projection: dict[str, bool] | None = None,
     ) -> list[models.MediaResponse]:
-        """Get all medias of a dataset, but with paging, should be used for larger datasets
+        """Get all medias of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
 
         Args:
             dataset_id: The dataset id
             archived: Whether to get archived media
+            presign_medias: Whether to presign medias
             batch_size: The number of medias to fetch per request. Defaults to 100.
             query: The filters to be applied to the search
             sort: The list of sorting parameters
@@ -1069,28 +1071,25 @@ class HARIClient:
             dataset_id, archived, query
         ).total_count
 
-        print(f"Fetching {total_medias} medias ...")
+        log.info(f"Fetching {total_medias} medias ...")
 
         medias: list[models.MediaResponse] = []
 
         # Loop through media pages until all are retrieved
         for skip in tqdm(range(0, total_medias, batch_size)):
-            medias_page = self._request(
-                "GET",
-                f"/datasets/{dataset_id}/medias",
-                params={
-                    "query": query,
-                    "projection": projection,
-                    "sort": sort,
-                    "archived": archived,
-                    "limit": batch_size,
-                    "skip": skip,
-                },
-                success_response_item_model=list[models.MediaResponse],
+            medias_page = self.get_medias(
+                dataset_id=dataset_id,
+                archived=archived,
+                presign_medias=presign_medias,
+                limit=batch_size,
+                skip=skip,
+                query=query,
+                sort=sort,
+                projection=projection,
             )
             medias.extend(medias_page)
 
-        print(f"Fetched {len(medias)} medias successfully.")
+        log.info(f"Fetched {len(medias)} medias successfully.")
 
         return medias
 
@@ -1588,17 +1587,19 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         archived: bool | None = False,
+        presign_medias: bool | None = True,
         batch_size: int = 100,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         projection: dict[str, bool] | None = None,
     ) -> list[models.MediaObjectResponse]:
-        """Get all media_objects of a dataset, but with paging, should be used for larger datasets
+        """Get all media objects of a dataset, pagination, could be used for larger datasets to avoid timeouts.
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to get archived media
-            batch_size: The number of medias to fetch per request. Defaults to 100.
+            archived: Whether to get archived media objects
+            presign_medias: Whether to presign medias
+            batch_size: The number of media objects to fetch per request. Defaults to 100.
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
@@ -1615,28 +1616,25 @@ class HARIClient:
             dataset_id, archived, query
         ).total_count
 
-        print(f"Fetching {total_media_objects} media objects ...")
+        log.info(f"Fetching {total_media_objects} media objects ...")
 
         media_objects: list[models.MediaObjectResponse] = []
 
-        # Loop through media pages until all are retrieved
+        # Loop through media object pages until all are retrieved
         for skip in tqdm(range(0, total_media_objects, batch_size)):
-            media_objects_page = self._request(
-                "GET",
-                f"/datasets/{dataset_id}/mediaObjects",
-                params={
-                    "query": query,
-                    "projection": projection,
-                    "sort": sort,
-                    "archived": archived,
-                    "limit": batch_size,
-                    "skip": skip,
-                },
-                success_response_item_model=list[models.MediaObjectResponse],
+            media_objects_page = self.get_media_objects(
+                dataset_id=dataset_id,
+                archived=archived,
+                presign_medias=presign_medias,
+                limit=batch_size,
+                skip=skip,
+                query=query,
+                sort=sort,
+                projection=projection,
             )
             media_objects.extend(media_objects_page)
 
-        print(f"Fetched {len(media_objects)} media objects successfully.")
+        log.info(f"Fetched {len(media_objects)} media objects successfully.")
 
         return media_objects
 
@@ -2142,7 +2140,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to get archived media
+            archived: Whether to get archived attribute values
             limit: The number of medias tu return
             skip: The number of medias to skip
             query: The filters to be applied to the search
@@ -2170,12 +2168,12 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
     ) -> list[models.AttributeValueResponse]:
-        """Returns all attributes of a dataset, but with paging, should be used for larger datasets
+        """Returns all attribute values of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to get archived media
-            batch_size: The number of medias to fetch per request. Defaults to 100.
+            archived: Whether to get archived attribute values
+            batch_size: The number of attribute values to fetch per request. Defaults to 100.
             query: The filters to be applied to the search
             sort: The list of sorting parameters
 
@@ -2190,27 +2188,23 @@ class HARIClient:
             dataset_id, archived, query
         ).total_count
 
-        print(f"Fetching {total_attributes} attribute values ...")
+        log.info(f"Fetching {total_attributes} attribute values ...")
 
         attribute_values: list[models.AttributeValueResponse] = []
 
-        # Loop through media pages until all are retrieved
+        # Loop through attribute value pages until all are retrieved
         for skip in tqdm(range(0, total_attributes, batch_size)):
-            attribute_values_page = self._request(
-                "GET",
-                f"/datasets/{dataset_id}/attributeValues",
-                params={
-                    "query": query,
-                    "sort": sort,
-                    "archived": archived,
-                    "limit": batch_size,
-                    "skip": skip,
-                },
-                success_response_item_model=list[models.AttributeValueResponse],
+            attribute_values_page = self.get_attribute_values(
+                dataset_id=dataset_id,
+                archived=archived,
+                limit=batch_size,
+                skip=skip,
+                query=query,
+                sort=sort,
             )
             attribute_values.extend(attribute_values_page)
 
-        print(f"Fetched {len(attribute_values)} attribute values successfully.")
+        log.info(f"Fetched {len(attribute_values)} attribute values successfully.")
 
         return attribute_values
 
