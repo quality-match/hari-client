@@ -975,7 +975,7 @@ class HARIClient:
         media_id: str,
         presign_media: bool | None = True,
         archived: bool | None = False,
-        projection: dict | None = None,
+        projection: dict[str, bool] | None = None,
     ) -> models.MediaResponse:
         """Get a media by its id.
 
@@ -1025,7 +1025,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            A list of all medias in a dataset
+            A list of medias in a dataset
 
         Raises:
             APIException: If the request fails.
@@ -1061,7 +1061,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            A list of all medias in a dataset
+            A list of medias in a dataset
 
         Raises:
             APIException: If the request fails.
@@ -1520,7 +1520,7 @@ class HARIClient:
         media_object_id: str,
         archived: bool | None = False,
         presign_media: bool | None = True,
-        projection: dict | None = None,
+        projection: dict[str, bool] | None = None,
     ) -> models.MediaObjectResponse:
         """Fetches a media_object by its id.
 
@@ -1533,7 +1533,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            List of media object projections
+            List of media objects of a dataset
 
         Raises:
             APIException: If the request fails.
@@ -1554,7 +1554,7 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
-        projection: dict | None = None,
+        projection: dict[str, bool] | None = None,
     ) -> list[models.MediaObjectResponse]:
         """Queries the database based on the submitted parameters and returns a list of media objects
 
@@ -1570,7 +1570,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            list
+            list of media objects of a dataset
 
         Raises:
             APIException: If the request fails.
@@ -1606,7 +1606,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            A list of all medias in a dataset
+            A list of media objects in a dataset
 
         Raises:
             APIException: If the request fails.

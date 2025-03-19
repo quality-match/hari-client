@@ -849,9 +849,12 @@ class MlAnnotationModel(BaseModel):
     id: str = pydantic.Field(default=None, title="Id")
 
 
-AiAnnotationRunStatus = typing.Literal[
-    "created", "annotating", "creation_failed", "ai_annotation_failed", "done"
-]
+class AIAnnotationRunStatus(str, enum.Enum):
+    CREATED = "created"
+    ANNOTATING = "annotating"
+    CREATION_FAILED = "creation_failed"
+    AI_ANNOTATION_FAILED = "ai_annotation_failed"
+    DONE = "done"
 
 
 class AiAnnotationRun(BaseModel):
@@ -861,7 +864,7 @@ class AiAnnotationRun(BaseModel):
     owner: str | None = pydantic.Field(default=None, title="Owner")
     user_group: str | None = pydantic.Field(default=None, title="User Group")
     name: str = pydantic.Field(default=None, title="Name")
-    status: AiAnnotationRunStatus = pydantic.Field(default=None, title="Status")
+    status: AIAnnotationRunStatus = pydantic.Field(default=None, title="Status")
     dataset_id: str = pydantic.Field(default=None, title="Dataset Id")
     subset_id: str = pydantic.Field(default=None, title="Subset Id")
     ml_annotation_model_id: str | None = pydantic.Field(
