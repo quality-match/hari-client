@@ -988,7 +988,7 @@ class HARIClient:
                 returned, keys with value False are not returned)
 
         Returns:
-            The media object matching the provided id
+            The media matching the provided id
 
         Raises:
             APIException: If the request fails.
@@ -1522,7 +1522,7 @@ class HARIClient:
         presign_media: bool | None = True,
         projection: dict[str, bool] | None = None,
     ) -> models.MediaObjectResponse:
-        """Fetches a media_object by its id.
+        """Fetches a media object by its id.
 
         Args:
             dataset_id: dataset id
@@ -1533,7 +1533,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            List of media objects of a dataset
+            Requested media object
 
         Raises:
             APIException: If the request fails.
@@ -2392,14 +2392,16 @@ class HARIClient:
             success_response_item_model=list[models.VisualisationConfiguration],
         )
 
+    ### AI Nano Tasks ###
+
     def get_development_sets(
         self,
     ) -> list[models.DevelopmentSetResponse]:
         """
-        Retrieve all available development sets.
+        Retrieve all development sets available to the user.
 
         Returns:
-            list[models.DevelopmentSetResponse]: A list of development set objects.
+            A list of development set objects.
         """
         return self._request(
             "GET",
@@ -2411,7 +2413,7 @@ class HARIClient:
         self, development_set_id: str
     ) -> models.DevelopmentSetResponse:
         """
-        Retrieve a single development set by its ID.
+        Get a single development set by its ID.
 
         Args:
             development_set_id: The unique identifier of the development set.
@@ -2429,24 +2431,35 @@ class HARIClient:
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
+        id: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.DevelopmentSetResponse:
         """
-        Create a new development set.
+        Create a new development set from training attributes.
 
         Args:
             name: A descriptive name for the development set.
-            training_attributes: The training attributes to be used by this set.
-            user_group: The user group for scoping the development set (default: None).
+            training_attributes: The training attributes to be used in the training set.
+            id: The id of the development set (default: None).
+            user_group: The user group for scoping the development set (default: None).  #?
 
         Returns:
-            models.DevelopmentSetResponse: The newly created development set object.
+            Created development set object.
         """
+
+        training_attribute_dicts = [
+            training_attribute.model_dump()
+            for training_attribute in training_attributes
+        ]
+
         body = {
             "name": name,
-            "training_attributes": training_attributes,
+            "training_attributes": training_attribute_dicts,
             "user_group": user_group,
         }
+
+        if id is not None:
+            body["id"] = id
 
         return self._request(
             "POST",

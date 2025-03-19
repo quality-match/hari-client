@@ -266,6 +266,28 @@ class VisualisationType(str, enum.Enum):
     RENDERED = "Rendered"
 
 
+class MLAnnotationModelStatus(str, enum.Enum):
+    CREATED = "created"
+    TRAINING = "training"
+    TRAINING_FAILED = "training_failed"
+    TRAINING_DONE = "training_done"
+
+
+class AIAnnotationRunStatus(str, enum.Enum):
+    CREATED = "created"
+    ANNOTATING = "annotating"
+    CREATION_FAILED = "creation_failed"
+    AI_ANNOTATION_FAILED = "ai_annotation_failed"
+    DONE = "done"
+
+
+class DevelopmentSetStatus(str, enum.Enum):
+    SUBMITTED = "submitted"
+    VALIDATING = "validating"
+    VALIDATION_FAILED = "validation_failed"
+    CREATED = "created"
+
+
 class AnnotationAnswer(BaseModel):
     annotation_id: str
     value: typeT
@@ -796,35 +818,36 @@ class MediaObjectResponse(BaseModel):
 
 
 class TrainingAttribute(BaseModel):
-    dataset_id: str = pydantic.Field(default=None, title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(default=None, title="Dataset Id")
     attribute_id: str = pydantic.Field(default=None, title="Attribute Id")
     query: QueryList | None = pydantic.Field(default_factory=list, title="Query")
 
 
+# todo rename
 class DevelopmentSetResponse(BaseModel):
-    id: str | None = pydantic.Field(default=None, title="Id")
-    name: str | None = pydantic.Field(default=None, title="Name")
-    created_at: str | None = pydantic.Field(default=None, title="Created At")
-    updated_at: str | None = pydantic.Field(default=None, title="Updated At")
-    archived_at: str | None = pydantic.Field(default=None, title="Archived At")
+    id: uuid.UUID = pydantic.Field(title="Id")
+    name: str = pydantic.Field(title="Name")
+    created_at: datetime.datetime | None = pydantic.Field(
+        title="Created At", default=None
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        title="Updated At", default=None
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        title="Archived At", default=None
+    )
     owner: str | None = pydantic.Field(default=None, title="Owner")
     user_group: str | None = pydantic.Field(default=None, title="User Group")
     training_attributes: list[TrainingAttribute] = pydantic.Field(
         default_factory=list, title="Training Attributes"
     )
-    question: str | None = pydantic.Field(default=None, title="Question")
+    question: str = pydantic.Field(title="Question")
     possible_answers: list[str] = pydantic.Field(
         default_factory=list, title="Possible Answers"
     )
-    repeats: int | None = pydantic.Field(default=None, title="Repeats")
-    subset_id: str | None = pydantic.Field(default=None, title="Subset Id")
-
-
-class MLAnnotationModelStatus(str, enum.Enum):
-    CREATED = "created"
-    TRAINING = "training"
-    TRAINING_FAILED = "training_failed"
-    TRAINING_DONE = "training_done"
+    repeats: int = pydantic.Field(title="Repeats")
+    subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
+    status: DevelopmentSetStatus = pydantic.Field(title="Status")
 
 
 class MlAnnotationModel(BaseModel):
@@ -854,14 +877,6 @@ class MlAnnotationModel(BaseModel):
     )
     training_set_id: str | None = pydantic.Field(default=None, title="Training Set Id")
     id: str = pydantic.Field(default=None, title="Id")
-
-
-class AIAnnotationRunStatus(str, enum.Enum):
-    CREATED = "created"
-    ANNOTATING = "annotating"
-    CREATION_FAILED = "creation_failed"
-    AI_ANNOTATION_FAILED = "ai_annotation_failed"
-    DONE = "done"
 
 
 class AiAnnotationRun(BaseModel):
