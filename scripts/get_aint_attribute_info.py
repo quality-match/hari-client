@@ -86,7 +86,7 @@ if __name__ == "__main__":
     models = hari.get_ml_models()
     print(f"Found {len(models)} models")
 
-    model = hari.get_ml_model(model_id)
+    model = hari.get_ml_model_by_id(model_id)
     print(model)
 
     # get development data for AINT Model

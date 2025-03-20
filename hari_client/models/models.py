@@ -850,33 +850,44 @@ class DevelopmentSetResponse(BaseModel):
     status: DevelopmentSetStatus = pydantic.Field(title="Status")
 
 
-class MlAnnotationModel(BaseModel):
-    created_at: str | None = pydantic.Field(default=None, title="Created At")
-    updated_at: str | None = pydantic.Field(default=None, title="Updated At")
-    archived_at: str | None = pydantic.Field(default=None, title="Archived At")
+class MlAnnotationModelResponse(BaseModel):
+    id: uuid.UUID = pydantic.Field(title="Id")
+    created_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Created At"
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Updated At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
     owner: str | None = pydantic.Field(default=None, title="Owner")
     user_group: str | None = pydantic.Field(default=None, title="User Group")
-    status: MLAnnotationModelStatus = pydantic.Field(default=None, title="Status")
-    dataset_id: str = pydantic.Field(default=None, title="Dataset Id")
-    reference_set_annotation_run_id: str | None = pydantic.Field(
+    status: MLAnnotationModelStatus = pydantic.Field(title="Status")
+    dataset_id: str = pydantic.Field(title="Dataset Id")
+    reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Reference Set Annotation Run Id"
     )
     name: str | None = pydantic.Field(default=None, title="Name")
-    training_subset_id: str | None = pydantic.Field(
+    training_subset_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Training Subset Id"
     )
-    validation_subset_id: str | None = pydantic.Field(
+    validation_subset_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Validation Subset Id"
     )
-    test_subset_id: str | None = pydantic.Field(default=None, title="Test Subset Id")
+    test_subset_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Test Subset Id"
+    )
     automation_correctness_curve: dict | None = pydantic.Field(
         default_factory=dict, title="Automation Correctness Curve"
     )
     model_weight_location: str | None = pydantic.Field(
         default=None, title="Model Weight Location"
     )
-    training_set_id: str | None = pydantic.Field(default=None, title="Training Set Id")
-    id: str = pydantic.Field(default=None, title="Id")
+    # todo rename
+    training_set_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Training Set Id"
+    )
 
 
 class AiAnnotationRun(BaseModel):

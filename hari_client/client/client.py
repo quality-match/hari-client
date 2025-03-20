@@ -2440,8 +2440,8 @@ class HARIClient:
         Args:
             name: A descriptive name for the development set.
             training_attributes: The training attributes to be used in the training set.
-            id: The id of the development set (default: None).
-            user_group: The user group for scoping the development set (default: None).  #?
+            id: The id of the development set. If None, random id will be generated during creation.
+            user_group: The user group for creating the development set (default: None).
 
         Returns:
             Created development set object.
@@ -2470,57 +2470,163 @@ class HARIClient:
 
     def get_ml_models(
         self,
-    ) -> list[models.MlAnnotationModel]:
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MlAnnotationModelResponse]:
         """
-        Retrieve all AI Nano Task (AINT) models.
+        Retrieve all ml models available to the user.
+
+        Args:
+            projection: The fields to be returned (dictionary keys with value True are returned,
+            keys with value False are not returned).
 
         Returns:
-            list[models.MlAnnotationModel]: A list of AI annotation model objects.
+             A list of ml annotation models.
         """
         return self._request(
             "GET",
             f"/mlAnnotationModels",
-            success_response_item_model=list[models.MlAnnotationModel],
+            params=self._pack(locals()),
+            success_response_item_model=list[models.MlAnnotationModelResponse],
         )
 
-    def get_ml_model(self, aint_model_id: str) -> models.MlAnnotationModel:
+    def get_ml_model_by_id(
+        self,
+        model_id: uuid.UUID,
+        projection: dict[str, bool] | None = None,
+    ) -> models.MlAnnotationModelResponse:
         """
-        Retrieve a specific AI Nano Task (AINT) model by its ID.
+        Retrieve a specific ml model by its ID.
 
         Args:
-            aint_model_id: The unique identifier of the AI annotation model.
+            model_id: The unique identifier of the AI annotation model.
+            projection: The fields to be returned (dictionary keys with value True are returned,
+            keys with value False are not returned).
 
         Returns:
-            models.MlAnnotationModel: The requested AI annotation model object.
+            The requested ml model.
         """
         return self._request(
             "GET",
-            f"/mlAnnotationModels/{aint_model_id}",
-            success_response_item_model=models.MlAnnotationModel,
+            f"/mlAnnotationModels/{model_id}",
+            params=self._pack(locals(), ignore=["model_id"]),
+            success_response_item_model=models.MlAnnotationModelResponse,
         )
 
-    def train_ml_model(
-        self, name: str, development_set_id: str, user_group: str | None = None
-    ) -> models.MlAnnotationModel:
+    def get_ml_models_by_training_ann_run_id(
+        self,
+        annotation_run_id: uuid.UUID,
+        # todo: add projection when added in the api
+    ) -> list[models.MlAnnotationModelResponse]:
         """
-        Train a new AI Nano Task (AINT) model on a specified development set.
+        Get all ml models trained on the data of a specific annotation run.
 
         Args:
-            name: A descriptive name for the AI model.
-            development_set_id: The unique identifier of the development set to use for training.
-            user_group: The user group for scoping this model (default: None).
+            annotation_run_id: The id of the annotation run used for model training.
 
         Returns:
-            models.MlAnnotationModel: The newly trained AI annotation model.
+            The list of models trained on the data of the annotation run.
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/annotationRun/{annotation_run_id}/mlAnnotationModels",
+            success_response_item_model=list[models.MlAnnotationModelResponse],
+        )
+
+    # todo dataset id and user group are taken from the training set and aren't necessary to specify, is it ok?
+    def train_ml_model(
+        self,
+        name: str,
+        id: uuid.UUID | None = None,
+        training_set_id: uuid.UUID | None = None,
+        reference_set_annotation_run_id: uuid.UUID | None = None,
+    ) -> models.MlAnnotationModelResponse:
+        """
+        Train a new ml model on the specified development set or reference set of the specified annotation run.
+
+        Args:
+            name: A descriptive name for the ml model.
+            id: The id of the model. If None, random id will be generated during creation.
+            training_set_id: The unique identifier of the development set to use for training.
+            reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
+
+        Either training_set_id or reference_set_annotation_run_id must be specified.
+        If both are specified, the reference_set_annotation_run_id will be used.
+
+        Returns:
+            models.MlAnnotationModelResponse: The newly trained AI annotation model.
+        Raises:
+            APIException: If the request fails.
         """
 
-        body = {"name": name, "training_set_id": development_set_id}
+        body = {
+            "name": name,
+            "training_set_id": training_set_id,
+            "reference_set_annotation_run_id": reference_set_annotation_run_id,
+        }
+
+        if id is not None:
+            body["id"] = id
 
         return self._request(
             "POST",
             "/mlAnnotationModels",
             json=body,
-            success_response_item_model=models.MlAnnotationModel,
+            success_response_item_model=models.MlAnnotationModelResponse,
+        )
+
+    def update_ml_model(
+        self,
+        ml_model_id: uuid.UUID,
+        name: str | None = None,
+        user_group: str | None = None,
+        # todo more fields from update?
+    ) -> models.MlAnnotationModelResponse:
+        """
+        Update a ml model.
+
+        Args:
+            ml_model_id: The id of the ml model.
+            name: new desired name for the ml model.
+            user_group: new desired user group for the ml model.
+
+        Returns:
+            The updated ml model.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "PATCH",
+            f"/mlAnnotationModels/{ml_model_id}",
+            json=self._pack(locals(), ignore=["ml_model_id"]),
+            success_response_item_model=models.MlAnnotationModelResponse,
+        )
+
+    def delete_ml_model(
+        self,
+        ml_model_id: uuid.UUID,
+    ) -> str:
+        """
+        Delete a ml model.
+
+        Args:
+            ml_model_id: The id of the ml model.
+
+        Returns:
+            The id of the deleted ml annotation model.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "DELETE",
+            f"/mlAnnotationModels/{ml_model_id}",
+            success_response_item_model=str,
         )
 
     def get_ai_annotation_runs(
