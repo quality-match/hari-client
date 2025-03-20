@@ -2688,22 +2688,22 @@ class HARIClient:
 
     def get_ai_annotation_runs(
         self,
-    ) -> list[models.AiAnnotationRun]:
+    ) -> list[models.AiAnnotationRunResponse]:
         """
-        Retrieve all AI annotation runs.
+        Retrieve all AI annotation runs available to the user.
 
         Returns:
-            list[models.AiAnnotationRun]: A list of AI annotation run objects.
+            A list of AI annotation runs.
         """
         return self._request(
             "GET",
             f"/aiAnnotationRuns",
-            success_response_item_model=list[models.AiAnnotationRun],
+            success_response_item_model=list[models.AiAnnotationRunResponse],
         )
 
     def get_ai_annotation_run(
-        self, ai_annotation_run_id: str
-    ) -> models.AiAnnotationRun:
+        self, ai_annotation_run_id: uuid.UUID
+    ) -> models.AiAnnotationRunResponse:
         """
         Retrieve a specific AI annotation run by its ID.
 
@@ -2711,22 +2711,25 @@ class HARIClient:
             ai_annotation_run_id: The unique identifier of the AI annotation run.
 
         Returns:
-            models.AiAnnotationRun: The requested AI annotation run object.
+            The requested AI annotation run.
         """
         return self._request(
             "GET",
             f"/aiAnnotationRuns/{ai_annotation_run_id}",
-            success_response_item_model=models.AiAnnotationRun,
+            success_response_item_model=models.AiAnnotationRunResponse,
         )
 
     def start_ai_annotation_run(
         self,
         name: str,
-        dataset_id: str,
-        subset_id: str,
+        dataset_id: uuid.UUID,
+        subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
         user_group: str | None = None,
-    ) -> models.AiAnnotationRun:
+        attribute_metadata_id: uuid.UUID
+        | None = None,  # todo is rewritten in the backend
+        # status ? makes no sense
+    ) -> models.AiAnnotationRunResponse:
         """
         Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
 
@@ -2736,21 +2739,68 @@ class HARIClient:
             subset_id: The unique identifier of the subset to be annotated.
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
+            attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
 
         Returns:
-            models.AiAnnotationRun: The newly created AI annotation run object.
+            The created AI annotation run.
         """
-        body = {
-            "name": name,
-            "dataset_id": dataset_id,
-            "subset_id": subset_id,
-            "ml_annotation_model_id": ml_annotation_model_id,
-            "user_group": user_group,
-        }
 
         return self._request(
             "POST",
             "/aiAnnotationRuns",
-            json=body,
-            success_response_item_model=models.AiAnnotationRun,
+            json=self._pack(locals()),
+            success_response_item_model=models.AiAnnotationRunResponse,
+        )
+
+    def update_ai_annotation_run(
+        self,
+        ai_annotation_run_id: uuid.UUID,
+        name: str | None = None,
+        user_group: str | None = None,
+        # todo status makes sense?
+        # todo attribute_metadata_id?
+    ) -> models.AiAnnotationRunResponse:
+        """
+        Update an AI annotation run.
+
+        Args:
+            ai_annotation_run_id: The id of the AI annotation run.
+            name: new desired name for the AI annotation run.
+            user_group: new desired user group for the AI annotation run.
+
+        Returns:
+            The updated AI annotation run.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "PATCH",
+            f"/aiAnnotationRuns/{ai_annotation_run_id}",
+            json=self._pack(locals(), ignore=["ai_annotation_run_id"]),
+            success_response_item_model=models.AiAnnotationRunResponse,
+        )
+
+    def delete_ai_annotation_run(
+        self,
+        ai_annotation_run: uuid.UUID,
+    ) -> str:
+        """
+        Delete an AI annotation run.
+
+        Args:
+            ai_annotation_run: The id of the AI annotation run.
+
+        Returns:
+            The id of the deleted AI annotation run.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "DELETE",
+            f"/aiAnnotationRuns/{ai_annotation_run}",
+            success_response_item_model=str,
         )

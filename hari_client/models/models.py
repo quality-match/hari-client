@@ -868,7 +868,7 @@ class MlAnnotationModelResponse(BaseModel):
     reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Reference Set Annotation Run Id"
     )
-    name: str | None = pydantic.Field(default=None, title="Name")
+    name: str = pydantic.Field(title="Name")
     training_subset_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Training Subset Id"
     )
@@ -890,24 +890,30 @@ class MlAnnotationModelResponse(BaseModel):
     )
 
 
-class AiAnnotationRun(BaseModel):
-    created_at: str | None = pydantic.Field(default=None, title="Created At")
-    updated_at: str | None = pydantic.Field(default=None, title="Updated At")
-    archived_at: str | None = pydantic.Field(default=None, title="Archived At")
+class AiAnnotationRunResponse(BaseModel):
+    id: uuid.UUID = pydantic.Field(title="Id")
+    created_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Created At"
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Updated At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
     owner: str | None = pydantic.Field(default=None, title="Owner")
     user_group: str | None = pydantic.Field(default=None, title="User Group")
-    name: str = pydantic.Field(default=None, title="Name")
-    status: AIAnnotationRunStatus = pydantic.Field(default=None, title="Status")
-    dataset_id: str = pydantic.Field(default=None, title="Dataset Id")
-    subset_id: str = pydantic.Field(default=None, title="Subset Id")
-    ml_annotation_model_id: str | None = pydantic.Field(
-        default=None, title="ML Annotation Model Id"
-    )
-    attribute_metadata_id: str | None = pydantic.Field(
+    name: str = pydantic.Field(title="Name")
+    status: AIAnnotationRunStatus = pydantic.Field(title="Status")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
+    ml_annotation_model_id: uuid.UUID = pydantic.Field(title="ML Annotation Model Id")
+    attribute_metadata_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Attribute Metadata Id"
     )
-    id: str = pydantic.Field(default=None, title="Id")
-    completed_at: str | None = pydantic.Field(default=None, title="Completed At")
+    completed_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Completed At"
+    )
 
 
 class ValidationError(BaseModel):
