@@ -2431,7 +2431,6 @@ class HARIClient:
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
-        id: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.DevelopmentSetResponse:
         """
@@ -2440,7 +2439,6 @@ class HARIClient:
         Args:
             name: A descriptive name for the development set.
             training_attributes: The training attributes to be used in the training set.
-            id: The id of the development set. If None, random id will be generated during creation.
             user_group: The user group for creating the development set (default: None).
 
         Returns:
@@ -2601,7 +2599,6 @@ class HARIClient:
     def train_ml_model(
         self,
         name: str,
-        id: uuid.UUID | None = None,
         training_set_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
     ) -> models.MlAnnotationModelResponse:
@@ -2610,7 +2607,6 @@ class HARIClient:
 
         Args:
             name: A descriptive name for the ml model.
-            id: The id of the model. If None, random id will be generated during creation.
             training_set_id: The unique identifier of the development set to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
 
