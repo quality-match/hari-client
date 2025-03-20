@@ -2410,7 +2410,7 @@ class HARIClient:
         )
 
     def get_development_set(
-        self, development_set_id: str
+        self, development_set_id: uuid.UUID
     ) -> models.DevelopmentSetResponse:
         """
         Get a single development set by its ID.
@@ -2419,7 +2419,7 @@ class HARIClient:
             development_set_id: The unique identifier of the development set.
 
         Returns:
-            models.DevelopmentSetResponse: The requested development set object.
+            The requested development set.
         """
         return self._request(
             "GET",
@@ -2466,6 +2466,68 @@ class HARIClient:
             "/trainingSets",
             json=body,
             success_response_item_model=models.DevelopmentSetResponse,
+        )
+
+    def update_development_set(
+        self,
+        development_set_id: uuid.UUID,
+        name: str | None = None,
+        question: str | None = None,
+        user_group: str | None = None,
+        status: models.DevelopmentSetStatus | None = None,
+    ) -> models.DevelopmentSetResponse:
+        """
+        Update development set.
+
+        Args:
+            development_set_id: The unique identifier of the development set.
+            name: The desired name of the development set.
+            question: The desired question of the development set.
+            user_group: The desired user group of the development set.
+            status: The desired status of the development set.
+
+        Returns:
+           Updated development set.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        # Prepare request data, excluding any fields that are None
+        # todo then user won't be able to set a field to None ever
+        fields_to_update = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ("development_set_id", "self")
+        }
+
+        return self._request(
+            "PATCH",
+            f"/trainingSets/{development_set_id}",
+            json=fields_to_update,
+            success_response_item_model=models.DevelopmentSetResponse,
+        )
+
+    def delete_development_set(
+        self,
+        development_set_id: uuid.UUID,
+    ) -> str:
+        """
+        Update development set.
+
+        Args:
+            development_set_id: The unique identifier of the development set.
+
+        Returns:
+           Deleted development set id.
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/trainingSets/{development_set_id}",
+            success_response_item_model=str,
         )
 
     def get_ml_models(
