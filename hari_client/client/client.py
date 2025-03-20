@@ -2528,12 +2528,12 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-    def get_ml_models(
+    def get_ml_annotation_models(
         self,
         projection: dict[str, bool] | None = None,
     ) -> list[models.MlAnnotationModelResponse]:
         """
-        Retrieve all ml models available to the user.
+        Retrieve all ml annotation models available to the user.
 
         Args:
             projection: The fields to be returned (dictionary keys with value True are returned,
@@ -2549,16 +2549,16 @@ class HARIClient:
             success_response_item_model=list[models.MlAnnotationModelResponse],
         )
 
-    def get_ml_model_by_id(
+    def get_ml_annotation_model_by_id(
         self,
-        model_id: uuid.UUID,
+        ml_annotation_model_id: uuid.UUID,
         projection: dict[str, bool] | None = None,
     ) -> models.MlAnnotationModelResponse:
         """
         Retrieve a specific ml model by its ID.
 
         Args:
-            model_id: The unique identifier of the AI annotation model.
+            ml_annotation_model_id: The unique identifier of the AI annotation model.
             projection: The fields to be returned (dictionary keys with value True are returned,
             keys with value False are not returned).
 
@@ -2567,24 +2567,24 @@ class HARIClient:
         """
         return self._request(
             "GET",
-            f"/mlAnnotationModels/{model_id}",
-            params=self._pack(locals(), ignore=["model_id"]),
+            f"/mlAnnotationModels/{ml_annotation_model_id}",
+            params=self._pack(locals(), ignore=["ml_annotation_model_id"]),
             success_response_item_model=models.MlAnnotationModelResponse,
         )
 
-    def get_ml_models_by_training_ann_run_id(
+    def get_ml_annotation_models_by_training_ann_run_id(
         self,
         annotation_run_id: uuid.UUID,
         # todo: add projection when added in the api
     ) -> list[models.MlAnnotationModelResponse]:
         """
-        Get all ml models trained on the data of a specific annotation run.
+        Get all ml annotation  models trained on the data of a specific annotation run.
 
         Args:
             annotation_run_id: The id of the annotation run used for model training.
 
         Returns:
-            The list of models trained on the data of the annotation run.
+            The list of ml annotation models trained on the data of the annotation run.
 
         Raises:
             APIException: If the request fails.
@@ -2596,25 +2596,24 @@ class HARIClient:
         )
 
     # todo dataset id and user group are taken from the training set and aren't necessary to specify, is it ok?
-    def train_ml_model(
+    def train_ml_annotation_model(
         self,
         name: str,
         training_set_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
     ) -> models.MlAnnotationModelResponse:
         """
-        Train a new ml model on the specified development set or reference set of the specified annotation run.
+        Train a new ml annotation model on the specified development set or reference set of the specified annotation run.
 
         Args:
-            name: A descriptive name for the ml model.
+            name: A descriptive name for the ml annotation model.
             training_set_id: The unique identifier of the development set to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
 
         Either training_set_id or reference_set_annotation_run_id must be specified.
-        If both are specified, the reference_set_annotation_run_id will be used.
 
         Returns:
-            models.MlAnnotationModelResponse: The newly trained AI annotation model.
+            The created ml annotation model.
         Raises:
             APIException: If the request fails.
         """
@@ -2635,23 +2634,23 @@ class HARIClient:
             success_response_item_model=models.MlAnnotationModelResponse,
         )
 
-    def update_ml_model(
+    def update_ml_annotation_model(
         self,
-        ml_model_id: uuid.UUID,
+        ml_annotation_model_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
         # todo more fields from update?
     ) -> models.MlAnnotationModelResponse:
         """
-        Update a ml model.
+        Update a ml annotation model.
 
         Args:
-            ml_model_id: The id of the ml model.
-            name: new desired name for the ml model.
-            user_group: new desired user group for the ml model.
+            ml_annotation_model_id: The id of the ml annotation model.
+            name: new desired name for the ml annotation model.
+            user_group: new desired user group for the ml annotation model.
 
         Returns:
-            The updated ml model.
+            The updated ml annotation model.
 
         Raises:
             APIException: If the request fails.
@@ -2659,20 +2658,20 @@ class HARIClient:
 
         return self._request(
             "PATCH",
-            f"/mlAnnotationModels/{ml_model_id}",
-            json=self._pack(locals(), ignore=["ml_model_id"]),
+            f"/mlAnnotationModels/{ml_annotation_model_id}",
+            json=self._pack(locals(), ignore=["ml_annotation_model_id"]),
             success_response_item_model=models.MlAnnotationModelResponse,
         )
 
-    def delete_ml_model(
+    def delete_ml_annotation_model(
         self,
-        ml_model_id: uuid.UUID,
+        ml_annotation_model_id: uuid.UUID,
     ) -> str:
         """
-        Delete a ml model.
+        Delete a ml annotation model.
 
         Args:
-            ml_model_id: The id of the ml model.
+            ml_annotation_model_id: The id of the ml annotation model.
 
         Returns:
             The id of the deleted ml annotation model.
@@ -2683,7 +2682,7 @@ class HARIClient:
 
         return self._request(
             "DELETE",
-            f"/mlAnnotationModels/{ml_model_id}",
+            f"/mlAnnotationModels/{ml_annotation_model_id}",
             success_response_item_model=str,
         )
 
@@ -2725,17 +2724,17 @@ class HARIClient:
         name: str,
         dataset_id: str,
         subset_id: str,
-        model_id: str,
+        ml_annotation_model_id: uuid.UUID,
         user_group: str | None = None,
     ) -> models.AiAnnotationRun:
         """
-        Start a new AI annotation run. Applies the specified model to the datset and subset
+        Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
 
         Args:
             name: A descriptive name for the AI annotation run.
             dataset_id: The unique identifier of the dataset to be annotated.
             subset_id: The unique identifier of the subset to be annotated.
-            model_id: The unique identifier of the AI annotation model to use.
+            ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
 
         Returns:
@@ -2745,7 +2744,7 @@ class HARIClient:
             "name": name,
             "dataset_id": dataset_id,
             "subset_id": subset_id,
-            "ml_annotation_model_id": model_id,
+            "ml_annotation_model_id": ml_annotation_model_id,
             "user_group": user_group,
         }
 
