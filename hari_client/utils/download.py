@@ -1,3 +1,4 @@
+import functools
 import json
 import os
 import uuid
@@ -161,6 +162,34 @@ def get_ai_annotation_run_for_attribute_id(
     return ai_annotation_run
 
 
+def lru_cache_dataset_directory(func):
+    cache_dict = {}
+
+    @functools.wraps(func)
+    def wrapper(
+        hari,
+        dataset_id: uuid.UUID,
+        directory: str,
+        subset_ids=None,
+        cache=True,
+        additional_fields=None,
+    ):
+        # Build the cache key from only (dataset_id, directory)
+        cache_key = (dataset_id, directory)
+
+        # If it's in our dict, return it
+        if cache_key in cache_dict:
+            return cache_dict[cache_key]
+
+        # Otherwise compute it, store, return
+        result = func(hari, dataset_id, directory, subset_ids, cache, additional_fields)
+        cache_dict[cache_key] = result
+        return result
+
+    return wrapper
+
+
+@lru_cache_dataset_directory
 def collect_media_and_attributes(
     hari: HARIClient,
     dataset_id: uuid.UUID,
