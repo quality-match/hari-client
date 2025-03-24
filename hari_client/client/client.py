@@ -2398,6 +2398,8 @@ class HARIClient:
         self,
     ) -> list[models.DevelopmentSetResponse]:
         """
+        !!! Only available for qm internal users !!!
+
         Retrieve all development sets available to the user.
 
         Returns:
@@ -2413,6 +2415,8 @@ class HARIClient:
         self, development_set_id: uuid.UUID
     ) -> models.DevelopmentSetResponse:
         """
+        !!! Only available for qm internal users !!!
+
         Get a single development set by its ID.
 
         Args:
@@ -2434,6 +2438,8 @@ class HARIClient:
         user_group: str | None = None,
     ) -> models.DevelopmentSetResponse:
         """
+        !!! Only available for qm internal users !!!
+
         Create a new development set from training attributes.
 
         Args:
@@ -2475,6 +2481,8 @@ class HARIClient:
         status: models.DevelopmentSetStatus | None = None,
     ) -> models.DevelopmentSetResponse:
         """
+        !!! Only available for qm internal users !!!
+
         Update development set.
 
         Args:
@@ -2511,7 +2519,9 @@ class HARIClient:
         development_set_id: uuid.UUID,
     ) -> str:
         """
-        Update development set.
+        !!! Only available for qm internal users !!!
+
+        Delete development set.
 
         Args:
             development_set_id: The unique identifier of the development set.
