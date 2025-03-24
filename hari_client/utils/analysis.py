@@ -50,6 +50,7 @@ def organize_attributes_by_group(
     group2media_attribute, group2media_object_attribute = {}, {}
 
     for attr in attributes:
+        # TODO known bug, ID is non unique for autoattributes
         meta = ID2attribute_meta[attr.metadata_id]
         # get correct return dictionary
         if meta.annotatable_type == DataBaseObjectType.MEDIA:
@@ -388,11 +389,18 @@ def calculate_ml_human_alignment(
             # KL Divergence
             scores["kl"].append(kl_divergence(ml_annotations, human_annotations))
             # acc per class
-            # expected_class = max(human_annotations, key=human_annotations.get) # this would be recall
+            expected_class = max(
+                human_annotations, key=human_annotations.get
+            )  # this would be recall
             predicted_class = max(ml_annotations, key=ml_annotations.get)
             if "precision_" + predicted_class not in scores:
                 scores["precision_" + predicted_class] = []
+            if "recall_" + expected_class not in scores:
+                scores["recall_" + expected_class] = []
             scores["precision_" + predicted_class].append(
+                compute_accuracy(ml_annotations, human_annotations)
+            )
+            scores["recall_" + expected_class].append(
                 compute_accuracy(ml_annotations, human_annotations)
             )
 
@@ -412,7 +420,7 @@ def calculate_ml_human_alignment(
             print(
                 f"{key}: {np.mean(values):0.02f} +- {np.std(values):0.02f}, median {np.median(values):0.02f} #{len(values)}"
             )
-        if "acc" in key or "precision" in key:
+        if "acc" in key or "precision" in key or "recall" in key:
             # add confidence estimations
             caluclate_confidence_interval_scores(f"{key} -> ", sum(values), len(values))
 
@@ -597,7 +605,11 @@ def calculate_cutoff_thresholds(
             for ml_anno, human_anno in zip(ml_annotations, human_annotations)
         ]
         isGTLabel = [
-            max(human_anno, key=human_anno.get) for human_anno in human_annotations
+            # recall
+            # max(human_anno, key=human_anno.get) for human_anno in human_annotations
+            # precision
+            max(ml_anno, key=ml_anno.get)
+            for ml_anno in ml_annotations
         ]
         labels = list(set(isGTLabel))
 
