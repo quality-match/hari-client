@@ -89,12 +89,12 @@ if __name__ == "__main__":
     model = hari.get_ml_model_by_id(model_id)
     print(model)
 
-    # get development data for AINT Model
-    developement_id = model.training_set_id
+    # get learning data for AINT Model
+    aint_learning_data_id = model.aint_learning_data_id
 
-    # OPTIONAL if you want to get all development sets
-    sets = hari.get_development_sets()
-    print(f"Found {len(sets)} development sets")
+    # OPTIONAL if you want to get all AINT learning data
+    all_aint_learning_data = hari.get_multiple_aint_learning_data()
+    print(f"Found {len(all_aint_learning_data)} aint learning data entities")
 
-    development_set = hari.get_development_set(developement_id)
-    print(development_set)
+    aint_learning_data = hari.get_aint_learning_data(aint_learning_data_id)
+    print(aint_learning_data)

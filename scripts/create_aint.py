@@ -5,14 +5,14 @@ from hari_client import HARIClient
 from hari_client.models import models
 
 
-def create_development_data(
+def create_aint_learning_data_from_attribute(
     hari: HARIClient,
     name: str,
     dataset_id: str,
     attribute_id: str,
     subset_id: str,
     user_group: str = None,
-) -> models.DevelopmentSetResponse:
+) -> models.AINTLearningDataResponse:
     # construct training attributes
     # simple case only one attribute, simple filter subset
     if subset_id is None:
@@ -30,13 +30,13 @@ def create_development_data(
             ],
         }
 
-    return hari.create_development_set(name, [training_attribute], user_group)
+    return hari.create_aint_learning_data(name, [training_attribute], user_group)
 
 
 if __name__ == "__main__":
     # Argument parser setup.
     parser = argparse.ArgumentParser(
-        description="Create and train an AI Nano Task (model). This also create the needed development sets."
+        description="Create and train an AI Nano Task (model). This also create the needed AINT learning data."
     )
 
     parser.add_argument(
@@ -87,15 +87,15 @@ if __name__ == "__main__":
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # Create Development Data
-    development_data = create_development_data(
+    # Create AINT Learning Data
+    aint_learning_data = create_aint_learning_data_from_attribute(
         hari, name, dataset_id, attribute_id, subset_id, user_group=user_group
     )
-    development_data_id = development_data.id
-    print(f"Created development data with ID: {development_data_id}")
+    aint_learning_data_id = aint_learning_data.id
+    print(f"Created aint learning data with ID: {aint_learning_data_id}")
 
     # Start AINT Training
-    aint_id = hari.train_ml_model(name, development_data_id, user_group=user_group)
+    aint_id = hari.train_ml_model(name, aint_learning_data_id, user_group=user_group)
 
     print(
         "The AINT training can take a while please wait. You will be getting notified via HARI / Email when the training is done."

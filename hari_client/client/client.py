@@ -2394,61 +2394,61 @@ class HARIClient:
 
     ### AI Nano Tasks ###
 
-    def get_development_sets(
+    def get_multiple_aint_learning_data(
         self,
-    ) -> list[models.DevelopmentSetResponse]:
+    ) -> list[models.AINTLearningDataResponse]:
         """
         !!! Only available for qm internal users !!!
 
-        Retrieve all development sets available to the user.
+        Retrieve all AINT learning data available to the user.
 
         Returns:
-            A list of development set objects.
+            A list of AINT learning data objects.
         """
         return self._request(
             "GET",
-            f"/trainingSets",
-            success_response_item_model=list[models.DevelopmentSetResponse],
+            f"/aintLearningData",
+            success_response_item_model=list[models.AINTLearningDataResponse],
         )
 
-    def get_development_set(
-        self, development_set_id: uuid.UUID
-    ) -> models.DevelopmentSetResponse:
+    def get_aint_learning_data(
+        self, aint_learning_data_id: uuid.UUID
+    ) -> models.AINTLearningDataResponse:
         """
         !!! Only available for qm internal users !!!
 
-        Get a single development set by its ID.
+        Get a single AINT learning data by its ID.
 
         Args:
-            development_set_id: The unique identifier of the development set.
+            aint_learning_data_id: The unique identifier of the AINT learning data.
 
         Returns:
-            The requested development set.
+            The requested AINT learning data.
         """
         return self._request(
             "GET",
-            f"/trainingSets/{development_set_id}",
-            success_response_item_model=models.DevelopmentSetResponse,
+            f"/aintLearningData/{aint_learning_data_id}",
+            success_response_item_model=models.AINTLearningDataResponse,
         )
 
-    def create_development_set(
+    def create_aint_learning_data(
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
         user_group: str | None = None,
-    ) -> models.DevelopmentSetResponse:
+    ) -> models.AINTLearningDataResponse:
         """
         !!! Only available for qm internal users !!!
 
-        Create a new development set from training attributes.
+        Create a new AINT learning data from training attributes.
 
         Args:
-            name: A descriptive name for the development set.
-            training_attributes: The training attributes to be used in the training set.
-            user_group: The user group for creating the development set (default: None).
+            name: A descriptive name for the AINT learning data.
+            training_attributes: The training attributes to be used in the AINT learning data.
+            user_group: The user group for creating the AINT learning data (default: None).
 
         Returns:
-            Created development set object.
+            Created AINT learning data object.
         """
 
         training_attribute_dicts = [
@@ -2467,33 +2467,33 @@ class HARIClient:
 
         return self._request(
             "POST",
-            "/trainingSets",
+            "/aintLearningData",
             json=body,
-            success_response_item_model=models.DevelopmentSetResponse,
+            success_response_item_model=models.AINTLearningDataResponse,
         )
 
-    def update_development_set(
+    def update_aint_learning_data(
         self,
-        development_set_id: uuid.UUID,
+        aint_learning_data_id: uuid.UUID,
         name: str | None = None,
         question: str | None = None,
         user_group: str | None = None,
-        status: models.DevelopmentSetStatus | None = None,
-    ) -> models.DevelopmentSetResponse:
+        status: models.AINTLearningDataStatus | None = None,
+    ) -> models.AINTLearningDataResponse:
         """
         !!! Only available for qm internal users !!!
 
-        Update development set.
+        Update AINT learning data.
 
         Args:
-            development_set_id: The unique identifier of the development set.
-            name: The desired name of the development set.
-            question: The desired question of the development set.
-            user_group: The desired user group of the development set.
-            status: The desired status of the development set.
+            aint_learning_data_id: The unique identifier of the AINT learning data.
+            name: The desired name of the AINT learning data.
+            question: The desired question of the AINT learning data.
+            user_group: The desired user group of the AINT learning data.
+            status: The desired status of the AINT learning data.
 
         Returns:
-           Updated development set.
+           Updated AINT learning data.
 
         Raises:
             APIException: If the request fails.
@@ -2504,37 +2504,37 @@ class HARIClient:
         fields_to_update = {
             key: value
             for key, value in locals().items()
-            if value is not None and key not in ("development_set_id", "self")
+            if value is not None and key not in ("aint_learning_data_id", "self")
         }
 
         return self._request(
             "PATCH",
-            f"/trainingSets/{development_set_id}",
+            f"/aintLearningData/{aint_learning_data_id}",
             json=fields_to_update,
-            success_response_item_model=models.DevelopmentSetResponse,
+            success_response_item_model=models.AINTLearningDataResponse,
         )
 
-    def delete_development_set(
+    def delete_aint_learning_data(
         self,
-        development_set_id: uuid.UUID,
+        aint_learning_data_id: uuid.UUID,
     ) -> str:
         """
         !!! Only available for qm internal users !!!
 
-        Delete development set.
+        Delete AINT learning data.
 
         Args:
-            development_set_id: The unique identifier of the development set.
+            aint_learning_data_id: The unique identifier of the AINT learning data.
 
         Returns:
-           Deleted development set id.
+           Deleted AINT learning data id.
 
         Raises:
             APIException: If the request fails.
         """
         return self._request(
             "DELETE",
-            f"/trainingSets/{development_set_id}",
+            f"/aintLearningData/{aint_learning_data_id}",
             success_response_item_model=str,
         )
 
@@ -2609,18 +2609,18 @@ class HARIClient:
     def train_ml_annotation_model(
         self,
         name: str,
-        training_set_id: uuid.UUID | None = None,
+        aint_learning_data_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
     ) -> models.MlAnnotationModelResponse:
         """
-        Train a new ml annotation model on the specified development set or reference set of the specified annotation run.
+        Train a new ml annotation model on the specified AINT learning data or reference set of the specified annotation run.
 
         Args:
             name: A descriptive name for the ml annotation model.
-            training_set_id: The unique identifier of the development set to use for training.
+            aint_learning_data_id: The unique identifier of the AINT learning data to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
 
-        Either training_set_id or reference_set_annotation_run_id must be specified.
+        Either aint_learning_data_id or reference_set_annotation_run_id must be specified.
 
         Returns:
             The created ml annotation model.
@@ -2630,7 +2630,7 @@ class HARIClient:
 
         body = {
             "name": name,
-            "training_set_id": training_set_id,
+            "aint_learning_data_id": aint_learning_data_id,
             "reference_set_annotation_run_id": reference_set_annotation_run_id,
         }
 

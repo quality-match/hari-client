@@ -281,7 +281,7 @@ class AIAnnotationRunStatus(str, enum.Enum):
     DONE = "done"
 
 
-class DevelopmentSetStatus(str, enum.Enum):
+class AINTLearningDataStatus(str, enum.Enum):
     SUBMITTED = "submitted"
     VALIDATING = "validating"
     VALIDATION_FAILED = "validation_failed"
@@ -823,8 +823,7 @@ class TrainingAttribute(BaseModel):
     query: QueryList | None = pydantic.Field(default_factory=list, title="Query")
 
 
-# todo rename
-class DevelopmentSetResponse(BaseModel):
+class AINTLearningDataResponse(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     created_at: datetime.datetime | None = pydantic.Field(
@@ -847,7 +846,7 @@ class DevelopmentSetResponse(BaseModel):
     )
     repeats: int = pydantic.Field(title="Repeats")
     subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
-    status: DevelopmentSetStatus = pydantic.Field(title="Status")
+    status: AINTLearningDataStatus = pydantic.Field(title="Status")
 
 
 class MlAnnotationModelResponse(BaseModel):
@@ -884,9 +883,8 @@ class MlAnnotationModelResponse(BaseModel):
     model_weight_location: str | None = pydantic.Field(
         default=None, title="Model Weight Location"
     )
-    # todo rename
-    training_set_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Training Set Id"
+    aint_learning_data_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="AINT learning data Id"
     )
 
 
