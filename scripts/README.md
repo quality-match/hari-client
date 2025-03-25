@@ -24,10 +24,10 @@ Below you can find a description of the different available scripts.
 ### AINT (AI Nano Tasks)
 
 - `get_aint_attribute_info` Get all linked AINT info for an AI annotation run attribute
-  - Call with: `python get_aint_attribute_info.py --aint_attribute_id <Attribute ID: UUID>`
+  - Run with: `python get_aint_attribute_info.py --aint_attribute_id <Attribute ID: UUID>`
 - `create_aint` Create and train an AI Nano Task (model). This also create the needed development sets.
-  - Call with: `python create_aint.py --name <Name : str> --dataset_id <Dataset ID: UUID> --attribute_id <Attribute ID used for training: UUID> --user_group <Usergroup Name: str>`
-- `apply_aint_generic` Apply a trained AI Nano Task model to a new dataset
-  - Call with: `python apply_aint_generic.py --name <Name : str> --dataset_id <Dataset ID: UUID> --subset_id <Subset ID: UUID> --aint_model_id <Model ID: UUID> --user_group <Usergroup Name: str>`
+  - Run with: `python create_aint.py --name <Name : str> --dataset_id <Dataset ID: UUID> --attribute_id <Attribute ID used for training: UUID> --user_group <Usergroup Name: str>`
+- `start_ai_annotation_run` Apply a trained AI Nano Task model to new data to run ai annotation and get model's predictions.
+  - Run with: `python start_ai_annotation_run.py --name <Name : str> --dataset_id <Dataset ID: UUID> --subset_id <Subset ID: UUID> --aint_model_id <Model ID: UUID> --user_group <Usergroup Name: str>`
 - `apply_aint_on_test_data` Apply a trained AI Nano Task model to its associated test set. This can be used to do manual analysis on the test set.
-  - Call with: `python apply_aint_on_test_data.py --name <Name : str> --aint_model_id <Model ID: UUID> --user_group <Usergroup Name: str>`
+  - Run with: `python apply_aint_on_test_data.py --name <Name : str> --aint_model_id <Model ID: UUID> --user_group <Usergroup Name: str>`
