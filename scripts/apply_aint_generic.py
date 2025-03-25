@@ -1,67 +1,64 @@
 import argparse
+import uuid
 
 from hari_client import Config
 from hari_client import HARIClient
 
 
 if __name__ == "__main__":
-    # Argument parser setup.
     parser = argparse.ArgumentParser(
-        description="Apply a trained AI Nano Task model to a new dataset"
+        description="Apply a trained AI Nano Task model to new data to run ai annotation and get model's predictions."
     )
 
     parser.add_argument(
         "-n",
         "--name",
         type=str,
-        help="Name of the AINT execution, used for identification. "
-        "It is recommended to include the Project Name and Applied Dataset / Subset name for easier searchability.",
+        help="Name of the AINT AI annotation run, used for later identification.",
         required=True,
     )
     parser.add_argument(
-        "-a",
-        "--aint_model_id",
-        type=str,
-        help="ID of the AI Nano Task model. Training needs to be done before the AINT can be used.",
+        "-m",
+        "--model_id",
+        type=uuid.UUID,
+        help="ID of the AI Nano Task model. Training needs to be finished before the model can be used for ai annotation.",
         required=True,
     )
     parser.add_argument(
-        "-d", "--dataset_id", type=str, help="Dataset ID to work on.", required=True
+        "-d",
+        "--dataset_id",
+        type=uuid.UUID,
+        help="Dataset ID of the new data.",
+        required=True,
     )
     parser.add_argument(
         "-s",
         "--subset_id",
-        type=str,
-        help="Subset ID to which the attributes should be restricted.",
+        type=uuid.UUID,
+        help="Subset ID of the new data.",
         required=True,
     )
 
     parser.add_argument(
+        "-u",
         "--user_group",
         type=str,
-        help="User group for the creation, if you can not see your creation you might have a visibility issue related to your user_group",
+        help="User group for the creation, if you can not see your created run, you might have a visibility issue related to your user_group",
         required=True,
     )
 
-    # Parse the arguments.
     args = parser.parse_args()
-
-    # Extract arguments.
-    name: str = args.name
-    aint_model_id: str = args.aint_model_id
-    dataset_id: str = args.dataset_id
-    subset_id: str = args.subset_id
-    user_group: str = args.user_group
 
     # load hari client
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # Start AINT prediction
+    # Start new AI annotation run to get AINT model predictions
     hari.start_ai_annotation_run(
-        name, dataset_id, subset_id, aint_model_id, user_group=user_group
+        args.name, args.dataset_id, args.subset_id, args.model_id, args.user_group
     )
 
     print(
-        "The AINT prediction can take a while please wait. You will be getting notified via HARI / Email when the prediction is done."
+        "The AI annotation run can take some time, please wait. "
+        "You will be notified via HARI / Email when the ai annotation is finished."
     )
