@@ -2698,7 +2698,7 @@ class HARIClient:
 
     def get_ai_annotation_runs(
         self,
-    ) -> list[models.AiAnnotationRunResponse]:
+    ) -> list[models.AIAnnotationRunResponse]:
         """
         Retrieve all AI annotation runs available to the user.
 
@@ -2708,12 +2708,12 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aiAnnotationRuns",
-            success_response_item_model=list[models.AiAnnotationRunResponse],
+            success_response_item_model=list[models.AIAnnotationRunResponse],
         )
 
     def get_ai_annotation_run(
         self, ai_annotation_run_id: uuid.UUID
-    ) -> models.AiAnnotationRunResponse:
+    ) -> models.AIAnnotationRunResponse:
         """
         Retrieve a specific AI annotation run by its ID.
 
@@ -2726,7 +2726,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aiAnnotationRuns/{ai_annotation_run_id}",
-            success_response_item_model=models.AiAnnotationRunResponse,
+            success_response_item_model=models.AIAnnotationRunResponse,
         )
 
     def start_ai_annotation_run(
@@ -2739,7 +2739,7 @@ class HARIClient:
         attribute_metadata_id: uuid.UUID
         | None = None,  # todo is rewritten in the backend
         # status ? makes no sense
-    ) -> models.AiAnnotationRunResponse:
+    ) -> models.AIAnnotationRunResponse:
         """
         Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
 
@@ -2759,7 +2759,7 @@ class HARIClient:
             "POST",
             "/aiAnnotationRuns",
             json=self._pack(locals()),
-            success_response_item_model=models.AiAnnotationRunResponse,
+            success_response_item_model=models.AIAnnotationRunResponse,
         )
 
     def update_ai_annotation_run(
@@ -2769,7 +2769,7 @@ class HARIClient:
         user_group: str | None = None,
         # todo status makes sense?
         # todo attribute_metadata_id?
-    ) -> models.AiAnnotationRunResponse:
+    ) -> models.AIAnnotationRunResponse:
         """
         Update an AI annotation run.
 
@@ -2789,7 +2789,7 @@ class HARIClient:
             "PATCH",
             f"/aiAnnotationRuns/{ai_annotation_run_id}",
             json=self._pack(locals(), ignore=["ai_annotation_run_id"]),
-            success_response_item_model=models.AiAnnotationRunResponse,
+            success_response_item_model=models.AIAnnotationRunResponse,
         )
 
     def delete_ai_annotation_run(

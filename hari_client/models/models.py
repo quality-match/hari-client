@@ -890,7 +890,7 @@ class MlAnnotationModelResponse(BaseModel):
     )
 
 
-class AiAnnotationRunResponse(BaseModel):
+class AIAnnotationRunResponse(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     created_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Created At"
