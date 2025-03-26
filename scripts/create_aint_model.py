@@ -16,7 +16,7 @@ def create_training_set(
     attribute_id: uuid.UUID,
     subset_id: uuid.UUID,
     user_group: str = None,
-) -> models.TrainingSetResponse:
+) -> models.TrainingSet:
     # construct training attributes
     if subset_id is None:
         training_attribute = models.TrainingAttribute(

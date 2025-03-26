@@ -11,7 +11,7 @@ log = logger.setup_logger(__name__)
 
 def get_ai_annotation_run_for_attribute_id(
     hari: HARIClient, ml_attribute_id: str
-) -> models.AIAnnotationRunResponse | None:
+) -> models.AIAnnotationRun | None:
     """
     Find an AI Annotation Run corresponding to a given attribute ID.
 

@@ -2396,7 +2396,7 @@ class HARIClient:
 
     def get_training_sets(
         self,
-    ) -> list[models.TrainingSetResponse]:
+    ) -> list[models.TrainingSet]:
         """
         !!! Only available for qm internal users !!!
 
@@ -2408,12 +2408,10 @@ class HARIClient:
         return self._request(
             "GET",
             f"/trainingSets",
-            success_response_item_model=list[models.TrainingSetResponse],
+            success_response_item_model=list[models.TrainingSet],
         )
 
-    def get_training_set(
-        self, training_set_id: uuid.UUID
-    ) -> models.TrainingSetResponse:
+    def get_training_set(self, training_set_id: uuid.UUID) -> models.TrainingSet:
         """
         !!! Only available for qm internal users !!!
 
@@ -2428,7 +2426,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/trainingSets/{training_set_id}",
-            success_response_item_model=models.TrainingSetResponse,
+            success_response_item_model=models.TrainingSet,
         )
 
     def create_training_set(
@@ -2437,7 +2435,7 @@ class HARIClient:
         training_attributes: list[models.TrainingAttribute],
         user_group: str | None = None,
         id: uuid.UUID | None = None,
-    ) -> models.TrainingSetResponse:
+    ) -> models.TrainingSet:
         """
         !!! Only available for qm internal users !!!
 
@@ -2471,7 +2469,7 @@ class HARIClient:
             "POST",
             "/trainingSets",
             json=body,
-            success_response_item_model=models.TrainingSetResponse,
+            success_response_item_model=models.TrainingSet,
         )
 
     def update_training_set(
@@ -2481,7 +2479,7 @@ class HARIClient:
         question: str | None = None,
         user_group: str | None = None,
         status: models.TrainingSetStatus | None = None,
-    ) -> models.TrainingSetResponse:
+    ) -> models.TrainingSet:
         """
         !!! Only available for qm internal users !!!
 
@@ -2505,7 +2503,7 @@ class HARIClient:
             "PATCH",
             f"/trainingSets/{training_set_id}",
             json=self._pack(locals(), ignore=["training_set_id"]),
-            success_response_item_model=models.TrainingSetResponse,
+            success_response_item_model=models.TrainingSet,
         )
 
     def delete_training_set(
@@ -2535,7 +2533,7 @@ class HARIClient:
     def get_ml_annotation_models(
         self,
         projection: dict[str, bool] | None = None,
-    ) -> list[models.MlAnnotationModelResponse]:
+    ) -> list[models.MlAnnotationModel]:
         """
         Retrieve all ml annotation models available to the user.
 
@@ -2550,14 +2548,14 @@ class HARIClient:
             "GET",
             f"/mlAnnotationModels",
             params=self._pack(locals()),
-            success_response_item_model=list[models.MlAnnotationModelResponse],
+            success_response_item_model=list[models.MlAnnotationModel],
         )
 
     def get_ml_annotation_model_by_id(
         self,
         ml_annotation_model_id: uuid.UUID,
         projection: dict[str, bool] | None = None,
-    ) -> models.MlAnnotationModelResponse:
+    ) -> models.MlAnnotationModel:
         """
         Retrieve a specific ml model by its ID.
 
@@ -2573,13 +2571,13 @@ class HARIClient:
             "GET",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
             params=self._pack(locals(), ignore=["ml_annotation_model_id"]),
-            success_response_item_model=models.MlAnnotationModelResponse,
+            success_response_item_model=models.MlAnnotationModel,
         )
 
     def get_ml_annotation_models_by_training_ann_run_id(
         self,
         annotation_run_id: uuid.UUID,
-    ) -> list[models.MlAnnotationModelResponse]:
+    ) -> list[models.MlAnnotationModel]:
         """
         Get all ml annotation  models trained on the data of a specific annotation run.
 
@@ -2595,7 +2593,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/annotationRun/{annotation_run_id}/mlAnnotationModels",
-            success_response_item_model=list[models.MlAnnotationModelResponse],
+            success_response_item_model=list[models.MlAnnotationModel],
         )
 
     def train_ml_annotation_model(
@@ -2605,7 +2603,7 @@ class HARIClient:
         reference_set_annotation_run_id: uuid.UUID | None = None,
         id: uuid.UUID | None = None,
         dataset_id: uuid.UUID | None = None,  # todo: not necessary
-    ) -> models.MlAnnotationModelResponse:
+    ) -> models.MlAnnotationModel:
         """
         Train a new ml annotation model on the specified training set or reference set of the specified annotation run.
 
@@ -2640,7 +2638,7 @@ class HARIClient:
             "POST",
             "/mlAnnotationModels",
             json=body,
-            success_response_item_model=models.MlAnnotationModelResponse,
+            success_response_item_model=models.MlAnnotationModel,
         )
 
     def update_ml_annotation_model(
@@ -2649,7 +2647,7 @@ class HARIClient:
         name: str | None = None,
         user_group: str | None = None,
         # todo more fields from update?
-    ) -> models.MlAnnotationModelResponse:
+    ) -> models.MlAnnotationModel:
         """
         Update a ml annotation model.
 
@@ -2669,7 +2667,7 @@ class HARIClient:
             "PATCH",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
             json=self._pack(locals(), ignore=["ml_annotation_model_id"]),
-            success_response_item_model=models.MlAnnotationModelResponse,
+            success_response_item_model=models.MlAnnotationModel,
         )
 
     def delete_ml_annotation_model(
@@ -2697,7 +2695,7 @@ class HARIClient:
 
     def get_ai_annotation_runs(
         self,
-    ) -> list[models.AIAnnotationRunResponse]:
+    ) -> list[models.AIAnnotationRun]:
         """
         Retrieve all AI annotation runs available to the user.
 
@@ -2707,12 +2705,12 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aiAnnotationRuns",
-            success_response_item_model=list[models.AIAnnotationRunResponse],
+            success_response_item_model=list[models.AIAnnotationRun],
         )
 
     def get_ai_annotation_run(
         self, ai_annotation_run_id: uuid.UUID
-    ) -> models.AIAnnotationRunResponse:
+    ) -> models.AIAnnotationRun:
         """
         Retrieve a specific AI annotation run by its ID.
 
@@ -2725,7 +2723,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aiAnnotationRuns/{ai_annotation_run_id}",
-            success_response_item_model=models.AIAnnotationRunResponse,
+            success_response_item_model=models.AIAnnotationRun,
         )
 
     def start_ai_annotation_run(
@@ -2739,7 +2737,7 @@ class HARIClient:
         | None = None,  # todo is rewritten in the backend
         # status ? makes no sense
         id: uuid.UUID | None = None,
-    ) -> models.AIAnnotationRunResponse:
+    ) -> models.AIAnnotationRun:
         """
         Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
 
@@ -2772,7 +2770,7 @@ class HARIClient:
             "POST",
             "/aiAnnotationRuns",
             json=body,
-            success_response_item_model=models.AIAnnotationRunResponse,
+            success_response_item_model=models.AIAnnotationRun,
         )
 
     def update_ai_annotation_run(
@@ -2782,7 +2780,7 @@ class HARIClient:
         user_group: str | None = None,
         # todo status makes sense?
         # todo attribute_metadata_id?
-    ) -> models.AIAnnotationRunResponse:
+    ) -> models.AIAnnotationRun:
         """
         Update an AI annotation run.
 
@@ -2802,7 +2800,7 @@ class HARIClient:
             "PATCH",
             f"/aiAnnotationRuns/{ai_annotation_run_id}",
             json=self._pack(locals(), ignore=["ai_annotation_run_id"]),
-            success_response_item_model=models.AIAnnotationRunResponse,
+            success_response_item_model=models.AIAnnotationRun,
         )
 
     def delete_ai_annotation_run(

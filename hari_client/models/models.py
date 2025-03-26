@@ -824,7 +824,7 @@ class TrainingAttribute(BaseModel):
 
 
 # todo rename
-class TrainingSetResponse(BaseModel):
+class TrainingSet(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     created_at: datetime.datetime | None = pydantic.Field(
@@ -850,7 +850,7 @@ class TrainingSetResponse(BaseModel):
     status: TrainingSetStatus = pydantic.Field(title="Status")
 
 
-class MlAnnotationModelResponse(BaseModel):
+class MlAnnotationModel(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     created_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Created At"
@@ -890,7 +890,7 @@ class MlAnnotationModelResponse(BaseModel):
     )
 
 
-class AIAnnotationRunResponse(BaseModel):
+class AIAnnotationRun(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     created_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Created At"
