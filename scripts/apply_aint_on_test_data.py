@@ -1,7 +1,11 @@
 import argparse
+import uuid
 
 from hari_client import Config
 from hari_client import HARIClient
+from hari_client.utils import logger
+
+log = logger.setup_logger(__name__)
 
 
 if __name__ == "__main__":
@@ -14,14 +18,13 @@ if __name__ == "__main__":
         "-n",
         "--name",
         type=str,
-        help="Name of the AINT execution, used for identification. "
-        "It is recommended to include the Project Name and Applied Dataset / Subset name for easier searchability.",
+        help="Name of the AINT AI annotation, that will be used for later identification.",
         required=True,
     )
     parser.add_argument(
         "-a",
-        "--aint_model_id",
-        type=str,
+        "--model_id",
+        type=uuid.UUID,
         help="ID of the AI Nano Task model. Training needs to be done before the AINT can be used.",
         required=True,
     )
@@ -37,26 +40,26 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Extract arguments.
-    name: str = args.name
-    aint_id: str = args.aint_id
-    user_group: str = args.user_group
+    name = args.name
+    model_id = args.model_id
+    user_group = args.user_group
 
     # load hari client
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # get development data for AINT ID
-    model = hari.get_ml_model(aint_id)
-    print(model.dataset_id)
-    print(model.test_subset_id)
+    # get training data for AINT ID
+    model = hari.get_ml_annotation_model_by_id(model_id)
+    log.info(model.dataset_id)
+    log.info(model.test_subset_id)
 
     # TODO Currently this request is blocked by the API
 
-    # Start AINT prediction
+    # Start AINT prediction (ai annotation run)
     hari.start_ai_annotation_run(
-        name, model.dataset_id, model.test_subset_id, aint_id, user_group=user_group
+        name, model.dataset_id, model.test_subset_id, model_id, user_group
     )
 
-    print(
-        "The AINT prediction can take a while please wait. You will be getting notified via HARI / Email when the prediction is done."
+    log.info(
+        "The AI annotation run can take a while, please wait. You will be notified via HARI / Email when the ai annotation is finished."
     )

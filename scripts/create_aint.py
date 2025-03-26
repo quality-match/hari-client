@@ -12,7 +12,7 @@ def create_aint_learning_data_from_attribute(
     attribute_id: str,
     subset_id: str,
     user_group: str = None,
-) -> models.AINTLearningDataResponse:
+) -> models.AINTLearningData:
     # construct training attributes
     # simple case only one attribute, simple filter subset
     if subset_id is None:

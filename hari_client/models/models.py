@@ -819,11 +819,11 @@ class MediaObjectResponse(BaseModel):
 
 class TrainingAttribute(BaseModel):
     dataset_id: uuid.UUID = pydantic.Field(default=None, title="Dataset Id")
-    attribute_id: str = pydantic.Field(default=None, title="Attribute Id")
+    attribute_id: uuid.UUID = pydantic.Field(default=None, title="Attribute Id")
     query: QueryList | None = pydantic.Field(default_factory=list, title="Query")
 
 
-class AINTLearningDataResponse(BaseModel):
+class AINTLearningData(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     created_at: datetime.datetime | None = pydantic.Field(
@@ -849,7 +849,7 @@ class AINTLearningDataResponse(BaseModel):
     status: AINTLearningDataStatus = pydantic.Field(title="Status")
 
 
-class MlAnnotationModelResponse(BaseModel):
+class MlAnnotationModel(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     created_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Created At"
@@ -888,7 +888,7 @@ class MlAnnotationModelResponse(BaseModel):
     )
 
 
-class AiAnnotationRunResponse(BaseModel):
+class AIAnnotationRun(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     created_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Created At"
