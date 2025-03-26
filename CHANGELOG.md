@@ -8,7 +8,6 @@
   - added methods for TrainingSet, MLAnnotationModel and AIAnnotationRun
 - added helper AINT [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - `aint/start_ai_annotation_run.py`,
-  - `aint/apply_aint_on_test_data.py`,
   - `aint/create_aint_model.py`,
   - `aint/get_aint_attribute_info.py`
 
