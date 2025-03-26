@@ -1,5 +1,17 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New features
+
+- added scripts [PR#58](https://github.com/quality-match/hari-client/pull/58)
+  - added script `data_upload/trigger_metadata_rebuild.py`
+  - added script `data_upload/upload_coco_like_dataset.py`
+  - added script `data_upload/upload_yolo_like_dataset.py`
+  - added script `data_upload/upload_single_image.py`
+  - added script `data_upload/upload_dataset_with_own_annotation_attributes.py`
+- added upload utilities [PR#58](https://github.com/quality-match/hari-client/pull/58)
+  - added helper methods to check for existing datasets and subsets before upload
+  - added helper method to trigger metadata rebuild and track its progress
+
 ## [3.4.0] - 07-03-2025
 
 ### New features
@@ -68,13 +80,6 @@
   - attribute value types have to be consistent
   - attributes with a list as value have to have a single consistent value type for their list elements
   - attributes with the same name and annotatable_type have to reuse the same attribute id
-- added scripts [PR#58](https://github.com/quality-match/hari-client/pull/58)
-  - added script `trigger_metadata_rebuild`
-  - added script `upload_coco_like_dataset`
-  - added script `upload_generic_dataset`
-  - added script `upload_dataset_with_own_attributes`
-- extended client [PR#58](https://github.com/quality-match/hari-client/pull/58)
-  - Add Uploader Wrappings which check for existing datasets, subsets and media before creation or upload
 
 ### Fixes
 
