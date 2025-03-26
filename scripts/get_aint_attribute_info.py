@@ -59,7 +59,7 @@ if __name__ == "__main__":
     # get Info for attribute ID
 
     # search for the desired annotation run
-    # todo replace with get ai annotation rus with query when available
+    # todo replace with get ai annotation runs with query when available
     ai_annotation_run = get_ai_annotation_run_for_attribute_id(hari, ml_attribute_id)
 
     if not ai_annotation_run:

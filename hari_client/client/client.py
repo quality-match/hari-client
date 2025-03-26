@@ -2606,22 +2606,23 @@ class HARIClient:
             success_response_item_model=list[models.MlAnnotationModelResponse],
         )
 
-    # todo dataset id and user group are taken from the training set and aren't necessary to specify, is it ok?
     def train_ml_annotation_model(
         self,
         name: str,
         training_set_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
         id: uuid.UUID | None = None,
+        dataset_id: uuid.UUID | None = None,  # todo: not necessary
     ) -> models.MlAnnotationModelResponse:
         """
         Train a new ml annotation model on the specified development set or reference set of the specified annotation run.
 
         Args:
             name: A descriptive name for the ml annotation model.
-            id: The id of the model. If None, random id will be generated during creation.
             training_set_id: The unique identifier of the development set to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
+            id: The id of the model. If None, random id will be generated during creation.
+            dataset_id: The dataset id to train the model on.
 
         Either training_set_id or reference_set_annotation_run_id must be specified.
 
@@ -2639,6 +2640,9 @@ class HARIClient:
 
         if id is not None:
             body["id"] = id
+
+        if dataset_id is not None:
+            body["dataset_id"] = dataset_id
 
         return self._request(
             "POST",
