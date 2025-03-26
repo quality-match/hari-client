@@ -24,7 +24,7 @@ Below you can find a description of the different available scripts.
 ### AINT (AI Nano Tasks)
 
 - `get_aint_attribute_info` Get all linked AINT info for an AI annotation run attribute
-  - Run with: `python get_aint_attribute_info.py --aint_attribute_id <Attribute ID: UUID>`
+  - Run with: `python get_aint_attribute_info.py --ml_attribute_id <Attribute ID: UUID>`
 - `create_aint` Create and train an AI Nano Task (model). This also create the needed development sets.
   - Run with: `python create_aint.py --name <Name : str> --dataset_id <Dataset ID: UUID> --attribute_id <Attribute ID used for training: UUID> --user_group <Usergroup Name: str>`
 - `start_ai_annotation_run` Apply a trained AI Nano Task model to new data to run ai annotation and get model's predictions.
