@@ -31,5 +31,3 @@ Currently only available to internal QM users.
   - Run with: `python create_aint_model.py --name <Name : str> --dataset_id <Dataset ID: UUID> --attribute_id <Attribute ID: UUID> --subset_id <Subset ID(optional): UUID> --user_group <User Group Name: str>`
 - `start_ai_annotation_run` Apply a trained AI Nano Task model to new data to run ai annotation and get model's predictions.
   - Run with: `python start_ai_annotation_run.py --name <Name : str> --dataset_id <Dataset ID: UUID> --subset_id <Subset ID: UUID> --aint_model_id <Model ID: UUID> --user_group <User Group Name: str>`
-- `apply_aint_on_test_data` Apply a trained AI Nano Task model to its associated test set. This can be used to do manual analysis on the test set.
-  - Run with: `python apply_aint_on_test_data.py --name <Name : str> --aint_model_id <Model ID: UUID> --user_group <User Group Name: str>`
