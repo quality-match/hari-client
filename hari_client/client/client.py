@@ -2501,18 +2501,10 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        # Prepare request data, excluding any fields that are None
-        # todo then user won't be able to set a field to None ever
-        fields_to_update = {
-            key: value
-            for key, value in locals().items()
-            if value is not None and key not in ("development_set_id", "self")
-        }
-
         return self._request(
             "PATCH",
             f"/trainingSets/{development_set_id}",
-            json=fields_to_update,
+            json=self._pack(locals(), ignore=["development_set_id"]),
             success_response_item_model=models.DevelopmentSetResponse,
         )
 
