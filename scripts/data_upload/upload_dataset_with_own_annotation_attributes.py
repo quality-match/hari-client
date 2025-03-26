@@ -16,7 +16,7 @@ from hari_client.utils.upload import check_and_upload_dataset
 from hari_client.utils.upload import get_or_create_dataset
 
 
-def load_data(root_directory, source_dataset_name: str):
+def generate_example_data(root_directory, source_dataset_name: str):
     # This is the place where you need to specify the data, for the purpose of this example we will use random data
 
     # ----- Configuration -----
@@ -130,8 +130,8 @@ def upload_dataset_with_own_attributes(
     )
     dataset_id = get_or_create_dataset(hari, dataset_name, user_group, is_anonymized)
 
-    # load actual data for upload
-    data = load_data(root_directory, source_dataset_name)
+    # generate example data for upload
+    data = generate_example_data(root_directory, source_dataset_name)
 
     medias = {
         image_path: hari_uploader.HARIMedia(
