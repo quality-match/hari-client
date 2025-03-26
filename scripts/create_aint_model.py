@@ -9,14 +9,14 @@ from hari_client.utils import logger
 log = logger.setup_logger(__name__)
 
 
-def create_development_data(
+def create_training_set(
     hari: HARIClient,
     name: str,
     dataset_id: uuid.UUID,
     attribute_id: uuid.UUID,
     subset_id: uuid.UUID,
     user_group: str = None,
-) -> models.DevelopmentSetResponse:
+) -> models.TrainingSetResponse:
     # construct training attributes
     if subset_id is None:
         training_attribute = models.TrainingAttribute(
@@ -33,12 +33,12 @@ def create_development_data(
             ],
         )
 
-    return hari.create_development_set(name, [training_attribute], user_group)
+    return hari.create_training_set(name, [training_attribute], user_group)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Create and train an AI Nano Task (model). This also create the needed development sets."
+        description="Create and train an AI Nano Task (model). This also create the needed training sets."
     )
 
     parser.add_argument(
@@ -83,9 +83,9 @@ if __name__ == "__main__":
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # Create Development Data
+    # Create Trainint Set
     # !!! only available to qm internal users !!!
-    development_data = create_development_data(
+    training_set = create_training_set(
         hari,
         args.name,
         args.dataset_id,
@@ -93,11 +93,11 @@ if __name__ == "__main__":
         args.subset_id,
         args.user_group,
     )
-    development_data_id = development_data.id
-    log.info(f"Created development data with ID: {development_data_id}")
+    training_set_id = training_set.id
+    log.info(f"Created training set with ID: {training_set_id}")
 
     # Start AINT model training
-    model_id = hari.train_ml_annotation_model(args.name, development_data_id)
+    model_id = hari.train_ml_annotation_model(args.name, training_set_id)
 
     log.info(
         "The AINT training can take a while, please wait. "

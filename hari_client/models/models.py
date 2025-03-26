@@ -281,7 +281,7 @@ class AIAnnotationRunStatus(str, enum.Enum):
     DONE = "done"
 
 
-class DevelopmentSetStatus(str, enum.Enum):
+class TrainingSetStatus(str, enum.Enum):
     SUBMITTED = "submitted"
     VALIDATING = "validating"
     VALIDATION_FAILED = "validation_failed"
@@ -824,7 +824,7 @@ class TrainingAttribute(BaseModel):
 
 
 # todo rename
-class DevelopmentSetResponse(BaseModel):
+class TrainingSetResponse(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     name: str = pydantic.Field(title="Name")
     created_at: datetime.datetime | None = pydantic.Field(
@@ -847,7 +847,7 @@ class DevelopmentSetResponse(BaseModel):
     )
     repeats: int = pydantic.Field(title="Repeats")
     subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
-    status: DevelopmentSetStatus = pydantic.Field(title="Status")
+    status: TrainingSetStatus = pydantic.Field(title="Status")
 
 
 class MlAnnotationModelResponse(BaseModel):

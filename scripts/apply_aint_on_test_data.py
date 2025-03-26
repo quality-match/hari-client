@@ -48,8 +48,7 @@ if __name__ == "__main__":
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # get development data for AINT ID
-    # !!! only available to internal qm users !!!
+    # get training data for AINT ID
     model = hari.get_ml_annotation_model_by_id(model_id)
     log.info(model.dataset_id)
     log.info(model.test_subset_id)

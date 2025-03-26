@@ -2394,63 +2394,63 @@ class HARIClient:
 
     ### AI Nano Tasks ###
 
-    def get_development_sets(
+    def get_training_sets(
         self,
-    ) -> list[models.DevelopmentSetResponse]:
+    ) -> list[models.TrainingSetResponse]:
         """
         !!! Only available for qm internal users !!!
 
-        Retrieve all development sets available to the user.
+        Retrieve all training sets available to the user.
 
         Returns:
-            A list of development set objects.
+            A list of training set objects.
         """
         return self._request(
             "GET",
             f"/trainingSets",
-            success_response_item_model=list[models.DevelopmentSetResponse],
+            success_response_item_model=list[models.TrainingSetResponse],
         )
 
-    def get_development_set(
-        self, development_set_id: uuid.UUID
-    ) -> models.DevelopmentSetResponse:
+    def get_training_set(
+        self, training_set_id: uuid.UUID
+    ) -> models.TrainingSetResponse:
         """
         !!! Only available for qm internal users !!!
 
-        Get a single development set by its ID.
+        Get a single training set by its ID.
 
         Args:
-            development_set_id: The unique identifier of the development set.
+            training_set_id: The unique identifier of the training set.
 
         Returns:
-            The requested development set.
+            The requested training set.
         """
         return self._request(
             "GET",
-            f"/trainingSets/{development_set_id}",
-            success_response_item_model=models.DevelopmentSetResponse,
+            f"/trainingSets/{training_set_id}",
+            success_response_item_model=models.TrainingSetResponse,
         )
 
-    def create_development_set(
+    def create_training_set(
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
         user_group: str | None = None,
         id: uuid.UUID | None = None,
-    ) -> models.DevelopmentSetResponse:
+    ) -> models.TrainingSetResponse:
         """
         !!! Only available for qm internal users !!!
 
-        Create a new development set from training attributes.
+        Create a new training set from training attributes.
 
         Args:
-            name: A descriptive name for the development set.
+            name: A descriptive name for the training set.
             training_attributes: The training attributes to be used in the training set.
-            user_group: The user group for creating the development set (default: None).
-            id: The id of the development set. If None, random id will be generated during creation.
+            user_group: The user group for creating the training set (default: None).
+            id: The id of the training set. If None, random id will be generated during creation.
 
         Returns:
-            Created development set object.
+            Created training set object.
         """
 
         training_attribute_dicts = [
@@ -2471,31 +2471,31 @@ class HARIClient:
             "POST",
             "/trainingSets",
             json=body,
-            success_response_item_model=models.DevelopmentSetResponse,
+            success_response_item_model=models.TrainingSetResponse,
         )
 
-    def update_development_set(
+    def update_training_set(
         self,
-        development_set_id: uuid.UUID,
+        training_set_id: uuid.UUID,
         name: str | None = None,
         question: str | None = None,
         user_group: str | None = None,
-        status: models.DevelopmentSetStatus | None = None,
-    ) -> models.DevelopmentSetResponse:
+        status: models.TrainingSetStatus | None = None,
+    ) -> models.TrainingSetResponse:
         """
         !!! Only available for qm internal users !!!
 
-        Update development set.
+        Update training set.
 
         Args:
-            development_set_id: The unique identifier of the development set.
-            name: The desired name of the development set.
-            question: The desired question of the development set.
-            user_group: The desired user group of the development set.
-            status: The desired status of the development set.
+            training_set_id: The unique identifier of the training set.
+            name: The desired name of the training set.
+            question: The desired question of the training set.
+            user_group: The desired user group of the training set.
+            status: The desired status of the training set.
 
         Returns:
-           Updated development set.
+           Updated training set.
 
         Raises:
             APIException: If the request fails.
@@ -2503,32 +2503,32 @@ class HARIClient:
 
         return self._request(
             "PATCH",
-            f"/trainingSets/{development_set_id}",
-            json=self._pack(locals(), ignore=["development_set_id"]),
-            success_response_item_model=models.DevelopmentSetResponse,
+            f"/trainingSets/{training_set_id}",
+            json=self._pack(locals(), ignore=["training_set_id"]),
+            success_response_item_model=models.TrainingSetResponse,
         )
 
-    def delete_development_set(
+    def delete_training_set(
         self,
-        development_set_id: uuid.UUID,
+        training_set_id: uuid.UUID,
     ) -> str:
         """
         !!! Only available for qm internal users !!!
 
-        Delete development set.
+        Delete training set.
 
         Args:
-            development_set_id: The unique identifier of the development set.
+            training_set_id: The unique identifier of the training set.
 
         Returns:
-           Deleted development set id.
+           Deleted training set id.
 
         Raises:
             APIException: If the request fails.
         """
         return self._request(
             "DELETE",
-            f"/trainingSets/{development_set_id}",
+            f"/trainingSets/{training_set_id}",
             success_response_item_model=str,
         )
 
@@ -2607,11 +2607,11 @@ class HARIClient:
         dataset_id: uuid.UUID | None = None,  # todo: not necessary
     ) -> models.MlAnnotationModelResponse:
         """
-        Train a new ml annotation model on the specified development set or reference set of the specified annotation run.
+        Train a new ml annotation model on the specified training set or reference set of the specified annotation run.
 
         Args:
             name: A descriptive name for the ml annotation model.
-            training_set_id: The unique identifier of the development set to use for training.
+            training_set_id: The unique identifier of the training set to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
             id: The id of the model. If None, random id will be generated during creation.
             dataset_id: The dataset id to train the model on.
@@ -2750,7 +2750,7 @@ class HARIClient:
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
             attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
-            id: The id of the development set. If None, random id will be generated during creation.
+            id: The id of the training set. If None, random id will be generated during creation.
 
         Returns:
             The created AI annotation run.

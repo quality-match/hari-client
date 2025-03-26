@@ -1,11 +1,11 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
 - updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
-  - added Pydantic Models for DevelopmentSet, MLAnnotationModel, AIAnnotationRun, AttributeValue
+  - added pydantic models for TrainingSet, MLAnnotationModel, AIAnnotationRun, AttributeValue
 - added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - paginated download of media, media_objects and attributes to the client to enable download of large dataset data to prevent download timeout
   - added handling of attribute values
-  - added methods for DevelopmentSet, MLAnnotationModel and AIAnnotationRun
+  - added methods for TrainingSet, MLAnnotationModel and AIAnnotationRun
 - added helper AINT [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - added executable scripts `start_ai_annotation_run`, `apply_aint_on_test_data`, `create_aint_model.py`, `get_aint_attribute_info.py`
 
