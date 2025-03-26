@@ -7,7 +7,10 @@
   - added handling of attribute values
   - added methods for TrainingSet, MLAnnotationModel and AIAnnotationRun
 - added helper AINT [PR#63](https://github.com/quality-match/hari-client/pull/63)
-  - added executable scripts `start_ai_annotation_run`, `apply_aint_on_test_data`, `create_aint_model.py`, `get_aint_attribute_info.py`
+  - `aint/start_ai_annotation_run.py`,
+  - `aint/apply_aint_on_test_data.py`,
+  - `aint/create_aint_model.py`,
+  - `aint/get_aint_attribute_info.py`
 
 ## [3.4.0] - 07-03-2025
 
