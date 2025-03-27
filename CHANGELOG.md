@@ -6,7 +6,7 @@
   - paginated download of media, media_objects and attributes to the client to enable download of large dataset data to prevent download timeout
   - added handling of attribute values
   - added methods for TrainingSet, MLAnnotationModel and AIAnnotationRun
-- added helper AINT [PR#63](https://github.com/quality-match/hari-client/pull/63)
+- added helper scripts for usage of `AI Nano Tasks` (AINT) [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - `aint/start_ai_annotation_run.py`,
   - `aint/create_aint_model.py`,
   - `aint/get_aint_attribute_info.py`
