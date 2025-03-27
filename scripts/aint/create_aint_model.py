@@ -33,7 +33,9 @@ def create_training_set(
             ],
         )
 
-    return hari.create_training_set(name, [training_attribute], user_group)
+    return hari.create_training_set(
+        name=name, training_attributes=[training_attribute], user_group=user_group
+    )
 
 
 if __name__ == "__main__":
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # Create Trainint Set
+    # Create Training Set
     # !!! only available to qm internal users !!!
     training_set = create_training_set(
         hari,
@@ -97,7 +99,9 @@ if __name__ == "__main__":
     log.info(f"Created training set with ID: {training_set_id}")
 
     # Start AINT model training
-    model_id = hari.train_ml_annotation_model(args.name, training_set_id)
+    model_id = hari.train_ml_annotation_model(
+        name=args.name, training_set_id=training_set_id
+    )
 
     log.info(
         "The AINT training can take a while, please wait. "

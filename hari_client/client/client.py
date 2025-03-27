@@ -2433,8 +2433,13 @@ class HARIClient:
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
-        user_group: str | None = None,
         id: uuid.UUID | None = None,
+        status: models.AIAnnotationRunStatus | None = None,
+        created_at: datetime.datetime | None = None,
+        updated_at: datetime.datetime | None = None,
+        archived_at: datetime.datetime | None = None,
+        owner: uuid.UUID | None = None,
+        user_group: str | None = None,
     ) -> models.TrainingSet:
         """
         !!! Only available for qm internal users !!!
@@ -2446,24 +2451,28 @@ class HARIClient:
             training_attributes: The training attributes to be used in the training set.
             user_group: The user group for creating the training set (default: None).
             id: The id of the training set. If None, random id will be generated during creation.
+            status: The status of the training set.
+            created_at: The creation date of the training set.
+            updated_at: The update date of the training set.
+            archived_at: The archived date of the training set.
+            owner: The owner of the training set.
 
         Returns:
             Created training set object.
         """
+
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self", "training_attributes"]
+        }
 
         training_attribute_dicts = [
             training_attribute.model_dump()
             for training_attribute in training_attributes
         ]
 
-        body = {
-            "name": name,
-            "training_attributes": training_attribute_dicts,
-            "user_group": user_group,
-        }
-
-        if id is not None:
-            body["id"] = id
+        body["training_attributes"] = training_attribute_dicts
 
         return self._request(
             "POST",
@@ -2602,7 +2611,12 @@ class HARIClient:
         training_set_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
         id: uuid.UUID | None = None,
-        dataset_id: uuid.UUID | None = None,  # todo: not necessary
+        dataset_id: uuid.UUID | None = None,
+        created_at: datetime.datetime | None = None,
+        updated_at: datetime.datetime | None = None,
+        archived_at: datetime.datetime | None = None,
+        owner: uuid.UUID | None = None,
+        user_group: str | None = None,
     ) -> models.MlAnnotationModel:
         """
         Train a new ml annotation model on the specified training set or reference set of the specified annotation run.
@@ -2613,6 +2627,11 @@ class HARIClient:
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
             id: The id of the model. If None, random id will be generated during creation.
             dataset_id: The dataset id to train the model on.
+            created_at: The creation timestamp of the ml annotation model.
+            updated_at: The update timestamp of the ml annotation model.
+            archived_at: The archived timestamp of the ml annotation model.
+            owner: The owner of the ml annotation model.
+            user_group: The user group for scoping this annotation run (default: None).
 
         Either training_set_id or reference_set_annotation_run_id must be specified.
 
@@ -2623,16 +2642,10 @@ class HARIClient:
         """
 
         body = {
-            "name": name,
-            "training_set_id": training_set_id,
-            "reference_set_annotation_run_id": reference_set_annotation_run_id,
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self"]
         }
-
-        if id is not None:
-            body["id"] = id
-
-        if dataset_id is not None:
-            body["dataset_id"] = dataset_id
 
         return self._request(
             "POST",
@@ -2646,7 +2659,14 @@ class HARIClient:
         ml_annotation_model_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-        # todo more fields from update?
+        status: models.MLAnnotationModelStatus | None = None,
+        training_subset_id: uuid.UUID | None = None,
+        validation_subset_id: uuid.UUID | None = None,
+        test_subset_id: uuid.UUID | None = None,
+        reference_set_annotation_run_id: uuid.UUID | None = None,
+        model_weight_location: str | None = None,
+        automation_correctness_curve: dict | None = None,
+        training_set_id: uuid.UUID | None = None,
     ) -> models.MlAnnotationModel:
         """
         Update a ml annotation model.
@@ -2655,6 +2675,14 @@ class HARIClient:
             ml_annotation_model_id: The id of the ml annotation model.
             name: new desired name for the ml annotation model.
             user_group: new desired user group for the ml annotation model.
+            status: new desired status for the ml annotation model.
+            training_subset_id: training subset id for the ml annotation model.
+            validation_subset_id: validation subset id for the ml annotation model.
+            test_subset_id: test subset id for the ml annotation model.
+            reference_set_annotation_run_id: reference set annotation run id for the ml annotation model.
+            model_weight_location: model weight location for the ml annotation model.
+            automation_correctness_curve: automation correctness curve for the ml annotation model.
+            training_set_id: training set id for the ml annotation model.
 
         Returns:
             The updated ml annotation model.
@@ -2663,10 +2691,16 @@ class HARIClient:
             APIException: If the request fails.
         """
 
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self", "ml_annotation_model_id"]
+        }
+
         return self._request(
             "PATCH",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
-            json=self._pack(locals(), ignore=["ml_annotation_model_id"]),
+            json=body,
             success_response_item_model=models.MlAnnotationModel,
         )
 
@@ -2732,11 +2766,14 @@ class HARIClient:
         dataset_id: uuid.UUID,
         subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
-        user_group: str | None = None,
-        attribute_metadata_id: uuid.UUID
-        | None = None,  # todo is rewritten in the backend
-        # status ? makes no sense
+        attribute_metadata_id: uuid.UUID | None = None,
         id: uuid.UUID | None = None,
+        status: models.AIAnnotationRunStatus | None = None,
+        created_at: datetime.datetime | None = None,
+        updated_at: datetime.datetime | None = None,
+        archived_at: datetime.datetime | None = None,
+        owner: uuid.UUID | None = None,
+        user_group: str | None = None,
     ) -> models.AIAnnotationRun:
         """
         Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
@@ -2749,22 +2786,21 @@ class HARIClient:
             user_group: The user group for scoping this annotation run (default: None).
             attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
             id: The id of the training set. If None, random id will be generated during creation.
+            status: The status of the AI annotation run.
+            created_at: The creation timestamp of the AI annotation run.
+            updated_at: The update timestamp of the AI annotation run.
+            archived_at: The archived timestamp of the AI annotation run.
+            owner: The owner of the AI annotation run.
 
         Returns:
             The created AI annotation run.
         """
 
         body = {
-            "name": name,
-            "dataset_id": dataset_id,
-            "subset_id": subset_id,
-            "ml_annotation_model_id": ml_annotation_model_id,
-            "user_group": user_group,
-            "attribute_metadata_id": attribute_metadata_id,
+            key: value
+            for key, value in locals().items()
+            if value is not None and key != "self"
         }
-
-        if id is not None:
-            body["id"] = id
 
         return self._request(
             "POST",
@@ -2778,8 +2814,8 @@ class HARIClient:
         ai_annotation_run_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-        # todo status makes sense?
-        # todo attribute_metadata_id?
+        status: models.AIAnnotationRunStatus | None = None,
+        attribute_metadata_id: uuid.UUID | None = None,
     ) -> models.AIAnnotationRun:
         """
         Update an AI annotation run.
@@ -2788,6 +2824,8 @@ class HARIClient:
             ai_annotation_run_id: The id of the AI annotation run.
             name: new desired name for the AI annotation run.
             user_group: new desired user group for the AI annotation run.
+            status: status for the AI annotation run.
+            attribute_metadata_id: attribute metadata id for the AI annotation run.
 
         Returns:
             The updated AI annotation run.
@@ -2796,10 +2834,16 @@ class HARIClient:
             APIException: If the request fails.
         """
 
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self", "ai_annotation_run_id"]
+        }
+
         return self._request(
             "PATCH",
             f"/aiAnnotationRuns/{ai_annotation_run_id}",
-            json=self._pack(locals(), ignore=["ai_annotation_run_id"]),
+            json=body,
             success_response_item_model=models.AIAnnotationRun,
         )
 
