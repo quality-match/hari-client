@@ -3,6 +3,9 @@ import uuid
 
 from hari_client import Config
 from hari_client import HARIClient
+from hari_client.utils import logger
+
+log = logger.setup_logger(__name__)
 
 
 if __name__ == "__main__":
@@ -55,10 +58,14 @@ if __name__ == "__main__":
 
     # Start new AI annotation run to get AINT model predictions
     hari.start_ai_annotation_run(
-        args.name, args.dataset_id, args.subset_id, args.model_id, args.user_group
+        name=args.name,
+        dataset_id=args.dataset_id,
+        subset_id=args.subset_id,
+        ml_annotation_model_id=args.model_id,
+        user_group=args.user_group,
     )
 
-    print(
+    log.info(
         "The AI annotation run can take some time, please wait. "
         "You will be notified via HARI / Email when the ai annotation is finished."
     )

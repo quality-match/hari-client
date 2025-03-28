@@ -33,7 +33,9 @@ def create_aint_learning_data(
             ],
         )
 
-    return hari.create_aint_learning_data(name, [training_attribute], user_group)
+    return hari.create_aint_learning_data(
+        name=name, training_attributes=[training_attribute], user_group=user_group
+    )
 
 
 if __name__ == "__main__":
@@ -83,7 +85,7 @@ if __name__ == "__main__":
     config: Config = Config(_env_file=".env")
     hari: HARIClient = HARIClient(config=config)
 
-    # Create Trainint Set
+    # Create AINT learning data
     # !!! only available to qm internal users !!!
     aint_learning_data = create_aint_learning_data(
         hari,

@@ -1,15 +1,27 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New features
+
 - updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - added pydantic models for AINTLearningData, MLAnnotationModel, AIAnnotationRun, AttributeValue
 - added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - paginated download of media, media_objects and attributes to the client to enable download of large dataset data to prevent download timeout
   - added handling of attribute values
   - added methods for AINTLearningData, MLAnnotationModel and AIAnnotationRun
-- added helper AINT [PR#63](https://github.com/quality-match/hari-client/pull/63)
+- added helper scripts for usage of `AI Nano Tasks` (AINT) [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - `aint/start_ai_annotation_run.py`,
   - `aint/create_aint_model.py`,
   - `aint/get_aint_attribute_info.py`
+
+- added scripts [PR#58](https://github.com/quality-match/hari-client/pull/58)
+  - added script `data_upload/trigger_metadata_rebuild.py`
+  - added script `data_upload/upload_coco_like_dataset.py`
+  - added script `data_upload/upload_yolo_like_dataset.py`
+  - added script `data_upload/upload_single_image.py`
+  - added script `data_upload/upload_dataset_with_own_annotation_attributes.py`
+- added upload utilities [PR#58](https://github.com/quality-match/hari-client/pull/58)
+  - added helper methods to check for existing datasets and subsets before upload
+  - added helper method to trigger metadata rebuild and track its progress
 
 ## [3.4.0] - 07-03-2025
 
