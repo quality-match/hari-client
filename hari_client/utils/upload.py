@@ -6,6 +6,9 @@ import hari_client.upload.state_aware_hari_uploader as hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.upload.hari_uploader import HARIMedia
+from hari_client.utils import logger
+
+log = logger.setup_logger(__name__)
 
 
 def trigger_and_display_metadata_update(
@@ -19,10 +22,10 @@ def trigger_and_display_metadata_update(
         dataset_id: The UUID of the dataset for which the metadata should be rebuilt.
         subset_id: The UUID of a specific subset, or None to rebuild metadata for the entire dataset.
     """
-    print("Triggering metadata updates...")
+    log.info("Triggering metadata updates...")
     # create a trace_id to track triggered metadata update jobs
     metadata_rebuild_trace_id = uuid.uuid4()
-    print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
+    log.info(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
     metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
         dataset_id=dataset_id, trace_id=metadata_rebuild_trace_id, subset_id=subset_id
     )
@@ -45,10 +48,10 @@ def trigger_and_display_metadata_update(
             ]
         )
         if jobs_are_still_running:
-            print(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
+            log.info(f"waiting for metadata_rebuild jobs to finish, {job_statuses=}")
             time.sleep(10)
 
-    print(f"metadata_rebuild jobs finished with status {job_statuses=}")
+    log.info(f"metadata_rebuild jobs finished with status {job_statuses=}")
 
 
 def get_or_create_dataset(
@@ -65,8 +68,8 @@ def get_or_create_dataset(
     Returns:
          uuid: The UUID of the found or created dataset.
     """
-
-    assert user_group is not None, "User group is required."
+    if user_group is None:
+        raise ValueError("User group is required.")
 
     datasets = hari.get_datasets()
     dataset_names = [dataset.name for dataset in datasets]
@@ -75,11 +78,11 @@ def get_or_create_dataset(
         new_dataset = hari.create_dataset(
             name=dataset_name, user_group=user_group, is_anonymized=is_anonymized
         )
-        print("Dataset created with id:", new_dataset.id)
+        log.info(f"Dataset created with id: {new_dataset.id}")
         return new_dataset.id
     else:
         dataset_id = datasets[dataset_names.index(dataset_name)].id
-        print("Found existing dataset with id:", dataset_id)
+        log.info(f"Found existing dataset with id: {dataset_id}")
 
         return dataset_id
 
@@ -111,12 +114,12 @@ def get_or_create_subset_for_all(
             subset_type=subset_type,
             subset_name=subset_name,
         )
-        print(f"Created new subset with id {new_subset_id}")
+        log.info(f"Created new subset with id {new_subset_id}")
         return uuid.UUID(new_subset_id), False
     else:
         subset = subsets[subset_names.index(subset_name)]
         new_subset_id = subset.id
-        print("Found subset with id:", new_subset_id)
+        log.info(f"Found existing subset with id: {new_subset_id}")
 
         return new_subset_id, True
 
@@ -124,8 +127,8 @@ def get_or_create_subset_for_all(
 def check_and_upload_dataset(
     hari: HARIClient,
     dataset_id: uuid.UUID,
-    object_categories: set[str] | None,
     medias: list[HARIMedia],
+    object_categories: set[str] | None = None,
     new_subset_name: str = "All media objects",
     subset_type: models.SubsetType = models.SubsetType.MEDIA_OBJECT,
 ):
@@ -141,7 +144,7 @@ def check_and_upload_dataset(
         new_subset_name: The name of the subset to create or use.
         subset_type: The type of subset (e.g., MEDIA_OBJECT).
     """
-    print("Prepare Upload to HARI...")
+    log.info("Prepare Upload to HARI...")
 
     uploader = hari_uploader.HARIUploader(
         client=hari, dataset_id=dataset_id, object_categories=object_categories
@@ -207,7 +210,7 @@ def check_and_upload_dataset(
     if exists:
         # TODO This is not optimal, if data is appended to a dataset
         #  The subset is not updated and only this error message is shown
-        print(
+        log.warning(
             "WARNING: You did not create a new subset since the name already exists. "
             "If you added new images during upload the metadata update will be skipped for the new images. "
             "If you added new images please provide a new subset name or delete the old one."
