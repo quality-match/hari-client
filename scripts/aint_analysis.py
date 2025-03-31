@@ -9,7 +9,6 @@ from hari_client.models.models import AttributeGroup
 from hari_client.utils.analysis import calculate_cutoff_thresholds
 from hari_client.utils.analysis import calculate_ml_human_alignment
 from hari_client.utils.analysis import create_soft_label_for_annotations
-from hari_client.utils.analysis import find_attribute_id_by_name
 from hari_client.utils.analysis import organize_attributes_by_group
 from hari_client.utils.download import collect_media_and_attributes
 from hari_client.utils.download import get_ai_annotation_run_for_attribute_id
@@ -40,9 +39,9 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "-ha",
-        "--human_annotation_attribute_name",
+        "--human_annotation_attribute_id",
         type=str,
-        help="Human Annotation Attribute Name which should be evaluated",
+        help="Human Annotation Attribute ID which should be evaluated",
         required=True,
     )
 
@@ -61,7 +60,7 @@ if __name__ == "__main__":
     dataset_id: uuid.uuid4() = args.dataset_id
     subset_id: str = args.subset_id
     ai_annotation_attribute_id = args.ai_annotation_attribute_id
-    human_annotation_attribute_name = args.human_annotation_attribute_name
+    human_annotation_attribute_id = args.human_annotation_attribute_id
 
     # load hari client
     config: Config = Config(_env_file=".env")
@@ -88,10 +87,10 @@ if __name__ == "__main__":
     model_id = ai_annotation_run.ml_annotation_model_id
     model: models.MlAnnotationModel = hari.get_aint_model(model_id)
 
-    # try to find specific question by name
-    human_annotation_attribute_id = find_attribute_id_by_name(
-        human_annotation_attribute_name, attribute_metas
-    )
+    # # try to find specific question by name
+    # human_annotation_attribute_id = find_attribute_id_by_name(
+    #     human_annotation_attribute_name, attribute_metas
+    # )
 
     # generate lookup tables
     ID2attribute_meta = {a.id: a for a in attribute_metas}
@@ -143,7 +142,7 @@ if __name__ == "__main__":
         human_key=human_annotation_attribute_id,
     )
 
-    # print(cutoff_threholds)
+    print(cutoff_thresholds)
     for cut_off_name, (cut_off_threshold, approximated_ad) in cutoff_thresholds.items():
         print(f"# {cut_off_name} @ ~{approximated_ad * 100:0.02f}% automation")
         calculate_ml_human_alignment(

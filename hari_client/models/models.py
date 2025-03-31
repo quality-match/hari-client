@@ -822,6 +822,7 @@ class AttributeType(str, enum.Enum):
     BBox2D = "BBOX2D"
     Point2D = "POINT2D"
     Point3D = "POINT3D"
+    FrameSlider = "FRAMESLIDER"
 
 
 class HistogramType(str, enum.Enum):
