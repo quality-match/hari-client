@@ -43,7 +43,7 @@ Currently only available to internal QM users.
 
 - `get_aint_attribute_info` Get all linked AINT info for an AI annotation run attribute
   - Run with: `python get_aint_attribute_info.py --ml_attribute_id <Attribute ID: UUID>`
-- `create_aint_model` Create and train an AI Nano Task model. This also creates the needed training set.
+- `create_aint_model` Create and train an AI Nano Task model. This also creates the needed AINT learning data.
   - Run with: `python create_aint_model.py --name <Name : str> --dataset_id <Dataset ID: UUID> --attribute_id <Attribute ID: UUID> --subset_id <Subset ID(optional): UUID> --user_group <User Group Name: str>`
 - `start_ai_annotation_run` Apply a trained AI Nano Task model to new data to run ai annotation and get model's predictions.
   - Run with: `python start_ai_annotation_run.py --name <Name : str> --dataset_id <Dataset ID: UUID> --subset_id <Subset ID: UUID> --aint_model_id <Model ID: UUID> --user_group <User Group Name: str>`

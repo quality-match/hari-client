@@ -73,9 +73,9 @@ if __name__ == "__main__":
     model = hari.get_ml_annotation_model_by_id(model_id)
     log.info(f"model: {model}")
 
-    # get training set for AINT Model
+    # get learning data for AINT Model
     # !!! only available for qm internal users !!
-    training_id = model.training_set_id
+    aint_learning_data_id = model.aint_learning_data_id
 
-    training_set = hari.get_training_set(training_id)
-    log.info(f"training_set: {training_set}")
+    aint_learning_data = hari.get_aint_learning_data(aint_learning_data_id)
+    print(f"aint learning data: {aint_learning_data}")

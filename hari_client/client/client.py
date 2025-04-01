@@ -2394,42 +2394,44 @@ class HARIClient:
 
     ### AI Nano Tasks ###
 
-    def get_training_sets(
+    def get_multiple_aint_learning_data(
         self,
-    ) -> list[models.TrainingSet]:
+    ) -> list[models.AINTLearningData]:
         """
         !!! Only available for qm internal users !!!
 
-        Retrieve all training sets available to the user.
+        Retrieve all AINT learning data available to the user.
 
         Returns:
-            A list of training set objects.
+            A list of AINT learning data objects.
         """
         return self._request(
             "GET",
-            f"/trainingSets",
-            success_response_item_model=list[models.TrainingSet],
+            f"/aintLearningData",
+            success_response_item_model=list[models.AINTLearningData],
         )
 
-    def get_training_set(self, training_set_id: uuid.UUID) -> models.TrainingSet:
+    def get_aint_learning_data(
+        self, aint_learning_data_id: uuid.UUID
+    ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
 
-        Get a single training set by its ID.
+        Get a single AINT learning data by its ID.
 
         Args:
-            training_set_id: The unique identifier of the training set.
+            aint_learning_data_id: The unique identifier of the AINT learning data.
 
         Returns:
-            The requested training set.
+            The requested AINT learning data.
         """
         return self._request(
             "GET",
-            f"/trainingSets/{training_set_id}",
-            success_response_item_model=models.TrainingSet,
+            f"/aintLearningData/{aint_learning_data_id}",
+            success_response_item_model=models.AINTLearningData,
         )
 
-    def create_training_set(
+    def create_aint_learning_data(
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
@@ -2440,25 +2442,25 @@ class HARIClient:
         archived_at: datetime.datetime | None = None,
         owner: uuid.UUID | None = None,
         user_group: str | None = None,
-    ) -> models.TrainingSet:
+    ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
 
-        Create a new training set from training attributes.
+        Create a new AINT learning data from training attributes.
 
         Args:
-            name: A descriptive name for the training set.
-            training_attributes: The training attributes to be used in the training set.
-            user_group: The user group for creating the training set (default: None).
-            id: The id of the training set. If None, random id will be generated during creation.
-            status: The status of the training set.
-            created_at: The creation date of the training set.
-            updated_at: The update date of the training set.
-            archived_at: The archived date of the training set.
-            owner: The owner of the training set.
+            name: A descriptive name for the AINT learning data.
+            training_attributes: The training attributes to be used in the AINT learning data.
+            user_group: The user group for creating the AINT learning data (default: None).
+            id: The id of the AINT learning data. If None, random id will be generated during creation.
+            status: The status of the AINT learning data.
+            created_at: The creation date of the AINT learning data.
+            updated_at: The update date of the AINT learning data.
+            archived_at: The archived date of the AINT learning data.
+            owner: The owner of the AINT learning data.
 
         Returns:
-            Created training set object.
+            Created AINT learning data object.
         """
 
         body = {
@@ -2476,33 +2478,33 @@ class HARIClient:
 
         return self._request(
             "POST",
-            "/trainingSets",
+            "/aintLearningData",
             json=body,
-            success_response_item_model=models.TrainingSet,
+            success_response_item_model=models.AINTLearningData,
         )
 
-    def update_training_set(
+    def update_aint_learning_data(
         self,
-        training_set_id: uuid.UUID,
+        aint_learning_data_id: uuid.UUID,
         name: str | None = None,
         question: str | None = None,
         user_group: str | None = None,
-        status: models.TrainingSetStatus | None = None,
-    ) -> models.TrainingSet:
+        status: models.AINTLearningDataStatus | None = None,
+    ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
 
-        Update training set.
+        Update AINT learning data.
 
         Args:
-            training_set_id: The unique identifier of the training set.
-            name: The desired name of the training set.
-            question: The desired question of the training set.
-            user_group: The desired user group of the training set.
-            status: The desired status of the training set.
+            aint_learning_data_id: The unique identifier of the AINT learning data.
+            name: The desired name of the AINT learning data.
+            question: The desired question of the AINT learning data.
+            user_group: The desired user group of the AINT learning data.
+            status: The desired status of the AINT learning data.
 
         Returns:
-           Updated training set.
+           Updated AINT learning data.
 
         Raises:
             APIException: If the request fails.
@@ -2510,32 +2512,32 @@ class HARIClient:
 
         return self._request(
             "PATCH",
-            f"/trainingSets/{training_set_id}",
-            json=self._pack(locals(), ignore=["training_set_id"]),
-            success_response_item_model=models.TrainingSet,
+            f"/aintLearningData/{aint_learning_data_id}",
+            json=self._pack(locals(), ignore=["aint_learning_data_id"]),
+            success_response_item_model=models.AINTLearningData,
         )
 
-    def delete_training_set(
+    def delete_aint_learning_data(
         self,
-        training_set_id: uuid.UUID,
+        aint_learning_data_id: uuid.UUID,
     ) -> str:
         """
         !!! Only available for qm internal users !!!
 
-        Delete training set.
+        Delete AINT learning data.
 
         Args:
-            training_set_id: The unique identifier of the training set.
+            aint_learning_data_id: The unique identifier of the AINT learning data.
 
         Returns:
-           Deleted training set id.
+           Deleted AINT learning data id.
 
         Raises:
             APIException: If the request fails.
         """
         return self._request(
             "DELETE",
-            f"/trainingSets/{training_set_id}",
+            f"/aintLearningData/{aint_learning_data_id}",
             success_response_item_model=str,
         )
 
@@ -2608,7 +2610,7 @@ class HARIClient:
     def train_ml_annotation_model(
         self,
         name: str,
-        training_set_id: uuid.UUID | None = None,
+        aint_learning_data_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
         id: uuid.UUID | None = None,
         dataset_id: uuid.UUID | None = None,
@@ -2619,11 +2621,11 @@ class HARIClient:
         user_group: str | None = None,
     ) -> models.MlAnnotationModel:
         """
-        Train a new ml annotation model on the specified training set or reference set of the specified annotation run.
+        Train a new ml annotation model on the specified AINT learning data or reference set of the specified annotation run.
 
         Args:
             name: A descriptive name for the ml annotation model.
-            training_set_id: The unique identifier of the training set to use for training.
+            aint_learning_data_id: The unique identifier of the AINT learning data to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
             id: The id of the model. If None, random id will be generated during creation.
             dataset_id: The dataset id to train the model on.
@@ -2633,7 +2635,7 @@ class HARIClient:
             owner: The owner of the ml annotation model.
             user_group: The user group for scoping this annotation run (default: None).
 
-        Either training_set_id or reference_set_annotation_run_id must be specified.
+        Either aint_learning_data_id or reference_set_annotation_run_id must be specified.
 
         Returns:
             The created ml annotation model.
@@ -2666,7 +2668,7 @@ class HARIClient:
         reference_set_annotation_run_id: uuid.UUID | None = None,
         model_weight_location: str | None = None,
         automation_correctness_curve: dict | None = None,
-        training_set_id: uuid.UUID | None = None,
+        aint_learning_data_id: uuid.UUID | None = None,
     ) -> models.MlAnnotationModel:
         """
         Update a ml annotation model.
@@ -2682,7 +2684,7 @@ class HARIClient:
             reference_set_annotation_run_id: reference set annotation run id for the ml annotation model.
             model_weight_location: model weight location for the ml annotation model.
             automation_correctness_curve: automation correctness curve for the ml annotation model.
-            training_set_id: training set id for the ml annotation model.
+            aint_learning_data_id: AINT learning data id for the ml annotation model.
 
         Returns:
             The updated ml annotation model.
@@ -2785,7 +2787,7 @@ class HARIClient:
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
             attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
-            id: The id of the training set. If None, random id will be generated during creation.
+            id: The id of the AINT learning data. If None, random id will be generated during creation.
             status: The status of the AI annotation run.
             created_at: The creation timestamp of the AI annotation run.
             updated_at: The update timestamp of the AI annotation run.
