@@ -819,7 +819,7 @@ class MediaObjectResponse(BaseModel):
 
 class TrainingAttribute(BaseModel):
     dataset_id: uuid.UUID = pydantic.Field(default=None, title="Dataset Id")
-    attribute_id: uuid.UUID = pydantic.Field(default=None, title="Attribute Id")
+    attribute_id: str = pydantic.Field(default=None, title="Attribute Id")
     query: QueryList | None = pydantic.Field(default_factory=list, title="Query")
 
 
