@@ -28,6 +28,8 @@ class CustomJSONEncoder(json.JSONEncoder):
             return str(obj)
         elif isinstance(obj, datetime.datetime):
             return obj.isoformat()
+        elif isinstance(obj, set):
+            print("HERE", obj)
         return super().default(obj)
 
 
