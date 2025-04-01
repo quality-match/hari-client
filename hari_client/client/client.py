@@ -29,7 +29,8 @@ class CustomJSONEncoder(json.JSONEncoder):
         elif isinstance(obj, datetime.datetime):
             return obj.isoformat()
         elif isinstance(obj, set):
-            log.info("HERE", obj)
+            log.info(f"HERE: Found a set: {obj}")
+            return list(obj)
         return super().default(obj)
 
 
