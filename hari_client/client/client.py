@@ -29,7 +29,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         elif isinstance(obj, datetime.datetime):
             return obj.isoformat()
         elif isinstance(obj, set):
-            print("HERE", obj)
+            log.info("HERE", obj)
         return super().default(obj)
 
 
