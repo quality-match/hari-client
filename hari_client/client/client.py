@@ -454,6 +454,7 @@ class HARIClient:
         ) = models.VisibilityStatus.VISIBLE,
         data_root: str | None = "custom_upload",
         id: str | None = None,
+        external_media_source: models.ExternalMediaSourceAPICreate | None = None,
     ) -> models.Dataset:
         """Creates an empty dataset in the database.
 
@@ -477,6 +478,7 @@ class HARIClient:
             visibility_status: Visibility status of the new dataset
             data_root: Data root
             id: ID of the newly created dataset
+            external_media_source: External Media Source
 
         Returns:
             The created dataset
@@ -484,6 +486,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if external_media_source:
+            external_media_source = external_media_source.model_dump()
+
         return self._request(
             "POST",
             "/datasets",
@@ -563,12 +568,24 @@ class HARIClient:
         self,
         subset: bool | None = False,
         visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
     ) -> list[models.DatasetResponse]:
-        """Returns all datasets that a user has access to.
+        """Returns datasets that a user has access to.
 
         Args:
             subset: Return also subsets. If False, returns only parent datasets
             visibility_statuses: Visibility statuses of the returned datasets
+            limit: limit the number of datasets returned
+            skip: skip the number of datasets returned
+            query: query parameters to filter the datasets
+            sort: sorting parameters to sort the datasets
+            name_filter: filter by dataset name
+            archived: if true, return only archived datasets; if false (default), return non-archived datasets.
 
         Returns:
             A list of datasets
@@ -581,6 +598,34 @@ class HARIClient:
             "/datasets",
             params=self._pack(locals()),
             success_response_item_model=list[models.DatasetResponse],
+        )
+
+    def get_datasets_count(
+        self,
+        visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns dataset count for the user.
+        Args:
+            visibility_statuses: Visibility statuses of the returned datasets
+            query: query parameters to filter the datasets
+            name_filter: filter by dataset name
+            archived: if true, count only archived datasets; if false (default), count non-archived datasets.
+
+        Returns:
+            The number of datasets
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/datasets:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
         )
 
     def get_subsets_for_dataset(
@@ -702,12 +747,33 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-        ### media ###
+    ### external media source ###
+    def get_external_media_source(
+        self, external_media_source_id: uuid.UUID
+    ) -> models.ExternalMediaSourceAPIResponse:
+        """Returns an external media source with a given external_media_source_id.
 
+        Args:
+            external_media_source_id: external media source id
+
+        Returns:
+            The external media source with the given external_media_source_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/externalMediaSources/{external_media_source_id}",
+            params=self._pack(locals()),
+            success_response_item_model=models.ExternalMediaSourceAPIResponse,
+        )
+
+    ### media ###
     def create_media(
         self,
         dataset_id: uuid.UUID,
-        file_path: str,
+        file_path: str | None,
         name: str,
         media_type: models.MediaType,
         back_reference: str,
@@ -720,6 +786,8 @@ class HARIClient:
         visualisations: list[models.VisualisationUnion] | None = None,
         subset_ids: set[str] | None = None,
         metadata: models.ImageMetadata | models.PointCloudMetadata | None = None,
+        file_key: str | None = None,
+        with_media_files_upload: bool = True,
     ) -> models.Media:
         """Accepts a single file, uploads it, and creates the media in the db.
 
@@ -738,24 +806,50 @@ class HARIClient:
             visualisations: Visualisations of the media
             subset_ids: Subset ids the media occurs in
             metadata: Image metadata
+            file_key: The file key is the key of the media file in cloud storage (excluding the bucket_name, container_name, etc.).
+            with_media_files_upload: Whether the media file has to be uploaded or not
 
         Returns:
             Media that was just created
 
         Raises:
             APIException: If the request fails.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
         """
-
-        # 1. upload file
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths={0: file_path}
-        )
-        media_url = media_upload_responses[0].media_url
+        if with_media_files_upload:
+            # 1. upload file
+            if not file_path:
+                raise errors.MediaCreateMissingFilePathError(
+                    models.MediaCreate(
+                        file_path=file_path,
+                        name=name,
+                        media_type=media_type,
+                        back_reference=back_reference,
+                    )
+                )
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths={0: file_path}
+            )
+            media_url = media_upload_responses[0].media_url
+        elif not file_key:
+            raise errors.MediaCreateMissingFileKeyError(
+                models.MediaCreate(
+                    name=name,
+                    media_type=media_type,
+                    back_reference=back_reference,
+                )
+            )
 
         # 2. create the media in HARI
         json_body = self._pack(
             locals(),
-            ignore=["file_path", "dataset_id", "media_upload_responses"],
+            ignore=[
+                "file_path",
+                "dataset_id",
+                "media_upload_responses",
+                "with_media_files_upload",
+            ],
         )
         return self._request(
             "POST",
@@ -765,7 +859,10 @@ class HARIClient:
         )
 
     def create_medias(
-        self, dataset_id: uuid.UUID, medias: list[models.BulkMediaCreate]
+        self,
+        dataset_id: uuid.UUID,
+        medias: list[models.BulkMediaCreate],
+        with_media_files_upload: bool = True,
     ) -> models.BulkResponse:
         """Accepts multiple media files, uploads them, and creates the media entries in the db.
         The limit is 500 per call.
@@ -773,6 +870,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             medias: A list of MediaCreate objects. Each object contains the file_path as a field.
+            with_media_files_upload: Whether the media files have to be uploaded or not.
 
         Returns:
             A BulkResponse with information on upload successes and failures.
@@ -780,7 +878,8 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
-            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
@@ -788,23 +887,29 @@ class HARIClient:
             raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
+        if with_media_files_upload:
+            # 1. upload files - if necessary
+            file_paths: dict[int, str] = {}
+            for idx, media in enumerate(medias):
+                if not media.file_path:
+                    raise errors.MediaCreateMissingFilePathError(media)
+                file_paths[idx] = media.file_path
 
-        # 1. upload files
-        file_paths: dict[int, str] = {}
-        for idx, media in enumerate(medias):
-            if not media.file_path:
-                raise errors.MediaCreateMissingFilePathError(media)
-            file_paths[idx] = media.file_path
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths=file_paths
+            )
 
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths=file_paths
-        )
-
-        # 2. set media_urls on medias and parse them to dicts
-        media_dicts = []
-        for idx, media in enumerate(medias):
-            media.media_url = media_upload_responses[idx].media_url
-            media_dicts.append(media.model_dump())
+            # 2. set media_urls on medias and parse them to dicts
+            media_dicts = []
+            for idx, media in enumerate(medias):
+                media.media_url = media_upload_responses[idx].media_url
+                media_dicts.append(media.model_dump())
+        else:
+            media_dicts = []
+            for media in medias:
+                if not media.file_key:
+                    raise errors.MediaCreateMissingFileKeyError(media)
+                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(
@@ -908,7 +1013,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to get archived media
+            archived: if true, return only archived medias; if false (default), return non-archived medias.
             presign_medias: Whether to presign medias
             limit: The number of medias tu return
             skip: The number of medias to skip
@@ -1043,7 +1148,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             subset_id: The subset id or None, if the result for the whole dataset
-            archived: Whether to consider archived medias (default: False)
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
 
         Returns:
             Dictionary, where the key is the number of medias in the dataset having
@@ -1069,7 +1174,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to consider archived medias
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
             query: Query
 
         Returns:
@@ -1393,11 +1498,11 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
     ) -> list[models.MediaObjectResponse]:
-        """Queries the database based on the submitted parameters and returns a
+        """Queries the database based on the submitted parameters and returns a list of media objects
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, return only archived media objects; if false (default), return non-archived media objects.
             presign_medias: Presign Medias
             limit: Limit
             skip: Skip
@@ -1469,7 +1574,7 @@ class HARIClient:
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, consider only archived media objects; if false (default), consider only non-archived media objects.
             query: Query
 
         Returns:
@@ -1539,47 +1644,6 @@ class HARIClient:
         )
 
     ### metadata ###
-    def trigger_thumbnails_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Triggers the creation of thumbnails for a given dataset.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            max_size: The maximum size of the thumbnails
-            aspect_ratio: The aspect ratio of the thumbnails
-            force_recreate: If True already existing thumbnails will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: the methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/thumbnails",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
     def trigger_histograms_update_job(
         self,
         dataset_id: uuid.UUID,
@@ -1611,51 +1675,6 @@ class HARIClient:
             success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
-    def trigger_crops_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        padding_percent: int | None = None,
-        padding_minimum: int | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Creates the crops for a given dataset if the correct api key is provided in the request.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            padding_percent: The padding (in percent) to add to the crops
-            padding_minimum: The minimum padding to add to the crops
-            max_size: The max size of the crops
-            aspect_ratio: The aspect ratio of the crops
-            force_recreate: If True already existing crops will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: The methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/crops",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
     def trigger_metadata_rebuild_job(
         self,
         dataset_ids: list[uuid.UUID],
@@ -1663,6 +1682,7 @@ class HARIClient:
         calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
+        compute_auto_attributes: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
 
@@ -1672,6 +1692,7 @@ class HARIClient:
             calculate_histograms: Calculate histograms if true
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
+            compute_auto_attributes: If True auto attributes will be computed
 
         Returns:
             The methods being executed
@@ -1698,6 +1719,7 @@ class HARIClient:
         calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
+        compute_auto_attributes: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
 
@@ -1708,6 +1730,7 @@ class HARIClient:
             calculate_histograms: Calculate histograms if true.
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
+            compute_auto_attributes: If True auto attributes will be computed
 
         Returns:
             The methods being executed
@@ -1716,6 +1739,7 @@ class HARIClient:
             "anonymize": anonymize,
             "calculate_histograms": calculate_histograms,
             "force_recreate": force_recreate,
+            "compute_auto_attributes": compute_auto_attributes,
         }
         if subset_id:
             params["subset_id"] = subset_id
@@ -1853,7 +1877,7 @@ class HARIClient:
         frequency: dict[str, int] | None = None,
         question: str | None = None,
         repeats: int | None = None,
-        possible_values: list[str | int | float | bool] | None = None,
+        possible_values: list[str] | None = None,
     ) -> models.Attribute:
         """Create an attribute for a dataset.
 
@@ -1913,7 +1937,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: True if archived attributes should be returned
+            archived: if true, return only archived attributes; if false (default), return non-archived attributes.
             limit: The maximum number of attributes to return
             skip: The number of attributes to skip
             query: A query to filter attributes
@@ -2067,9 +2091,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Filters items based on their archived status (default: False):
-              - if set (True/False), returns only archived or non-archived items, respectively
-              - if None, returns all items, regardless of their archived status
+            archived: if true, return only archived attribute metadata; if false (default), return non-archived attribute metadata.
             query: A query to filter attribute metadata
 
          Returns:
@@ -2100,7 +2122,7 @@ class HARIClient:
 
         Args:
             dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
-            archived: Whether to include archived VisualisationConfigs (default: False)
+            archived: if true, return only archived visualisation configurations; if false (default), return non-archived visualisation configurations.
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             limit: How many visualisation_configs to return
