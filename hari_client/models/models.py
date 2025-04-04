@@ -1247,7 +1247,7 @@ class AnnotationRunType(str, enum.Enum):
 
 class AnnotationRunNodeStatus(str, enum.Enum):
     """
-    Annotation run stati are duplicated in the qm-post-processing
+    Annotation run statuses are duplicated in the qm-post-processing
     Please make sure to keep them all in sync
     """
 
