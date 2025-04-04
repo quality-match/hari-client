@@ -1,5 +1,14 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New Features
+
+- added new client endpoint methods and corresponsding models[PR#65](https://github.com/quality-match/hari-client/pull/65):
+  - `get_pipelines`
+  - `get_pipeline`
+  - `get_annotation_runs`
+  - `get_annotation_run`
+  - `create_annotation_run`
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features
