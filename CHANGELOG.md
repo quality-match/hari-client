@@ -1,7 +1,13 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-### New features
+### New Features
 
+- added new client endpoint methods and corresponsding models [PR#65](https://github.com/quality-match/hari-client/pull/65):
+  - `get_pipelines`
+  - `get_pipeline`
+  - `get_annotation_runs`
+  - `get_annotation_run`
+  - `create_annotation_run`
 - added scripts [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added script `data_upload/trigger_metadata_rebuild.py`
   - added script `data_upload/upload_coco_like_dataset.py`
