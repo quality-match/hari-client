@@ -12,7 +12,7 @@ log = logger.setup_logger(__name__)
 
 
 def trigger_and_display_metadata_update(
-    hari: HARIClient, dataset_id: uuid.UUID, subset_id: uuid.UUID | None
+    hari: HARIClient, dataset_id: uuid.UUID, subset_id: uuid.UUID | None = None
 ):
     """
     Trigger and wait for the metadata update jobs to finish, then print their statuses.
