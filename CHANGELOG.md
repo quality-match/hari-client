@@ -18,6 +18,10 @@
   - added helper methods to check for existing datasets and subsets before upload
   - added helper method to trigger metadata rebuild and track its progress
 
+### Fixes
+
+- made `media_url` and `pii_media_url` optional in the `Media` model [PR#83](https://github.com/quality-match/hari-client/pull/83)
+
 ## [3.4.0] - 07-03-2025
 
 ### New features
