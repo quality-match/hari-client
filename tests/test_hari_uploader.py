@@ -1415,3 +1415,64 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
     # Act + Assert
     with pytest.raises(hari_uploader.HARIMediaValidationError):
         uploader._determine_media_files_upload_behavior()
+
+
+def test_add_media_to_uploader_before_adding_attributes_and_objects_with_attributes(
+    create_configurable_mock_uploader_successful_single_batch,
+):
+    # Arrange
+    medias_cnt = 5
+    media_objects_cnt_per_media = 5
+    attr_cnt_per_annotatable = 3
+
+    (
+        uploader,
+        _,
+        _,
+        _,
+        _,
+        _,
+    ) = create_configurable_mock_uploader_successful_single_batch(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=medias_cnt,
+        media_objects_cnt=media_objects_cnt_per_media * medias_cnt,
+        attributes_cnt=attr_cnt_per_annotatable * medias_cnt
+        + attr_cnt_per_annotatable * media_objects_cnt_per_media,
+    )
+
+    for media_idx in range(medias_cnt):
+        hari_media = hari_uploader.HARIMedia(
+            file_path=f"media_{media_idx}.jpg",
+            name=f"media_{media_idx}",
+            back_reference=f"media_br_{media_idx}",
+            media_type=models.MediaType.IMAGE,
+        )
+        # add media to uploader before adding attributes and media objects with their attributes
+        uploader.add_media(hari_media)
+
+        for media_attr_idx in range(attr_cnt_per_annotatable):
+            hari_attribute = hari_uploader.HARIAttribute(
+                id=uuid.uuid4(),
+                name=f"media_attr_{media_attr_idx}_{uuid.uuid4()}",
+                value="random",
+            )
+            hari_media.add_attribute(hari_attribute)
+
+        for media_object_idx in range(media_objects_cnt_per_media):
+            hari_media_object = hari_uploader.HARIMediaObject(
+                back_reference=f"media_object_br_{media_object_idx}",
+                reference_data=models.Point2DXY(x=1.0, y=2.0),
+            )
+            hari_media.add_media_object(hari_media_object)
+
+            for media_obj_attr_idx in range(attr_cnt_per_annotatable):
+                hari_attribute = hari_uploader.HARIAttribute(
+                    id=uuid.uuid4(),
+                    name=f"media_obj_attr_{media_obj_attr_idx}_{uuid.uuid4()}",
+                    value="random",
+                )
+                hari_media_object.add_attribute(hari_attribute)
+
+    # Act + Assert
+    res = uploader.upload()
+    assert res
