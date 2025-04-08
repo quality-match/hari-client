@@ -563,9 +563,9 @@ class Media(BaseModel):
         default=None, title="Realworldobject Id"
     )
     type: str = pydantic.Field(default="Media", title="Type")
-    media_url: str = pydantic.Field(title="Media Url")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
     file_key: str | None = pydantic.Field(default=None, title="File Key")
-    pii_media_url: str = pydantic.Field(title="Pii Media Url")
+    pii_media_url: str | None = pydantic.Field(default=None, title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
     metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
         default=None, title="ImageMetadata"
