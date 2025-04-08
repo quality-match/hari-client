@@ -16,7 +16,6 @@ from hari_client.config import config
 from hari_client.models import models
 from hari_client.utils import logger
 
-
 T = typing.TypeVar("T")
 
 log = logger.setup_logger(__name__)
@@ -141,7 +140,7 @@ def handle_union_parsing(item, union_type):
 
 
 def _prepare_request_query_params(
-    params: dict[str, typing.Any]
+    params: dict[str, typing.Any],
 ) -> dict[str, typing.Any]:
     """Prepares query parameters for the request module's `request` method.
     Handled cases:
@@ -2141,4 +2140,81 @@ class HARIClient:
             f"/datasets/{dataset_id}/visualisationConfigs",
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
+        )
+
+    ### pipelines ###
+
+    def get_pipelines(self) -> list[models.Pipeline]:
+        """
+        Get all pipelines.
+
+        Returns:
+            A list of pipeline objects.
+        """
+        return self._request(
+            "GET",
+            "/pipelines",
+            success_response_item_model=list[models.Pipeline],
+        )
+
+    def get_pipeline(self, pipeline_id: uuid.UUID) -> models.PipelineWithNodes:
+        """
+        Get a pipeline by id.
+
+        Returns:
+            The requested pipeline.
+        """
+        return self._request(
+            "GET",
+            f"/pipelines/{pipeline_id}",
+            success_response_item_model=models.PipelineWithNodes,
+        )
+
+    ### annotation runs ###
+
+    def get_annotation_runs(self) -> list[models.AnnotationRun]:
+        """
+        Get all annotation runs.
+
+        Returns:
+            A list of annotation run objects.
+        """
+        return self._request(
+            "GET",
+            "/annotationRuns",
+            success_response_item_model=list[models.AnnotationRun],
+        )
+
+    def get_annotation_run(self, annotation_run_id: uuid.UUID) -> models.AnnotationRun:
+        """
+        Get an annotation run by id.
+
+        Args:
+            annotation_run_id: The id of the annotation run.
+
+        Returns:
+            The annotation run object matching the provided id.
+        """
+        return self._request(
+            "GET",
+            f"/annotationRuns/{annotation_run_id}",
+            success_response_item_model=models.AnnotationRun,
+        )
+
+    def create_annotation_run(
+        self, annotation_run: models.AnnotationRunCreate
+    ) -> models.AnnotationRun:
+        """Create an annotation run.
+
+        Args:
+            annotation_run: The annotation run to create
+
+        Returns:
+            The created annotation run
+        """
+        return self._request(
+            "POST",
+            "/annotationRuns",
+            json=annotation_run.model_dump(),
+            success_response_item_model=models.AnnotationRun,
         )

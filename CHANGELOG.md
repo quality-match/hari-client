@@ -1,7 +1,13 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-### New features
+### New Features
 
+- added new client endpoint methods and corresponsding models [PR#65](https://github.com/quality-match/hari-client/pull/65):
+  - `get_pipelines`
+  - `get_pipeline`
+  - `get_annotation_runs`
+  - `get_annotation_run`
+  - `create_annotation_run`
 - added scripts [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added script `data_upload/trigger_metadata_rebuild.py`
   - added script `data_upload/upload_coco_like_dataset.py`
@@ -11,6 +17,10 @@
 - added upload utilities [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added helper methods to check for existing datasets and subsets before upload
   - added helper method to trigger metadata rebuild and track its progress
+
+### Fixes
+
+- made `media_url` and `pii_media_url` optional in the `Media` model [PR#83](https://github.com/quality-match/hari-client/pull/83)
 
 ## [3.4.0] - 07-03-2025
 

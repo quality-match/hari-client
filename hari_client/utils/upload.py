@@ -12,7 +12,7 @@ log = logger.setup_logger(__name__)
 
 
 def trigger_and_display_metadata_update(
-    hari: HARIClient, dataset_id: uuid.UUID, subset_id: uuid.UUID | None
+    hari: HARIClient, dataset_id: uuid.UUID, subset_id: uuid.UUID | None = None
 ):
     """
     Trigger and wait for the metadata update jobs to finish, then print their statuses.
@@ -55,7 +55,11 @@ def trigger_and_display_metadata_update(
 
 
 def get_or_create_dataset(
-    hari: HARIClient, dataset_name: str, user_group: str, is_anonymized: bool, external_media_source: models.ExternalMediaSourceAPICreate | None = None,
+    hari: HARIClient,
+    dataset_name: str,
+    user_group: str,
+    is_anonymized: bool,
+    external_media_source: models.ExternalMediaSourceAPICreate | None = None,
 ) -> uuid.UUID:
     """
     Check if a dataset with the given name exists. If not, create it.
@@ -65,6 +69,7 @@ def get_or_create_dataset(
         dataset_name: The name of the dataset to check or create.
         user_group: The user group under which the dataset should be created.
         is_anonymized: Whether the dataset should be created with anonymized data.
+        external_media_source: The external media source to use for the dataset if needed, defaults to None.
     Returns:
          uuid: The UUID of the found or created dataset.
     """
@@ -76,7 +81,10 @@ def get_or_create_dataset(
 
     if dataset_name not in dataset_names:
         new_dataset = hari.create_dataset(
-            name=dataset_name, user_group=user_group, is_anonymized=is_anonymized, external_media_source=external_media_source,
+            name=dataset_name,
+            user_group=user_group,
+            is_anonymized=is_anonymized,
+            external_media_source=external_media_source,
         )
         log.info(f"Dataset created with id: {new_dataset.id}")
         return new_dataset.id
