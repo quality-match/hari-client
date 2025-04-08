@@ -59,7 +59,7 @@ def get_or_create_dataset(
     dataset_name: str,
     user_group: str,
     is_anonymized: bool,
-    external_media_source: models.ExternalMediaSourceAPICreate,
+    external_media_source: models.ExternalMediaSourceAPICreate | None = None,
 ) -> uuid.UUID:
     """
     Check if a dataset with the given name exists. If not, create it.
@@ -69,7 +69,7 @@ def get_or_create_dataset(
         dataset_name: The name of the dataset to check or create.
         user_group: The user group under which the dataset should be created.
         is_anonymized: Whether the dataset should be created with anonymized data.
-        external_media_source: The external media source to use for the dataset.
+        external_media_source: The external media source to use for the dataset if needed, defaults to None.
     Returns:
          uuid: The UUID of the found or created dataset.
     """
