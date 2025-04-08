@@ -55,7 +55,7 @@ def trigger_and_display_metadata_update(
 
 
 def get_or_create_dataset(
-    hari: HARIClient, dataset_name: str, user_group: str, is_anonymized: bool
+    hari: HARIClient, dataset_name: str, user_group: str, is_anonymized: bool, external_media_source: models.ExternalMediaSourceAPICreate | None = None,
 ) -> uuid.UUID:
     """
     Check if a dataset with the given name exists. If not, create it.
@@ -76,7 +76,7 @@ def get_or_create_dataset(
 
     if dataset_name not in dataset_names:
         new_dataset = hari.create_dataset(
-            name=dataset_name, user_group=user_group, is_anonymized=is_anonymized
+            name=dataset_name, user_group=user_group, is_anonymized=is_anonymized, external_media_source=external_media_source,
         )
         log.info(f"Dataset created with id: {new_dataset.id}")
         return new_dataset.id

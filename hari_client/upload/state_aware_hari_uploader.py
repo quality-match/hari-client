@@ -28,6 +28,9 @@ log = logger.setup_logger(__name__)
 MAX_ATTR_COUNT = 1000
 
 
+class HARIMediaValidationError(Exception):
+    pass
+
 class HARIUploader:
     def __init__(
         self,
@@ -62,6 +65,7 @@ class HARIUploader:
         self._unique_attribute_ids: set[str] = set()
         self.check_duplicate_medias = check_duplicate_medias
         self.check_duplicate_media_objects = check_duplicate_media_objects
+        self._with_media_files_upload: bool = True
 
     def add_media(self, *args: HARIMedia) -> None:
         """
@@ -402,6 +406,40 @@ class HARIUploader:
             m.uploaded = m.back_reference in uploaded_back_references
             m.id = uploaded_back_references.get(m.back_reference, None)
 
+
+
+    def _determine_media_files_upload_behavior(self) -> None:
+        """Checks whether media file_path or file_key are set according to whether the dataset uses an external media source or not.
+        When using an external media source, the file_key must be set, otherwise the file_path must be set.
+        """
+        if self._dataset_uses_external_media_source():
+            if any(not media.file_key for media in self._medias):
+                raise HARIMediaValidationError(
+                    f"Dataset with id {self.dataset_id} uses an external media source, "
+                    "but not all medias have a file_key set. Make sure to set their file_key."
+                )
+            self._with_media_files_upload = False
+
+            log.info(
+                "Dataset uses an external media source. No media files will be uploaded."
+            )
+        else:
+            if any(not media.file_path for media in self._medias):
+                raise HARIMediaValidationError(
+                    f"Dataset with id {self.dataset_id} requires media files to be uploaded, "
+                    "but not all medias have a file_path set. Make sure to set their file_path."
+                )
+            self._with_media_files_upload = True
+
+    def _load_dataset(self) -> models.DatasetResponse:
+        """Get the dataset from the HARI API."""
+        return self.client.get_dataset(dataset_id=self.dataset_id)
+
+    def _dataset_uses_external_media_source(self) -> bool:
+        """Returns whether the dataset uses an external media source."""
+        dataset = self._load_dataset()
+        return dataset and dataset.external_media_source is not None
+
     def upload(
         self,
     ) -> HARIUploadResults | None:
@@ -424,6 +462,9 @@ class HARIUploader:
           dataset would exceed the configured limit (MAX_ATTR_COUNT).
         """
 
+        # sync important information with the BE
+        self._determine_media_files_upload_behavior()
+
         if len(self._medias) == 0:
             log.info(
                 "No medias to upload. Add them with HARIUploader::add_media() first "
@@ -431,7 +472,7 @@ class HARIUploader:
             )
             return None
 
-        # validate intended upload, this only checks for incosistency which can be checked locally
+        # validate intended upload, this only checks for inconsistency which can be checked locally
         validated_media_objects = self.validate_all_media_and_media_objects()
         validated_attributes = self.validate_all_attributes()
 
@@ -520,7 +561,7 @@ class HARIUploader:
 
         # upload media batch
         media_upload_response = self.client.create_medias(
-            dataset_id=self.dataset_id, medias=medias_need_upload
+            dataset_id=self.dataset_id, medias=medias_need_upload,  with_media_files_upload=self._with_media_files_upload,
         )
         self._media_upload_progress.update(len(medias_to_upload))
 

@@ -9,6 +9,7 @@ import warnings
 import pydantic
 import requests
 from requests import adapters
+from tqdm import tqdm
 
 from hari_client.client import errors
 from hari_client.config import config
@@ -910,7 +911,7 @@ class HARIClient:
             for media in medias:
                 if not media.file_key:
                     raise errors.MediaCreateMissingFileKeyError(media)
-                media_dicts.append(media.model_dump())
+                media_dicts.append(media.model_dump(exclude={"uploaded"}))
 
         # 3. create the medias in HARI
         return self._request(
