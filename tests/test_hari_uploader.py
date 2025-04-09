@@ -123,7 +123,7 @@ def test_validate_media_objects_object_category_subsets_consistency(
     }
 
 
-def test_assign_media_objects_to_object_category_subsets_sets_subset_ids_corectly(
+def test_assign_media_objects_to_object_category_subsets_sets_subset_ids_correctly(
     mock_uploader_for_object_category_validation,
 ):
     # Arrange
@@ -171,6 +171,112 @@ def test_assign_media_objects_to_object_category_subsets_sets_subset_ids_corectl
         assert collections.Counter(media.subset_ids) == collections.Counter(
             [subset_1, subset_2]
         )
+
+
+def test_validate_scene_consistency(
+    mock_uploader_for_scene_validation,
+):
+    # Arrange
+
+    (uploader, scene_names_vs_scene_ids) = mock_uploader_for_scene_validation
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+    )
+    media_1.set_scene_name("scene_1")
+    media_1.set_frame_idx(0)
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    )
+    media_object_1.set_scene_name("scene_1")
+    media_object_1.set_frame_idx(0)
+    media_1.add_media_object(media_object_1)
+    uploader.add_media(media_1)
+    # Act
+    (
+        found_object_category_subset_names,
+        errors,
+    ) = uploader._get_and_validate_scene_names()
+
+    # Assert
+    assert len(errors) == 0
+    assert found_object_category_subset_names == {"scene_1"}
+
+    # Arrange
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    )
+    media_object_2.set_scene_name("some_non-existent-scene_name")
+    media_object_2.set_frame_idx(1)
+    media_1.add_media_object(media_object_2)
+
+    # Act
+    (
+        found_object_category_subset_names,
+        errors,
+    ) = uploader._get_and_validate_scene_names()
+
+    # Assert
+    assert len(errors) == 1
+    assert type(errors[0]) == hari_uploader.HARIUnknownSceneNameError
+    assert found_object_category_subset_names == {
+        "scene_1",
+        "some_non-existent-scene_name",
+    }
+
+    # Act
+    errors = uploader._validate_consistency()
+
+    assert len(errors) == 2
+    assert type(errors[0]) == hari_uploader.HARIInconsistentFieldError
+    assert type(errors[1]) == hari_uploader.HARIInconsistentFieldError
+
+
+def test_assign_scenes_and_frames_correctly(
+    mock_uploader_for_scene_validation,
+):
+    # Arrange
+    (uploader, scene_names_vs_scene_ids) = mock_uploader_for_scene_validation
+
+    scene_names_vs_scenes_iter = iter(scene_names_vs_scene_ids.items())
+    scene_name_1, scene_1 = next(scene_names_vs_scenes_iter)
+    scene_name_2, scene_2 = next(scene_names_vs_scenes_iter)
+
+    media_1 = hari_uploader.HARIMedia(
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        object_category_subset_name="pedestrian",
+        scene_name="scene_1",
+        frame_idx=0,
+    )
+    media_object_1 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1", frame_idx=0
+    )
+    media_object_1.set_scene_name("scene_1")
+    media_1.add_media_object(media_object_1)
+    media_object_2 = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2", frame_idx=0
+    )
+    media_object_2.set_scene_name("scene_2")
+    media_1.add_media_object(media_object_2)
+    uploader.add_media(media_1)
+    scenes_to_create = ["scene_1", "scene_2"]
+
+    # Act
+    uploader._create_scenes(scenes_to_create)
+    uploader._assign_metadata_ids()
+
+    # Assert
+    for media in uploader._medias:
+        for media_object in media.media_objects:
+            if media_object.scene_name == scene_name_1:
+                assert media_object.scene_id == scene_1
+            elif media_object.scene_name == scene_name_2:
+                assert media_object.scene_id == scene_2
+        assert media.scene_id in [scene_1, scene_2]
 
 
 def test_update_hari_media_object_media_ids(

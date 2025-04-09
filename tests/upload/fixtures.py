@@ -21,15 +21,34 @@ def mock_client(test_client, mocker) -> typing.Generator[HARIClient, list[str], 
     pedestrian_subset_id = str(uuid.uuid4())
     wheel_subset_id = str(uuid.uuid4())
     create_subset_return_val = [pedestrian_subset_id, wheel_subset_id]
+
+    dataset_id = str(uuid.uuid4())
+    scene_one = models.Scene(id=str(uuid.uuid4()), dataset_id=dataset_id)
+    scene_two = models.Scene(id=str(uuid.uuid4()), dataset_id=dataset_id)
+    create_scene_return_val = [scene_one, scene_two]
     mocker.patch.object(
         test_client, "create_empty_subset", side_effect=create_subset_return_val
     )
+    mocker.patch.object(
+        test_client, "create_scene", side_effect=create_scene_return_val
+    )
+
+    mocker.patch.object(
+        test_client,
+        "get_subsets_for_dataset",
+        side_effect=[
+            [],
+        ],
+    )
+
+    mocker.patch.object(test_client, "get_scenes", return_value=[])
+
     mocker.patch.object(test_client, "get_attribute_metadata", return_value=[])
     yield test_client, create_subset_return_val
 
 
 @pytest.fixture()
-def mock_uploader_for_object_category_validation(mock_client):
+def mock_uploader_for_object_category_validation(mock_client, mocker):
     client, create_subset_return_val = mock_client
     object_categories = ["pedestrian", "wheel"]
     uploader = hari_uploader.HARIUploader(
@@ -50,8 +69,33 @@ def mock_uploader_for_object_category_validation(mock_client):
         )
     }
 
+    # Mock _get_existing_scenes to return empty list
+    mocker.patch.object(client, "get_scenes", return_value=[])
+
     assert uploader._object_category_subsets == {}
     yield uploader, object_categories_vs_subset_ids
+
+
+@pytest.fixture()
+def mock_uploader_for_scene_validation(mock_client, mocker):
+    client, create_scene_return_val = mock_client
+    scenes = ["scene_1", "scene_2"]
+    uploader = hari_uploader.HARIUploader(
+        client=client,
+        dataset_id=uuid.UUID(int=0),
+        scenes=set(scenes),
+    )
+
+    assert uploader.scenes == {"scene_1", "scene_2"}
+    scene_names_vs_scene_ids = {
+        scene_name: scene_id
+        for scene_name, scene_id in zip(scenes, create_scene_return_val)
+    }
+
+    # Mock _get_existing_scenes to return empty list
+    mocker.patch.object(client, "get_scenes", return_value=[])
+
+    yield uploader, scene_names_vs_scene_ids
 
 
 @pytest.fixture()
@@ -111,6 +155,10 @@ def mock_uploader_for_batching(test_client, mocker):
             [dataset_response],
         ],
     )
+
+    # Mock _get_existing_scenes to return empty list
+    mocker.patch.object(client, "get_scenes", return_value=[])
+
     uploader = hari_uploader.HARIUploader(
         client=client,
         dataset_id=uuid.UUID(int=0),
@@ -192,6 +240,9 @@ def mock_uploader_for_bulk_operation_annotatable_id_setter(test_client, mocker):
             [dataset_response],
         ],
     )
+
+    mocker.patch.object(client, "get_scenes", return_value=[])
+
     uploader = hari_uploader.HARIUploader(
         client=client,
         dataset_id=uuid.UUID(int=0),
@@ -306,6 +357,8 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
             "get_subsets_for_dataset",
             side_effect=get_subsets_for_dataset_side_effect,
         )
+
+        mocker.patch.object(test_client, "get_scenes", return_value=[])
 
         uploader = hari_uploader.HARIUploader(
             client=test_client,
