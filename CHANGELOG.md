@@ -22,6 +22,10 @@
 
 - made `media_url` and `pii_media_url` optional in the `Media` model [PR#83](https://github.com/quality-match/hari-client/pull/83)
 
+### Internal
+
+- set new default value for `hari_api_base_url` in the config model [PR#85](https://github.com/quality-match/hari-client/pull/85)
+
 ## [3.4.0] - 07-03-2025
 
 ### New features
