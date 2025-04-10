@@ -25,6 +25,7 @@
 ### Internal
 
 - set new default value for `hari_api_base_url` in the config model [PR#85](https://github.com/quality-match/hari-client/pull/85)
+- increase internal token expiration time buffer from 1 to 10 seconds
 
 ## [3.4.0] - 07-03-2025
 
