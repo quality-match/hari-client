@@ -598,9 +598,9 @@ class Media(BaseModel):
         default=None, title="Realworldobject Id"
     )
     type: str = pydantic.Field(default="Media", title="Type")
-    media_url: str = pydantic.Field(title="Media Url")
+    media_url: str | None = pydantic.Field(default=None, title="Media Url")
     file_key: str | None = pydantic.Field(default=None, title="File Key")
-    pii_media_url: str = pydantic.Field(title="Pii Media Url")
+    pii_media_url: str | None = pydantic.Field(default=None, title="Pii Media Url")
     name: str = pydantic.Field(title="Name")
     metadata: ImageMetadata | PointCloudMetadata | None = pydantic.Field(
         default=None, title="ImageMetadata"
@@ -1398,6 +1398,259 @@ class AttributeMetadataResponse(BaseModel):
         title="Repeats",
         description="Number of repeats for this attribute",
     )
+
+
+class PipelineConfig(BaseModel):
+    limit_tasks: int | None = None
+    shuffle_tasks: bool = False
+    add_tasks_n_times: int = 1
+
+
+class Pipeline(BaseModel):
+    id: uuid.UUID = pydantic.Field(title="Id")
+    name: str = pydantic.Field(title="Name")
+    config: PipelineConfig | None = pydantic.Field(title="Config")
+    created_at: datetime.datetime = pydantic.Field(
+        default=None,
+        title="Created At",
+    )
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    updated_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Updated At"
+    )
+    deleted_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Deleted At"
+    )
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    is_multinode: bool = False
+
+
+class PipelineNodeTypes(str, enum.Enum):
+    LEAF_NODE_LEGACY = "leaf_node"
+    DEFAULT_NODE = "node"
+    ROOT_NODE = "root_node"
+
+
+class VisualisationType(str, enum.Enum):
+    DEFAULT = "Default"  # full image
+    CROP = "Crop"
+    TILE = "Tile"
+    IMAGE_TRANSFORMATION = "ImageTransformation"
+    VIDEO = "Video"
+    RENDERED = "Rendered"
+
+
+class PipelineNodeConfig(pydantic.BaseModel):
+    node_type: PipelineNodeTypes = PipelineNodeTypes.DEFAULT_NODE
+    gui_settings: dict | None = None
+    media_type: str | None = None
+    annotatable_type: str | None = None
+    vendor_type: str | None = None
+    min_repeats: int | None = None
+    max_repeats: int | None = None
+    wp_tasks: int | None = None
+    wp_timeout: int | None = None
+    wp_rd_tasks: int | None = 0
+    presign_s3_urls: bool = True
+    should_workpackage_include_task_outputs: typing.Literal[
+        "parallel", "sequential"
+    ] = "parallel"
+    visualisation_type: VisualisationType | None = None
+    gui_type: str | None = None
+    possible_answers: list[dict[str, str]] | None = None
+    cant_solve_options: list[dict[str, str]] | None = None
+    split_map: dict[str, list[str]] = {}
+    convergence_threshold: float | None = pydantic.Field(None, ge=0, le=1)
+    auto_annotate: bool = False
+
+
+class PipelineNode(pydantic.BaseModel):
+    created_at: datetime.datetime
+    updated_at: datetime.datetime | None = None
+    archived_at: datetime.datetime | None = None
+    owner: uuid.UUID | None = None
+    user_group: str | None = None
+    name: str | None = None
+    config: PipelineNodeConfig | None = None
+    pipeline_id: uuid.UUID | None = None
+    id: uuid.UUID = pydantic.Field(title="Id")
+
+
+class PipelineWithNodes(Pipeline):
+    nodes: list[PipelineNode] | None = pydantic.Field(default=None, title="nodes")
+    root_node: PipelineNode | None = pydantic.Field(default=None, title="root_node")
+
+
+class MLAnnotationModelStatus(str, enum.Enum):
+    CREATED = "created"
+    TRAINING = "training"
+    TRAINING_FAILED = "training_failed"
+    TRAINING_DONE = "training_done"
+
+
+class MLAnnotationModel(BaseModel):
+    created_at: datetime.datetime = pydantic.Field(title="Created At")
+    updated_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Updated At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
+    owner: uuid.UUID | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    status: MLAnnotationModelStatus = pydantic.Field(title="Status")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Reference Set Annotation Run Id"
+    )
+    name: str = pydantic.Field(default="", title="Name")
+    training_subset_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Training Subset Id"
+    )
+    validation_subset_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Validation Subset Id"
+    )
+    test_subset_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Test Subset Id"
+    )
+    automation_correctness_curve: dict | None = pydantic.Field(
+        default=None, title="Automation Correctness Curve"
+    )
+    model_weight_location: str | None = pydantic.Field(
+        default=None, title="Model Weight Location"
+    )
+    training_set_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Training Set Id"
+    )
+    id: uuid.UUID = pydantic.Field(title="Id")
+
+    model_config = pydantic.ConfigDict(extra="ignore")
+
+
+class AnnotationRunStatus(str, enum.Enum):
+    CREATED = "created"
+    STARTED = "started"
+    ANNOTATION_DONE = "annotation_done"
+    POST_PROCESSING = "post_processing"
+    POST_PROCESSING_FAILED = "post_processing_failed"
+    AI_ANNOTATION_FAILED = "ai_annotation_failed"
+    AUTO_ANNOTATION_FAILED = "auto_annotation_failed"
+    CREATION_FAILED = "creation_failed"
+    PARTIALLY_DONE = "partially_done"
+    DONE = "done"
+
+
+class AnnotationRunType(str, enum.Enum):
+    MANUAL = "manual"
+    AI = "ai"
+
+
+class AnnotationRunNodeStatus(str, enum.Enum):
+    """
+    Annotation run statuses are duplicated in the qm-post-processing
+    Please make sure to keep them all in sync
+    """
+
+    CREATED = "created"
+    STARTED = "started"
+    POST_PROCESSING = "post_processing"
+    POST_PROCESSING_FAILED = "post_processing_failed"
+    AI_ANNOTATION_FAILED = "ai_annotation_failed"
+    AUTO_ANNOTATION_FAILED = "auto_annotation_failed"
+    CREATION_FAILED = "creation_failed"
+    ANNOTATION_DONE = "annotation_done"
+    POST_PROCESSING_DONE = "post_processing_done"
+
+
+class AnnotationRunNodeCreate(BaseModel):
+    id: uuid.UUID = pydantic.Field(default_factory=uuid.uuid4)
+    pipeline_node_id: uuid.UUID
+    status: AnnotationRunNodeStatus = AnnotationRunNodeStatus.CREATED
+
+
+class AnnotationRunNodeConfig(BaseModel):
+    reference_data_id: str | None = None
+    visualisation_config_id: str | None = None
+    override_min_repeats: int | None = None
+    override_max_repeats: int | None = None
+    override_wp_tasks: int | None = None
+    override_wp_timeout: int | None = None
+    initial_attribute_id: str | None = None
+
+
+class AnnotationRunNode(BaseModel):
+    id: uuid.UUID
+    created_at: datetime.datetime
+    updated_at: datetime.datetime | None
+    archived_at: datetime.datetime | None
+    owner: uuid.UUID
+    user_group: str | None
+    name: str | None
+    config: AnnotationRunNodeConfig | None = None
+    status: AnnotationRunNodeStatus | None
+    annotation_run_id: uuid.UUID
+    pipeline_node_revision_id: uuid.UUID
+
+
+class AnnotationRunConfig(pydantic.BaseModel):
+    color_map: dict[str, str] | None = None
+
+
+class AnnotationRunCreate(pydantic.BaseModel):
+    name: str
+    config: AnnotationRunConfig | None = pydantic.Field(
+        default=AnnotationRunConfig(), title="Config"
+    )
+    dataset_id: str
+    subset_id: str
+    pipeline_id: str
+    user_group: str | None = None
+    nodes: list[AnnotationRunNodeCreate] | None = pydantic.Field(
+        default=None, title="Nodes"
+    )
+
+
+class AnnotationRun(BaseModel):
+    created_at: datetime.datetime = pydantic.Field(title="Created At")
+    updated_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Updated At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
+    owner: uuid.UUID = pydantic.Field(title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    name: str = pydantic.Field(title="Name")
+    goliat_project_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Goliat Project Id"
+    )
+    pipeline_revision_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Pipeline Revision Id"
+    )
+    status: AnnotationRunStatus | None = pydantic.Field(default=None, title="Status")
+    dataset_id: uuid.UUID | None = pydantic.Field(default=None, title="Dataset Id")
+    subset_id: uuid.UUID | None = pydantic.Field(default=None, title="Subset Id")
+    annotation_run_type: AnnotationRunType | None = pydantic.Field(
+        default=None, title="Run Type"
+    )
+    ml_annotation_model_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="ML Annotation Model Id"
+    )
+    is_multinode: bool = pydantic.Field(default=False, title="Is Multinode")
+    config: AnnotationRunConfig | None = pydantic.Field(default=None, title="Config")
+    id: uuid.UUID = pydantic.Field(title="Id")
+    annotation_run_url: str | None = pydantic.Field(
+        default=None, title="Annotation Run Url"
+    )
+    completed_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Completed At"
+    )
+    nodes: list[AnnotationRunNode] | None = pydantic.Field(default=None, title="Nodes")
+    ml_annotation_models: list[MLAnnotationModel] | None = pydantic.Field(
+        default=None, title="ML Annotation Models"
+    )
+
+    model_config = pydantic.ConfigDict(extra="ignore")
 
 
 class BulkAttributeCreate(AttributeCreate):

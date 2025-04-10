@@ -453,6 +453,10 @@ class HARIUploader:
                     f"Dataset with id {self.dataset_id} uses an external media source, "
                     "but not all medias have a file_key set. Make sure to set their file_key."
                 )
+
+            log.info(
+                "Dataset uses an external media source. No media files will be uploaded."
+            )
             self._with_media_files_upload = False
         else:
             if any(not media.file_path for media in self._medias):
