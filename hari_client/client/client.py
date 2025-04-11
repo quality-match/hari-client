@@ -280,9 +280,9 @@ class HARIClient:
         response.raise_for_status()
         response_json = response.json()
         self.access_token = response_json["access_token"]
-        # Set expiry time with a buffer of 1 second
+        # Set expiry time with a buffer of 10 second
         self.expiry = datetime.datetime.now() + datetime.timedelta(
-            seconds=response_json["expires_in"] - 1
+            seconds=response_json["expires_in"] - 10
         )
 
     @staticmethod
