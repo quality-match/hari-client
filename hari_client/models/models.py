@@ -327,7 +327,7 @@ class CameraIntrinsics(BaseModel):
 
 class PointCloudMetadata(BaseModel):
     sensor_id: str = pydantic.Field(title="Sensor Id")
-    lidar_sensor_pose: dict[str, typing.Any] = pydantic.Field(title="Lidar Sensor Pose")
+    lidar_sensor_pose: dict[str, Pose3D] = pydantic.Field(title="Lidar Sensor Pose")
 
 
 class ImageMetadata(BaseModel):
