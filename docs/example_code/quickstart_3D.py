@@ -15,11 +15,11 @@ config = Config()
 hari = HARIClient(config=config)
 # # 2. Create a dataset
 # # Replace "CHANGEME" with your own user group!
-# new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
-# print("Dataset created with id:", new_dataset.id)
+new_dataset = hari.create_dataset(name="My first dataset", user_group="QM-devs")
+print("Dataset created with id:", new_dataset.id)
 #
-# dataset_id = new_dataset.id
-#
+dataset_id = new_dataset.id
+
 attribute_object_1_id = uuid.uuid4()
 attribute_media_1_id = uuid.uuid4()
 medias = []
@@ -28,8 +28,13 @@ medias = []
 # In this example we use 3 images with 1 media object each.
 # The first media and media object have 1 attribute each.
 scenes = {"scene1"}
-dataset_id = "8298c4c9-3176-4f33-922e-d98956c44d54"
-uploader = hari_uploader.HARIUploader(client=hari, dataset_id=dataset_id, scenes=scenes)
+object_categories = {"truck"}
+uploader = hari_uploader.HARIUploader(
+    client=hari,
+    dataset_id=dataset_id,
+    scenes=scenes,
+    object_categories=object_categories,
+)
 point_cloud = hari_uploader.HARIMedia(
     file_path="images/point_cloud.pcd",
     name="test_point_cloud",
@@ -38,7 +43,25 @@ point_cloud = hari_uploader.HARIMedia(
     scene_name="scene1",
     media_type=models.MediaType.POINT_CLOUD,
 )
-point_cloud = hari_uploader.HARIMedia(
+media_object = hari_uploader.HARIMediaObject(
+    back_reference="cuboid_center_point",
+    reference_data=models.CuboidCenterPoint(
+        type="cuboid_center_point",
+        position=[-10.227567047441426, 19.460821128585394, 0.03743642453830098],
+        dimensions=[2.312, 7.516, 3.093],
+        heading=[
+            0.9543446154177624,
+            0.0016914195330597179,
+            -0.0028850132191384366,
+            -0.29868908721580645,
+        ],
+    ),
+    scene_name="scene1",
+    frame_idx=0,
+)
+media_object.set_object_category_subset_name("truck")
+point_cloud.add_media_object(media_object)
+image = hari_uploader.HARIMedia(
     file_path="images/acdcf2c4-9585-4c9c-90bb-cfa0883898f4.jpg",
     name="test_image_1",
     back_reference="test_image_1",
@@ -67,82 +90,11 @@ point_cloud = hari_uploader.HARIMedia(
     ),
     media_type=models.MediaType.IMAGE,
 )
+
+uploader.add_media(image)
 uploader.add_media(point_cloud)
 
-# for i in range(333):
-#     media_1 = hari_uploader.HARIMedia(
-#         # note: the file_path won't be saved in HARI, it's only used during uploading
-#         file_path="images/image_1.jpg",
-#         name="A busy street 1",
-#         back_reference="image 1",
-#         media_type=models.MediaType.IMAGE,
-#     )
-#     media_object_1 = hari_uploader.HARIMediaObject(
-#         back_reference="pedestrian_1",
-#         reference_data=models.BBox2DCenterPoint(
-#             type=models.BBox2DType.BBOX2D_CENTER_POINT,
-#             x=1400.0,
-#             y=1806.0,
-#             width=344.0,
-#             height=732.0,
-#         ),
-#     )
-#     attribute_object_1 = hari_uploader.HARIAttribute(
-#         id=attribute_object_1_id,
-#         name="Is this a human being?",
-#         attribute_type=models.AttributeType.Binary,
-#         value=True,
-#     )
-#
-#     attribute_media_1 = hari_uploader.HARIAttribute(
-#         id=attribute_media_1_id,
-#         name="area",
-#         attribute_type=models.AttributeType.Categorical,
-#         value=6912,
-#     )
-#     media_1.add_attribute(attribute_media_1)
-#     media_object_1.add_attribute(attribute_object_1)
-#     media_1.add_media_object(media_object_1)
-#     medias.append(media_1)
-#
-#     media_object_2 = hari_uploader.HARIMediaObject(
-#         back_reference="motorcycle_wheel_1",
-#         reference_data=models.Point2DXY(x=975.0, y=2900.0),
-#     )
-#     media_2 = hari_uploader.HARIMedia(
-#         file_path="images/image_2.jpg",
-#         name="A busy street 2",
-#         back_reference="image 2",
-#         media_type=models.MediaType.IMAGE,
-#     )
-#     media_2.add_media_object(media_object_2)
-#     medias.append(media_2)
-#
-#     media_3 = hari_uploader.HARIMedia(
-#         file_path="images/image_3.jpg",
-#         name="A busy street 3",
-#         back_reference="image 3",
-#         media_type=models.MediaType.IMAGE,
-#     )
-#     media_object_3 = hari_uploader.HARIMediaObject(
-#         back_reference="road marking",
-#         reference_data=models.PolyLine2DFlatCoordinates(
-#             coordinates=[1450, 1550, 1450, 1000],
-#             closed=False,
-#         ),
-#     )
-#     media_3.add_media_object(media_object_3)
-#     medias.append(media_3)
-#
-# # 4. Set up the uploader and add the medias to it
-# uploader = hari_uploader.HARIUploader(
-#     client=hari,
-#     dataset_id=dataset_id,
-# )
-# uploader.add_media(*medias)
-#
-#
-# 5. Trigger the upload process
+# 4. Trigger the upload process
 upload_results = uploader.upload()
 
 # Inspect upload results
@@ -167,17 +119,17 @@ if (
     print(f"media objects upload details: {upload_results.media_objects.results}")
     print(f"attributes upload details: {upload_results.attributes.results}")
     sys.exit(1)
-#
-# # 6. Create a subset
-# # print("Creating new subset...")
-# # new_subset_id = hari.create_subset(
-# #     dataset_id=dataset_id,
-# #     subset_type=models.SubsetType.MEDIA_OBJECT,
-# #     subset_name="All media objects",
-# # )
-# # print(f"Created new subset with id {new_subset_id}")
-#
-# 7. Trigger metadata updates
+
+# 5. Create a subset
+print("Creating new subset...")
+new_subset_id = hari.create_subset(
+    dataset_id=dataset_id,
+    subset_type=models.SubsetType.MEDIA_OBJECT,
+    subset_name="All media objects",
+)
+print(f"Created new subset with id {new_subset_id}")
+
+# 6. Trigger metadata updates
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
 metadata_rebuild_trace_id = uuid.uuid4()
