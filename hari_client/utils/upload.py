@@ -86,11 +86,11 @@ def get_or_create_dataset(
             is_anonymized=is_anonymized,
             external_media_source=external_media_source,
         )
-        log.info("Dataset created with id:", new_dataset.id)
+        log.info(f"Dataset created with id: {new_dataset.id}")
         return new_dataset.id
     else:
         dataset_id = datasets[dataset_names.index(dataset_name)].id
-        log.info("Found existing dataset with id:", dataset_id)
+        log.info(f"Found existing dataset with id: {dataset_id}")
 
         return dataset_id
 
@@ -127,7 +127,7 @@ def get_or_create_subset_for_all(
     else:
         subset = subsets[subset_names.index(subset_name)]
         new_subset_id = subset.id
-        log.info("Found existing subset with id:", new_subset_id)
+        log.info(f"Found existing subset with id {new_subset_id}")
 
         return new_subset_id, True
 
