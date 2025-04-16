@@ -16,7 +16,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
+new_dataset = hari.create_dataset(name="My first dataset")
 print("Dataset created with id:", new_dataset.id)
 
 dataset_id = new_dataset.id

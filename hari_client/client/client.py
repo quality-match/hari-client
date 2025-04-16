@@ -1,10 +1,12 @@
 import datetime
 import json
 import pathlib
+import time
 import types
 import typing
 import uuid
 import warnings
+from collections import defaultdict
 
 import pydantic
 import requests
@@ -189,6 +191,7 @@ def _prepare_request_query_params(
 
 class HARIClient:
     BULK_UPLOAD_LIMIT = 500
+    timings: dict[str, float] = defaultdict(list)
 
     def __init__(self, config: config.Config):
         self.config = config
@@ -229,7 +232,9 @@ class HARIClient:
             kwargs["params"] = _prepare_request_query_params(kwargs["params"])
 
         # do request and basic error handling
+        start_time = time.time()
         response = self.session.request(method, full_url, **kwargs)
+        self.timings[f"{method} {url}"].append(time.time() - start_time)
         if not response.ok:
             raise errors.APIError(response)
 
