@@ -1,3 +1,4 @@
+"""HARI Uploader for bulk uploading media and annotations."""
 import copy
 import typing
 import uuid
@@ -9,6 +10,7 @@ from hari_client import HARIClient
 from hari_client import HARIUploaderConfig
 from hari_client import models
 from hari_client import validation
+from hari_client.upload import property_validator
 from hari_client.utils import logger
 
 log = logger.setup_logger(__name__)
@@ -37,7 +39,7 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     # the object_category_subset_name field is not part of the lower level MediaObjectCreate model
     # of the hari api, but is needed to store which object category subset the media object should belong to.
     object_category_subset_name: str | None = pydantic.Field(default=None, exclude=True)
-    scene_name: str | None = pydantic.Field(default=None, exclude=True)
+    scene_back_reference: str | None = pydantic.Field(default=None, exclude=True)
 
     # overrides the BulkMediaObjectCreate validator to not raise error if the bulk_operation_annotatable_id is not set;
     # the field is set internally by the HARIUploader
@@ -55,8 +57,8 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     def set_object_category_subset_name(self, object_category_subset_name: str) -> None:
         self.object_category_subset_name = object_category_subset_name
 
-    def set_scene_name(self, scene_name: str) -> None:
-        self.scene_name = scene_name
+    def set_scene_back_reference(self, scene_back_reference: str) -> None:
+        self.scene_back_reference = scene_back_reference
 
     def set_frame_idx(self, frame_idx: int) -> None:
         self.frame_idx = frame_idx
@@ -144,7 +146,7 @@ class HARIMedia(models.BulkMediaCreate):
     # attributes to a media before uploading the media
     media_objects: list[HARIMediaObject] = pydantic.Field(default=[], exclude=True)
     attributes: list[HARIAttribute] = pydantic.Field(default=[], exclude=True)
-    scene_name: str | None = pydantic.Field(default=None, exclude=True)
+    scene_back_reference: str | None = pydantic.Field(default=None, exclude=True)
     # overwrites the bulk_operation_annotatable_id field to not be required,
     # because it's set internally by the HARIUploader
     bulk_operation_annotatable_id: str | None = ""
@@ -158,8 +160,8 @@ class HARIMedia(models.BulkMediaCreate):
     ) -> typing.Any:
         return data
 
-    def set_scene_name(self, scene_name: str) -> None:
-        self.scene_name = scene_name
+    def set_scene_back_reference(self, scene_back_reference: str) -> None:
+        self.scene_back_reference = scene_back_reference
 
     def set_frame_idx(self, frame_idx: int) -> None:
         self.frame_idx = frame_idx
@@ -216,7 +218,7 @@ class HARIUploader:
                 If media_objects have an object_category_subset_name assigned, it has to be from this set.
                 HARIUploader will create a HARI subset for each object_category and add the corresponding medias and media_objects to it.
             scenes: A set of scenes present in the media_objects.
-                If media_objects have a scene assigned, it has to be from this set.
+                If media_objects have a scene_back_reference assigned, it has to be from this set.
         """
         self.client: HARIClient = client
         self.dataset_id: uuid.UUID = dataset_id
@@ -228,10 +230,19 @@ class HARIUploader:
         self._media_object_back_references: set[str] = set()
         self._media_object_cnt: int = 0
         self._attribute_cnt: int = 0
-        # Initialize metadata mappings
+        # Initialize property mappings
         self._object_category_subsets: dict[str, str] = {}
         self._scenes: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
+
+        # Set up the property validator for scene and object category validation
+        self.validator = property_validator.PropertyValidator(
+            allowed_values={
+                "scene_back_reference": self.scenes,
+                "object_category_subset_name": self.object_categories,
+            },
+            consistency_fields=["scene_back_reference", "frame_idx"],
+        )
 
     def add_media(self, *args: HARIMedia) -> None:
         """
@@ -283,161 +294,6 @@ class HARIUploader:
                     if not attr.annotatable_type:
                         attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
-    def _setup_metadata_validation(self):
-        """Set up the configuration for metadata validation."""
-        return {
-            "found_metadata": {
-                "scene_name": set(),
-                "object_category_subset_name": set(),
-                "frame_idx": set(),
-            },
-            "validation_errors": {
-                "scene_name": [],
-                "object_category_subset_name": [],
-                "consistency": [],
-            },
-            "error_classes": {
-                "scene_name": HARIUnknownSceneNameError,
-                "object_category_subset_name": HARIMediaObjectUnknownObjectCategorySubsetNameError,
-                "consistency": HARIInconsistentFieldError,
-            },
-            "error_templates": {
-                "scene_name": (
-                    "A scene for the specified scene_name ({name}) wasn't specified. "
-                    "Only the scenes that were specified in the HARIUploader constructor are allowed: {allowed_values}. "
-                    "{object_type}: {object}"
-                ),
-                "object_category_subset_name": (
-                    "A subset for the specified object_category_subset_name ({name}) wasn't specified. "
-                    "Only the object_categories that were specified in the HARIUploader constructor are allowed: {allowed_values}. "
-                    "{object_type}: {object}"
-                ),
-                "consistency": (
-                    "Media and Media Object {field_name} are inconsistent. "
-                    "Media {field_name}: {media_value}, Media Object {field_name}: {mo_value}. "
-                    "Media (back_ref: {media_back_ref}), Media Object (back_ref: {mo_back_ref})"
-                ),
-            },
-            "allowed_values": {
-                "scene_name": self.scenes,
-                "object_category_subset_name": self.object_categories,
-            },
-            "applicable_to": {
-                "scene_name": ["media", "media_object"],
-                "object_category_subset_name": ["media_object"],
-            },
-            "consistency_fields": ["scene_name", "frame_idx"],
-        }
-
-    def _validate_metadata_field(self, obj, field_name, object_type, config):
-        """
-        Validate a single metadata field on an object.
-
-        Args:
-            obj: The object to validate (media or media_object)
-            field_name: The field name to validate
-            object_type: The type of object ("media" or "media_object")
-            config: The validation configuration
-
-        Returns:
-            True if the field is present and valid, False otherwise
-        """
-        if hasattr(obj, field_name) and getattr(obj, field_name):
-            field_value = getattr(obj, field_name)
-            config["found_metadata"][field_name].add(field_value)
-
-            if field_value not in config["allowed_values"][field_name]:
-                config["validation_errors"][field_name].append(
-                    config["error_classes"][field_name](
-                        config["error_templates"][field_name].format(
-                            name=field_value,
-                            allowed_values=config["allowed_values"][field_name],
-                            object_type=object_type,
-                            object=obj,
-                        )
-                    )
-                )
-            return True
-        return False
-
-    def _validate_all_metadata(self):
-        """
-        Validate all metadata across media and media objects in a single pass.
-
-        Returns:
-            dict: The validation configuration with populated found_metadata and validation_errors
-        """
-        config = self._setup_metadata_validation()
-
-        # Single pass for validation and collecting all metadata
-        for media in self._medias:
-            # Check fields applicable to media
-            for field_name, applicable_to in config["applicable_to"].items():
-                if "media" in applicable_to:
-                    self._validate_metadata_field(media, field_name, "media", config)
-
-            # Track frame_idx if present
-            if hasattr(media, "frame_idx") and media.frame_idx is not None:
-                config["found_metadata"]["frame_idx"].add(media.frame_idx)
-
-            # Process all media objects in this media
-            for media_object in media.media_objects:
-                # Check fields applicable to media_object
-                for field_name, applicable_to in config["applicable_to"].items():
-                    if "media_object" in applicable_to:
-                        self._validate_metadata_field(
-                            media_object, field_name, "media_object", config
-                        )
-
-                # Track frame_idx if present for media_object
-                if (
-                    hasattr(media_object, "frame_idx")
-                    and media_object.frame_idx is not None
-                ):
-                    config["found_metadata"]["frame_idx"].add(media_object.frame_idx)
-
-                # Validate consistency between media and media_object for configured fields
-                self._validate_field_consistency(media, media_object, config)
-
-        return config
-
-    def _validate_field_consistency(self, media, media_object, config):
-        """
-        Validate consistency between media and media_object fields.
-
-        Args:
-            media: The media object
-            media_object: The media_object to validate against the media
-            config: The validation configuration
-        """
-        # They are in the same scene, check consistency for all configured fields
-        for field_name in config["consistency_fields"]:
-            # Skip if either doesn't have the field or field is None
-            if (
-                not hasattr(media, field_name)
-                or not hasattr(media_object, field_name)
-                or getattr(media, field_name) is None
-                or getattr(media_object, field_name) is None
-            ):
-                continue
-
-            # Check if values match
-            media_value = getattr(media, field_name)
-            mo_value = getattr(media_object, field_name)
-
-            if media_value != mo_value:
-                config["validation_errors"]["consistency"].append(
-                    config["error_classes"]["consistency"](
-                        config["error_templates"]["consistency"].format(
-                            field_name=field_name,
-                            media_value=media_value,
-                            mo_value=mo_value,
-                            media_back_ref=getattr(media, "back_reference", "N/A"),
-                            mo_back_ref=getattr(media_object, "back_reference", "N/A"),
-                        )
-                    )
-                )
-
     def _get_existing_scenes(self) -> list[models.Scene]:
         """Retrieves all existing scenes from the server."""
         return self.client.get_scenes(dataset_id=self.dataset_id)
@@ -453,80 +309,145 @@ class HARIUploader:
         log.info(f"All existing object_category subsets: {object_category_subsets=}")
         return object_category_subsets
 
-    def _collect_frame_info(self, scene_names):
-        """Collect frame information for scenes that need to be created."""
-        frame_info = {}
-        for media in self._medias:
-            if (
-                hasattr(media, "scene_name")
-                and media.scene_name in scene_names
-                and media.frame_idx is not None
-            ):
-                frame_info.setdefault(media.scene_name, set()).add(media.frame_idx)
+    def _handle_scene_and_category_data(self) -> None:
+        """Handle scene and object category setup and validation."""
+        log.info("Initializing scenes and object categories.")
 
-            for media_object in media.media_objects:
-                if (
-                    hasattr(media_object, "scene_name")
-                    and media_object.scene_name in scene_names
-                    and media_object.frame_idx is not None
-                ):
-                    frame_info.setdefault(media_object.scene_name, set()).add(
-                        media_object.frame_idx
-                    )
+        # 1. Validate all properties
+        is_valid, validation_result, to_create = self.validator.validate_properties(
+            self._medias,
+            HARIUnknownSceneNameError,
+            HARIMediaObjectUnknownObjectCategorySubsetNameError,
+            HARIInconsistentFieldError,
+        )
 
-        return frame_info
+        # Check for validation errors
+        if not is_valid:
+            all_errors = validation_result.get_all_errors()
+            log.error(f"Found {len(all_errors)} validation errors.")
+            raise ExceptionGroup("Property validation failed", all_errors)
 
-    def _create_missing_metadata(self, to_create, metadata_mappings):
-        """Create missing metadata items on the server."""
+        # 2. Fetch existing properties from server
+        existing_scenes = self._get_existing_scenes()
+        backend_object_category_subsets = self.get_existing_object_category_subsets()
+
+        # 3. Create mappings for existing properties
+        property_mappings = {
+            "scene_back_reference": {
+                scene.back_reference: str(scene.id) for scene in existing_scenes
+            },
+            "object_category_subset_name": {
+                subset.name: str(subset.id)
+                for subset in backend_object_category_subsets
+            },
+        }
+
+        # 4. Filter out properties that already exist
+        scenes_to_create = [
+            scene
+            for scene in to_create["scene_back_reference"]
+            if scene and scene not in property_mappings["scene_back_reference"]
+        ]
+
+        categories_to_create = [
+            category
+            for category in to_create["object_category_subset_name"]
+            if category
+            and category not in property_mappings["object_category_subset_name"]
+        ]
+
+        # 5. Create missing properties
+        self._create_missing_properties(
+            scenes_to_create=scenes_to_create,
+            categories_to_create=categories_to_create,
+            property_mappings=property_mappings,
+        )
+
+        # 6. Store mappings for later reference
+        self._scenes = property_mappings["scene_back_reference"]
+        self._object_category_subsets = property_mappings["object_category_subset_name"]
+
+        # 7. Assign IDs to objects
+        self._assign_property_ids()
+
+        log.info(f"All scenes of this dataset: {self._scenes=}")
+        log.info(
+            f"All object category subsets of this dataset: {self._object_category_subsets=}"
+        )
+
+    def _create_missing_properties(
+        self,
+        property_mappings: dict[str, dict[str, str]],
+        scenes_to_create: list[str] | None = None,
+        categories_to_create: list[str] | None = None,
+    ) -> None:
+        """Create missing properties on the server.
+
+        Args:
+            property_mappings: Dictionary to store property mappings.
+            scenes_to_create: Scene back references to create.
+            categories_to_create: Object category subset names to create.
+        """
         # Create missing scenes
-        if to_create["scene_name"]:
+        if scenes_to_create:
             # Collect frame information for scenes
-            frame_info = self._collect_frame_info(to_create["scene_name"])
+            frame_info = self.validator.collect_frame_info(
+                self._medias, "scene_back_reference"
+            )
 
             # Create the scenes
-            for scene_name in sorted(to_create["scene_name"]):
+            for scene_back_reference in sorted(scenes_to_create):
                 frames = [
                     models.Frame(index=idx)
-                    for idx in sorted(frame_info.get(scene_name, set()))
+                    for idx in sorted(frame_info.get(scene_back_reference, set()))
                 ]
                 scene = self.client.create_scene(
-                    dataset_id=self.dataset_id, back_reference=scene_name, frames=frames
+                    dataset_id=self.dataset_id,
+                    back_reference=scene_back_reference,
+                    frames=frames,
                 )
-                metadata_mappings["scene_name"][scene_name] = str(scene.id)
-                log.info(f"Created scene: {scene_name} with id {scene.id}")
+                property_mappings["scene_back_reference"][scene_back_reference] = str(
+                    scene.id
+                )
+                log.info(f"Created scene: {scene_back_reference} with id {scene.id}")
 
         # Create missing object categories
-        if to_create["object_category_subset_name"]:
-            for category_name in sorted(to_create["object_category_subset_name"]):
+        if categories_to_create:
+            for category_name in sorted(categories_to_create):
                 subset_id = self.client.create_empty_subset(
                     dataset_id=self.dataset_id,
                     subset_type=models.SubsetType.MEDIA_OBJECT,
                     subset_name=category_name,
                     object_category=True,
                 )
-                metadata_mappings["object_category_subset_name"][
+                property_mappings["object_category_subset_name"][
                     category_name
                 ] = subset_id
                 log.info(
                     f"Created object category: {category_name} with id {subset_id}"
                 )
 
-    def _assign_metadata_ids(self):
-        """Assign metadata IDs to media and media objects."""
+    def _assign_property_ids(self) -> None:
+        """Assign scene and object category IDs to medias and media objects."""
         for media in self._medias:
             # Track subset_ids to avoid duplicates
             media_subset_ids = set(media.subset_ids or [])
 
             # Handle scene assignment for media
-            if hasattr(media, "scene_name") and media.scene_name:
-                media.scene_id = self._scenes[media.scene_name]
+            if hasattr(media, "scene_back_reference") and media.scene_back_reference:
+                media.scene_id = self._scenes[media.scene_back_reference]
                 if media.frame_idx is None:
                     raise ValueError("Frame index must be set when specifying scenes")
 
             for media_object in media.media_objects:
                 # Handle scene assignment for media object
-                if hasattr(media_object, "scene_name") and media_object.scene_name:
-                    media_object.scene_id = self._scenes[media_object.scene_name]
+                if (
+                    hasattr(media_object, "scene_back_reference")
+                    and media_object.scene_back_reference
+                ):
+                    media_object.scene_id = self._scenes[
+                        media_object.scene_back_reference
+                    ]
                     if media_object.frame_idx is None:
                         raise ValueError(
                             "Frame index must be set when specifying scenes"
@@ -556,69 +477,6 @@ class HARIUploader:
             if media_subset_ids:
                 media.subset_ids = list(media_subset_ids)
 
-    def _handle_annotatable_metadata(self) -> None:
-        """
-        Unified method to handle both scenes and object categories with a single loop through the data.
-        """
-        log.info("Initializing scenes and object categories.")
-
-        # 1. Validate all metadata in a single pass
-        validation_results = self._validate_all_metadata()
-
-        # Check for validation errors
-        for field_name, errors in validation_results["validation_errors"].items():
-            if errors:
-                log.error(f"Found {len(errors)} errors with {field_name} consistency.")
-                raise ExceptionGroup(
-                    f"Found {len(errors)} errors with {field_name} consistency.", errors
-                )
-
-        found_metadata = validation_results["found_metadata"]
-
-        # 2. Fetch existing metadata from server
-        existing_scenes = self._get_existing_scenes()
-        backend_object_category_subsets = self.get_existing_object_category_subsets()
-
-        # 3. Create mappings for existing metadata
-        metadata_mappings = {
-            "scene_name": {
-                scene.back_reference: str(scene.id) for scene in existing_scenes
-            },
-            "object_category_subset_name": {
-                subset.name: str(subset.id)
-                for subset in backend_object_category_subsets
-            },
-        }
-
-        # 4. Determine what needs to be created
-        to_create = {
-            "scene_name": [
-                name
-                for name in found_metadata["scene_name"]
-                if name and name not in metadata_mappings["scene_name"]
-            ],
-            "object_category_subset_name": [
-                name
-                for name in found_metadata["object_category_subset_name"]
-                if name and name not in metadata_mappings["object_category_subset_name"]
-            ],
-        }
-
-        # 5. Create missing metadata items
-        self._create_missing_metadata(to_create, metadata_mappings)
-
-        # 6. Store mappings for later reference
-        self._scenes = metadata_mappings["scene_name"]
-        self._object_category_subsets = metadata_mappings["object_category_subset_name"]
-
-        # 7. Assign IDs to objects
-        self._assign_metadata_ids()
-
-        log.info(f"All scenes of this dataset: {self._scenes=}")
-        log.info(
-            f"All object category subsets of this dataset: {self._object_category_subsets=}"
-        )
-
     def validate_all_attributes(self) -> None:
         """Validates all attributes of medias and media objects."""
         all_attributes = []
@@ -628,9 +486,7 @@ class HARIUploader:
                 all_attributes.extend(media_object.attributes)
         validation.validate_attributes(all_attributes)
 
-    def upload(
-        self,
-    ) -> HARIUploadResults | None:
+    def upload(self) -> HARIUploadResults | None:
         """
         Upload all Media and their MediaObjects to HARI.
 
@@ -665,8 +521,8 @@ class HARIUploader:
 
         self.validate_all_attributes()
 
-        # Handle both scenes and object categories in a unified way
-        self._handle_annotatable_metadata()
+        # Handle scene and object category setup and validation
+        self._handle_scene_and_category_data()
 
         # upload batches of medias
         log.info(
@@ -889,6 +745,113 @@ class HARIUploader:
                     i
                 ].annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
+    # Note: The following methods are here to allow the tests to demonstrate Idempotency.
+
+    def _get_and_validate_media_objects_object_category_subset_names(
+        self,
+    ) -> tuple[set[str], list[HARIMediaObjectUnknownObjectCategorySubsetNameError]]:
+        """Retrieves and validates the consistency of the object_category_subset_names that were assigned to media_objects.
+        To be consistent, all media_object.object_category_subset_name values must be available in the set of object_categories specified in the HARIUploader constructor.
+        A media_object isn't required to be assigned an object_category_subset_name, though.
+
+        Returns:
+            The first return value is the set of found object_category_subset_names,
+                the second return value is the list of errors that were found during the validation.
+        """
+        # Use the validator to get object category subset information
+        _, validation_result, _ = self.validator.validate_properties(
+            self._medias,
+            HARIUnknownSceneNameError,
+            HARIMediaObjectUnknownObjectCategorySubsetNameError,
+            HARIInconsistentFieldError,
+        )
+
+        found_obj_categories = validation_result.found_values.get(
+            "object_category_subset_name", set()
+        )
+        obj_category_errors = validation_result.errors.get(
+            "object_category_subset_name", []
+        )
+
+        return found_obj_categories, obj_category_errors
+
+    def _get_and_validate_scene_back_references(
+        self,
+    ) -> tuple[set[str], list[HARIUnknownSceneNameError]]:
+        """Retrieves and validates the consistency of the scene_back_references that were assigned to annotatables.
+        To be consistent, all scene_back_reference values must be available in the set of scenes specified in the HARIUploader constructor.
+        An annotatable isn't required to be assigned a scene_back_reference, though.
+
+        Returns:
+            The first return value is the set of found scenes,
+                the second return value is the list of errors that were found during the validation.
+        """
+        # Use the validator to get scene back reference information
+        _, validation_result, _ = self.validator.validate_properties(
+            self._medias,
+            HARIUnknownSceneNameError,
+            HARIMediaObjectUnknownObjectCategorySubsetNameError,
+            HARIInconsistentFieldError,
+        )
+
+        found_scenes = validation_result.found_values.get("scene_back_reference", set())
+        obj_scene_errors = validation_result.errors.get("scene_back_reference", [])
+
+        return found_scenes, obj_scene_errors
+
+    def _validate_consistency(self) -> list[HARIInconsistentFieldError]:
+        """Validates that scenes and frames are consistent between medias and their media_objects"""
+        _, validation_result, _ = self.validator.validate_properties(
+            self._medias,
+            HARIUnknownSceneNameError,
+            HARIMediaObjectUnknownObjectCategorySubsetNameError,
+            HARIInconsistentFieldError,
+        )
+
+        consistency_errors = validation_result.errors.get("consistency", [])
+        return consistency_errors
+
+    def _assign_object_category_subsets(self) -> None:
+        """Assigns object_category_subsets to media_objects and media based on media_object.object_category_subset_name"""
+        # Use the renamed method that handles all entity ID assignments
+        self._assign_property_ids()
+
+    def _create_object_category_subsets(self, object_categories: list[str]) -> None:
+        """Creates object_category subsets for the specified object_categories.
+
+        Args:
+            object_categories: List of object category names to create.
+        """
+        # Create empty entity mappings if they don't exist yet
+        property_mappings = {
+            "scene_back_reference": self._scenes,
+            "object_category_subset_name": self._object_category_subsets,
+        }
+
+        # Create the object categories using the new method
+        self._create_missing_properties(
+            categories_to_create=object_categories, property_mappings=property_mappings
+        )
+
+    def _create_scenes(self, scenes: list[str]) -> None:
+        """Creates scenes for the specified scene_back_references.
+
+        Args:
+            scenes: List of scene back references to create.
+        """
+        # Create empty entity mappings if they don't exist yet
+        property_mappings = {
+            "scene_back_reference": self._scenes,
+            "object_category_subset_name": self._object_category_subsets,
+        }
+
+        # Create the scenes using the new method
+        self._create_missing_properties(
+            scenes_to_create=scenes,
+            categories_to_create=[],
+            property_mappings=property_mappings,
+        )
+
     def _update_hari_attribute_media_ids(
         self,
         medias_to_upload: list[HARIMedia] | list[HARIMediaObject],
@@ -931,69 +894,6 @@ class HARIUploader:
         if not item.bulk_operation_annotatable_id:
             item.bulk_operation_annotatable_id = str(uuid.uuid4())
 
-    # Note: The following methods are here to allow the tests to demonstrate Idempotency.
-
-    def _get_and_validate_media_objects_object_category_subset_names(
-        self,
-    ) -> tuple[set[str], list[HARIMediaObjectUnknownObjectCategorySubsetNameError]]:
-        """Retrieves and validates the consistency of the object_category_subset_names that were assigned to media_objects.
-        To be consistent, all media_object.object_category_subset_name values must be available in the set of object_categories specified in the HARIUploader constructor.
-        A media_object isn't required to be assigned an object_category_subset_name, though.
-
-        Returns:
-            The first return value is the set of found object_category_subset_names,
-                the second return value is the list of errors that were found during the validation.
-        """
-        # Use the new validation mechanism but extract only the object category subset information
-        config = self._validate_all_metadata()
-        found_obj_categories = config["found_metadata"]["object_category_subset_name"]
-        obj_category_errors = config["validation_errors"]["object_category_subset_name"]
-        return found_obj_categories, obj_category_errors
-
-    def _get_and_validate_scene_names(
-        self,
-    ) -> tuple[set[str], list[HARIUnknownSceneNameError]]:
-        """Retrieves and validates the consistency of the scene_names that were assigned to annotatables.
-        To be consistent, all scene_names values must be available in the set of scenes specified in the HARIUploader constructor.
-        A annotatable isn't required to be assigned a scene_name, though.
-
-        Returns:
-            The first return value is the set of found scenes,
-                the second return value is the list of errors that were found during the validation.
-        """
-        # Use the new validation mechanism but extract only the object category subset information
-        config = self._validate_all_metadata()
-        found_scenes = config["found_metadata"]["scene_name"]
-        obj_scene_errors = config["validation_errors"]["scene_name"]
-        return found_scenes, obj_scene_errors
-
-    def _validate_consistency(self) -> list[HARIInconsistentFieldError]:
-        """Valdiates that scenes and frames are consistent between medias and their media_objects"""
-        config = self._validate_all_metadata()
-        consistency_errors = config["validation_errors"]["consistency"]
-        return consistency_errors
-
-    def _assign_object_category_subsets(self) -> None:
-        """Assigns object_category_subsets to media_objects and media based on media_object.object_category_subset_name"""
-        # The _assign_metadata_ids method now handles this
-        self._assign_metadata_ids()
-
-    def _create_object_category_subsets(self, object_categories: list[str]) -> None:
-        """Creates object_category subsets for the specified object_categories."""
-        # Extract from the new unified method
-        metadata_mappings = {
-            "object_category_subset_name": self._object_category_subsets
-        }
-        to_create = {"object_category_subset_name": object_categories, "scene_name": []}
-        self._create_missing_metadata(to_create, metadata_mappings)
-
-    def _create_scenes(self, scenes: list[str]) -> None:
-        """Creates scenes."""
-        # Extract from the new unified method
-        metadata_mappings = {"scene_name": self._scenes}
-        to_create = {"object_category_subset_name": [], "scene_name": scenes}
-        self._create_missing_metadata(to_create, metadata_mappings)
-
 
 def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
     """
@@ -1033,7 +933,7 @@ def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
         # if all statuses are the same, use that status
         final_response.status = statuses.pop()
     elif (
-        models.BulkOperationStatusEnum.SUCCESS
+        models.BulkOperationStatusEnum.SUCCESS in statuses
         or models.BulkOperationStatusEnum.PARTIAL_SUCCESS in statuses
     ):
         # if success appears at least once, it's a partial_success
