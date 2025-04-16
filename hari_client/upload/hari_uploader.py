@@ -244,6 +244,10 @@ class HARIUploader:
             consistency_fields=["scene_back_reference", "frame_idx"],
         )
 
+        # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
+        # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
+        # --> refactor this, so that all logic happenning in the add_* functions
+
     def add_media(self, *args: HARIMedia) -> None:
         """
         Add one or more HARIMedia objects to the uploader. Only use this method to add
