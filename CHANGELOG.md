@@ -27,6 +27,7 @@
 - added upload utilities [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added helper methods to check for existing datasets and subsets before upload
   - added helper method to trigger metadata rebuild and track its progress
+- added user group as a possible argument in the update dataset method
 
 ### Fixes
 
