@@ -514,6 +514,7 @@ class HARIClient:
         num_attributes: int | None = None,
         num_instances: int | None = None,
         visibility_status: models.VisibilityStatus | None = None,
+        user_group: str | None = None,
     ) -> models.DatasetResponse:
         """Updates the dataset with the given id.
 
@@ -533,6 +534,7 @@ class HARIClient:
             num_attributes: Number of attributes
             num_instances: Number of instances
             visibility_status: Visibility status of the new dataset
+            user_group: new desired user group for the dataset.
 
         Returns:
             The updated dataset
