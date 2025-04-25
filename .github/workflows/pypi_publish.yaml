@@ -4,7 +4,8 @@ on:
   # TODO: remove workflow_dispatch after initial testing
   workflow_dispatch:
   release:
-    types: [published]
+    # TOOD: remove edited type after initial testing
+    types: [published, edited]
 
 permissions:
   contents: read
