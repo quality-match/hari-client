@@ -41,3 +41,4 @@ jobs:
         # TODO: remove test.pypi url after initial testing
         with:
           repository-url: https://test.pypi.org/simple/
+          packages-dir: hari-client/dist
