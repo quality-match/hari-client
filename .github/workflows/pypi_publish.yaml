@@ -1,0 +1,40 @@
+name: Build and publish hari-client package to PyPI
+
+on:
+  # TODO: remove workflow_dispatch after initial testing
+  workflow_dispatch:
+  release:
+    types: [created]
+
+jobs:
+  build-package:
+    name: Build hari-client package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel
+      - name: Build package
+        run: |
+          python setup.py sdist bdist_wheel
+  pypi-publish:
+    name: Publish release to PyPI
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/hari_client
+    permissions:
+      id-token: write
+    steps:
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # TODO: remove test.pypi url after initial testing
+        with:
+          repository-url: https://test.pypi.org/simple/
