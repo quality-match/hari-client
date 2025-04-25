@@ -12,8 +12,13 @@ permissions:
 
 jobs:
   build-package:
-    name: Build hari-client package
+    name: Build and publish package
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/hari_client
+    permissions:
+      id-token: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,18 +33,8 @@ jobs:
       - name: Build package
         run: |
           python setup.py sdist bdist_wheel
-  pypi-publish:
-    name: Publish release to PyPI
-    runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/hari_client
-    permissions:
-      id-token: write
-    steps:
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         # TODO: remove test.pypi url after initial testing
         with:
           repository-url: https://test.pypi.org/simple/
-          packages-dir: hari-client/dist
