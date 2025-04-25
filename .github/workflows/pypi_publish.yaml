@@ -4,7 +4,10 @@ on:
   # TODO: remove workflow_dispatch after initial testing
   workflow_dispatch:
   release:
-    types: [created]
+    types: [published]
+
+permissions:
+  contents: read
 
 jobs:
   build-package:
