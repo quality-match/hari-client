@@ -190,7 +190,7 @@ def _prepare_request_query_params(
 
 
 class HARIClient:
-    BULK_UPLOAD_LIMIT = 500
+    BULK_UPLOAD_LIMIT = 5000
     timings: dict[str, float] = defaultdict(list)
 
     def __init__(self, config: config.Config):

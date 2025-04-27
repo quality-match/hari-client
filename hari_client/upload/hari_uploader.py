@@ -1,4 +1,5 @@
 import copy
+import threading
 import typing
 import uuid
 
@@ -210,6 +211,11 @@ class HARIUploader:
         self._object_category_subsets: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
         self._with_media_files_upload: bool = True
+        self._max_workers: int = 2
+        self._progress_lock = threading.Lock()
+        self._media_upload_progress = None
+        self._media_object_upload_progress = None
+        self._attribute_upload_progress = None
 
     # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
     # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.

@@ -2,6 +2,7 @@ import copy
 import json
 import os
 import random
+import sys
 import time
 import uuid
 
@@ -49,6 +50,8 @@ def get_s3_file_list(limit: int = 15000) -> list[str]:
 
 s3_file_list = get_s3_file_list()
 
+media_object_attribute_ids = [uuid.uuid4() for _ in range(40)]
+
 
 def generate_random_media_objects(number_of_objects: int) -> list[str]:
     media_objects = []
@@ -58,8 +61,8 @@ def generate_random_media_objects(number_of_objects: int) -> list[str]:
             back_reference=f"pedestrian_{idx}",
             reference_data=models.BBox2DCenterPoint(
                 type=models.BBox2DType.BBOX2D_CENTER_POINT,
-                x=1400.0 + random.randint(0, 500),
-                y=900.0 + random.randint(0, 500),
+                x=1400.0 + random.randint(0, 900),
+                y=900.0 + random.randint(0, 800),
                 width=20 * scaling_factor,
                 height=120.0 * scaling_factor,
             ),
@@ -71,14 +74,22 @@ def generate_random_media_objects(number_of_objects: int) -> list[str]:
             back_reference=f"car_{idx}",
             reference_data=models.BBox2DCenterPoint(
                 type=models.BBox2DType.BBOX2D_CENTER_POINT,
-                x=1400.0 + random.randint(0, 600),
-                y=900.0 + random.randint(0, 600),
+                x=1400.0 + random.randint(0, 900),
+                y=900.0 + random.randint(0, 800),
                 width=200 * scaling_factor,
                 height=50 * scaling_factor,
             ),
         )
         media_object.set_object_category_subset_name("car")
         media_objects.append(media_object)
+    for media_object in media_objects:
+        for media_object_attribute_id in media_object_attribute_ids:
+            attribute_media_1 = hari_uploader.HARIAttribute(
+                id=media_object_attribute_id,
+                name=f"attr_{media_object_attribute_id}",
+                value=f"value_{media_object_attribute_id}",
+            )
+            media_object.add_attribute(attribute_media_1)
 
     return media_objects
 
@@ -88,10 +99,12 @@ attribute_media_id = uuid.uuid4()
 
 
 def generate_medias(
-    media_objects: list[hari_uploader.HARIMediaObject], s3_files_list: list[str]
+    media_objects: list[hari_uploader.HARIMediaObject],
+    s3_files_list: list[str],
+    limit: int | None = None,
 ) -> list[hari_uploader.HARIMedia]:
     medias = []
-    for item in s3_files_list:
+    for idx, item in enumerate(s3_files_list):
         media = hari_uploader.HARIMedia(
             file_key=item.split("/")[-1],
             name=item,
@@ -107,10 +120,12 @@ def generate_medias(
         for media_object in new_media_objects:
             media.add_media_object(media_object)
         medias.append(media)
+        if limit and idx >= limit - 1:
+            break
     return medias
 
 
-medias = generate_medias(media_objects, s3_file_list)
+medias = generate_medias(media_objects, s3_file_list, 500)
 
 config = Config()
 
@@ -118,18 +133,18 @@ config = Config()
 hari = HARIClient(config=config)
 
 # 2. Create a dataset
-new_dataset = hari.create_dataset(
-    name="performance_test_1",
-    user_group="QM-ops",
-    external_media_source=models.ExternalMediaSourceAPICreate(
-        credentials=models.ExternalMediaSourceS3CrossAccountAccessInfo(
-            bucket_name="zod-external", region="eu-central-1"
-        )
-    ),
-)
-print("Dataset created with id:", new_dataset.id)
+# new_dataset = hari.create_dataset(
+#     name="performance_test_1",
+#     user_group="QM-ops",
+#     external_media_source=models.ExternalMediaSourceAPICreate(
+#         credentials=models.ExternalMediaSourceS3CrossAccountAccessInfo(
+#             bucket_name="zod-external", region="eu-central-1"
+#         )
+#     ),
+# )
+# print("Dataset created with id:", new_dataset.id)
 
-dataset_id = new_dataset.id
+dataset_id = "6d0b309c-aa9c-4648-bed3-2d6c1bd81e57"
 start_time = time.time()
 uploader = hari_uploader.HARIUploader(
     client=hari,
@@ -156,6 +171,15 @@ total_client_time = sum(
 print(total_client_time)
 print(
     f"Difference between total client time and total time: {total_time - total_client_time}"
+)
+print(
+    f"Timer per media: {sum(uploader.client.timings[f'POST /datasets/{dataset_id}/medias:bulk']) / len(medias)}"
+)
+print(
+    f"Timer per media object: {sum(uploader.client.timings[f'POST /datasets/{dataset_id}/mediaObjects:bulk']) / (len(media_objects) * len(medias))}"
+)
+print(
+    f"Timer per attribute: {sum(uploader.client.timings[f'POST /datasets/{dataset_id}/attributes:bulk']) / (len(media_objects) * len(medias)*40)}"
 )
 # Inspect upload results
 print(f"media upload status: {upload_results.medias.status.value}")
