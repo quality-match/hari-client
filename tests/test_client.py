@@ -23,6 +23,132 @@ def test_create_medias_with_missing_file_paths(test_client):
         client.create_medias(dataset_id="1234", medias=[media_create])
 
 
+def test_create_medias_with_missing_file_keys(test_client):
+    # Arrange
+    client = test_client
+    media_create = models.MediaCreate(
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+    )
+
+    # Act + Assert
+    with pytest.raises(errors.MediaCreateMissingFileKeyError):
+        client.create_medias(
+            dataset_id="1234", medias=[media_create], with_media_files_upload=False
+        )
+
+
+def test_create_medias_without_media_files_upload(test_client_mocked, mocker):
+    # Arrange
+    upload_media_files_spy = mocker.spy(
+        test_client_mocked, "_upload_media_files_with_presigned_urls"
+    )
+    media_create = models.MediaCreate(
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+        file_key="path/to/image_1.jpg",
+    )
+
+    # Act
+    test_client_mocked.create_medias(
+        dataset_id=uuid.uuid4(), medias=[media_create], with_media_files_upload=False
+    )
+
+    # Assert
+    assert upload_media_files_spy.call_count == 0
+
+
+def test_create_medias_with_media_files_upload(test_client_mocked, mocker):
+    # Arrange
+    mocker.patch.object(test_client_mocked, "_upload_media_files_with_presigned_urls")
+    upload_media_files_spy = mocker.spy(
+        test_client_mocked, "_upload_media_files_with_presigned_urls"
+    )
+    media_create = models.MediaCreate(
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+        file_path="path/to/image_1.jpg",
+    )
+
+    # Act
+    test_client_mocked.create_medias(
+        dataset_id=uuid.uuid4(), medias=[media_create], with_media_files_upload=True
+    )
+
+    # Assert
+    assert upload_media_files_spy.call_count == 1
+
+
+def test_create_media_with_missing_file_path(test_client_mocked, mocker):
+    with pytest.raises(errors.MediaCreateMissingFilePathError):
+        test_client_mocked.create_media(
+            dataset_id=uuid.uuid4(),
+            name="my test media",
+            back_reference="my test media backref",
+            media_type=models.MediaType.IMAGE,
+            file_path=None,
+            with_media_files_upload=True,
+        )
+
+
+def test_create_media_with_missing_file_key(test_client_mocked, mocker):
+    with pytest.raises(errors.MediaCreateMissingFileKeyError):
+        test_client_mocked.create_media(
+            dataset_id=uuid.uuid4(),
+            name="my test media",
+            back_reference="my test media backref",
+            media_type=models.MediaType.IMAGE,
+            file_path=None,
+            with_media_files_upload=False,
+        )
+
+
+def test_create_media_with_media_file_upload(test_client_mocked, mocker):
+    # Arrange
+    mocker.patch.object(test_client_mocked, "_upload_media_files_with_presigned_urls")
+    upload_media_files_spy = mocker.spy(
+        test_client_mocked, "_upload_media_files_with_presigned_urls"
+    )
+
+    # Act
+    test_client_mocked.create_media(
+        dataset_id=uuid.uuid4(),
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+        file_path="path/to/image_1.jpg",
+        with_media_files_upload=True,
+    )
+
+    # Assert
+    assert upload_media_files_spy.call_count == 1
+
+
+def test_create_media_without_media_file_upload(test_client_mocked, mocker):
+    # Arrange
+    mocker.patch.object(test_client_mocked, "_upload_media_files_with_presigned_urls")
+    upload_media_files_spy = mocker.spy(
+        test_client_mocked, "_upload_media_files_with_presigned_urls"
+    )
+
+    # Act
+    test_client_mocked.create_media(
+        dataset_id=uuid.uuid4(),
+        name="my test media",
+        back_reference="my test media backref",
+        media_type=models.MediaType.IMAGE,
+        file_path=None,
+        file_key="path/to/image_1.jpg",
+        with_media_files_upload=False,
+    )
+
+    # Assert
+    assert upload_media_files_spy.call_count == 0
+
+
 def test_create_medias_with_different_file_extensions_works(test_client, mocker):
     # Arrange
     media_create_1 = models.MediaCreate(

@@ -35,10 +35,9 @@ class Config(pydantic_settings.BaseSettings):
         env_file=".env", env_file_encoding="utf-8", env_nested_delimiter="__"
     )
 
-    hari_api_base_url: str = "https://bbb.qm-annotations.com"
+    hari_api_base_url: str = "https://api.hari.quality-match.com"
     hari_client_id: str = "baked_beans_frontend"
     hari_auth_url: str = "https://auth.quality-match.com/auth"
     hari_username: str
     hari_password: str
-
     hari_uploader: HARIUploaderConfig = HARIUploaderConfig()

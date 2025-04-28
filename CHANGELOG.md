@@ -1,5 +1,86 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New Features
+
+- updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - added pydantic models for AINTLearningData, MLAnnotationModel, AIAnnotationRun, AttributeValue
+- added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - paginated download of media, media_objects and attributes to the client to enable download of large dataset data to prevent download timeout
+  - added handling of attribute values
+  - added methods for AINTLearningData, MLAnnotationModel and AIAnnotationRun
+- added helper/example scripts for usage of `AI Nano Tasks` (AINT) [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - `aint/start_ai_annotation_run.py`,
+  - `aint/create_aint_model.py`,
+  - `aint/get_aint_attribute_info.py`
+- added new client endpoint methods and models for pipelines and annotation runs [PR#65](https://github.com/quality-match/hari-client/pull/65):
+  - `get_pipelines`
+  - `get_pipeline`
+  - `get_annotation_runs`
+  - `get_annotation_run`
+  - `create_annotation_run`
+- added helper/example scripts for data upload [PR#58](https://github.com/quality-match/hari-client/pull/58)
+  - added script `data_upload/trigger_metadata_rebuild.py`
+  - added script `data_upload/upload_coco_like_dataset.py`
+  - added script `data_upload/upload_yolo_like_dataset.py`
+  - added script `data_upload/upload_single_image.py`
+  - added script `data_upload/upload_dataset_with_own_annotation_attributes.py`
+- added upload utilities [PR#58](https://github.com/quality-match/hari-client/pull/58)
+  - added helper methods to check for existing datasets and subsets before upload
+  - added helper method to trigger metadata rebuild and track its progress
+- added user group as a possible argument in the update dataset method
+
+### Fixes
+
+- made `media_url` and `pii_media_url` optional in the `Media` model [PR#83](https://github.com/quality-match/hari-client/pull/83)
+
+### Internal
+
+- set new default value for `hari_api_base_url` in the config model [PR#85](https://github.com/quality-match/hari-client/pull/85)
+- increase internal token expiration time buffer from 1 to 10 seconds
+
+## [3.4.0] - 07-03-2025
+
+### New features
+
+#### Support for external media sources
+
+- added support for defining external media sources when creating a dataset
+  - new field `external_media_source` in the `create_dataset` method [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new endpoint `get_external_media_source` [PR#73](https://github.com/quality-match/hari-client/pull/73)
+- added new arg to client method `create_medias` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of media files. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new arg to client method `create_media` [PR#74](https://github.com/quality-match/hari-client/pull/74)
+  - `with_media_files_upload` (default: `True`). Set this to `False` if you want to skip the upload of the media file. This way the upload will only create medias in HARI without uploading media files to QM storage.
+- added new field `file_key` to models `Media`, `MediaCreate` and `MediaResponse` [PR#77](https://github.com/quality-match/hari-client/pull/77)
+- updated HARIUploader utility to support using a dataset with an external media source [PR#74](https://github.com/quality-match/hari-client/pull/74) [PR#77](https://github.com/quality-match/hari-client/pull/77)
+  - when your dataset is using an external media source, make sure to set the `file_key` field of `HARIMedia` to the key of the media file in your cloud storage and don't set the `file_path`.
+  - when your dataset isn't using an external media source, make sure to set the `file_path` field of `HARIMedia` and don't set the `file_key`.
+
+### Internal
+
+- removed obsolete `trigger_thumbnails_creation_job` and `trigger_crops_creation_job` client methods [PR#75](https://github.com/quality-match/hari-client/pull/75)
+
+## [3.3.1] - 2025-02-28
+
+### Fixes
+
+- added `compute_auto_attributes` param to `trigger_dataset_metadata_rebuild_job` [PR#78](https://github.com/quality-match/hari-client/pull/78)
+
+## [3.3.0] - 2025-02-27
+
+### New Features
+
+- added support for media objects of type segment [PR#62](https://github.com/quality-match/hari-client/pull/62)
+
+## [3.2.0] - 25-02-2025
+
+### New features
+
+- added `compute_auto_attributes` param to `trigger_metadata_rebuild_job` [PR#71](https://github.com/quality-match/hari-client/pull/71)
+- add `skip`, `limit`, `sort`, `query`, `name_filter` and `archived` parameters to `get_datasets` method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+- add `get_datasets_count` method [PR#67](https://github.com/quality-match/hari-client/pull/67)
+- restricted attribute `possible_values` to be a list of strings [PR#66](https://github.com/quality-match/hari-client/pull/66)
+
 ## [3.1.0] - 14-01-2025
 
 ### New Features

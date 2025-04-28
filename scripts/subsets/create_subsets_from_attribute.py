@@ -6,6 +6,9 @@ from hari_client import Config
 from hari_client import HARIClient
 from hari_client.models import models
 from hari_client.models.models import SubsetType
+from hari_client.utils import logger
+
+log = logger.setup_logger(__name__)
 
 
 def create_subsets_for_attribute(
@@ -26,7 +29,7 @@ def create_subsets_for_attribute(
 
     # Retrieve the dataset object using the provided dataset ID.
     dataset = hari.get_dataset(dataset_id)
-    print(f"Working on dataset: {dataset.name}")
+    log.info(f"Working on dataset: {dataset.name}")
 
     # 2. Get attributes matching the provided attribute ID.
     # Construct a query to find the attribute with the specified ID.
@@ -34,7 +37,7 @@ def create_subsets_for_attribute(
 
     # Execute the query to retrieve the attributes.
     attributes = hari.get_attributes(dataset_id, query=json.dumps(query))
-    print(f"Found {len(attributes)} attributes with ID {attribute_id}")
+    log.info(f"Found {len(attributes)} attributes with ID {attribute_id}")
 
     # 3. Extract needed subsets.
     # Collect all unique labels from the attribute frequencies.
@@ -48,7 +51,7 @@ def create_subsets_for_attribute(
             ]
         )
     )
-    print(f"Need to create subsets for labels: {labels}")
+    log.info(f"Need to create subsets for labels: {labels}")
 
     # 4. Create subsets.
     # Retrieve available visualization configurations for the dataset.
@@ -56,12 +59,12 @@ def create_subsets_for_attribute(
         models.VisualisationConfiguration
     ] = hari.get_visualisation_configs(dataset_id)
     if not visconfigs:
-        print("No visualization configurations found for the dataset.")
+        log.info("No visualization configurations found for the dataset.")
         return
 
     # Use the first visualization configuration ID.
     vis_config_id: str = visconfigs[0].id
-    print(f"Using visualization configuration ID: {vis_config_id}")
+    log.info(f"Using visualization configuration ID: {vis_config_id}")
 
     # Create subsets for each label.
     for label in labels:
@@ -77,7 +80,7 @@ def create_subsets_for_attribute(
             "value": [label],
         }
         subset_name: str = f"{prefix}{label}"
-        print(f"Creating subset: {subset_name}")
+        log.info(f"Creating subset: {subset_name}")
 
         # Create the subset using the HARI client.
         hari.create_subset(

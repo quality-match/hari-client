@@ -9,12 +9,12 @@ import warnings
 import pydantic
 import requests
 from requests import adapters
+from tqdm import tqdm
 
 from hari_client.client import errors
 from hari_client.config import config
 from hari_client.models import models
 from hari_client.utils import logger
-
 
 T = typing.TypeVar("T")
 
@@ -140,7 +140,7 @@ def handle_union_parsing(item, union_type):
 
 
 def _prepare_request_query_params(
-    params: dict[str, typing.Any]
+    params: dict[str, typing.Any],
 ) -> dict[str, typing.Any]:
     """Prepares query parameters for the request module's `request` method.
     Handled cases:
@@ -281,9 +281,9 @@ class HARIClient:
         response.raise_for_status()
         response_json = response.json()
         self.access_token = response_json["access_token"]
-        # Set expiry time with a buffer of 1 second
+        # Set expiry time with a buffer of 10 second
         self.expiry = datetime.datetime.now() + datetime.timedelta(
-            seconds=response_json["expires_in"] - 1
+            seconds=response_json["expires_in"] - 10
         )
 
     @staticmethod
@@ -455,6 +455,7 @@ class HARIClient:
         ) = models.VisibilityStatus.VISIBLE,
         data_root: str | None = "custom_upload",
         id: str | None = None,
+        external_media_source: models.ExternalMediaSourceAPICreate | None = None,
     ) -> models.Dataset:
         """Creates an empty dataset in the database.
 
@@ -478,6 +479,7 @@ class HARIClient:
             visibility_status: Visibility status of the new dataset
             data_root: Data root
             id: ID of the newly created dataset
+            external_media_source: External Media Source
 
         Returns:
             The created dataset
@@ -485,6 +487,9 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if external_media_source:
+            external_media_source = external_media_source.model_dump()
+
         return self._request(
             "POST",
             "/datasets",
@@ -509,6 +514,7 @@ class HARIClient:
         num_attributes: int | None = None,
         num_instances: int | None = None,
         visibility_status: models.VisibilityStatus | None = None,
+        user_group: str | None = None,
     ) -> models.DatasetResponse:
         """Updates the dataset with the given id.
 
@@ -528,6 +534,7 @@ class HARIClient:
             num_attributes: Number of attributes
             num_instances: Number of instances
             visibility_status: Visibility status of the new dataset
+            user_group: new desired user group for the dataset.
 
         Returns:
             The updated dataset
@@ -564,12 +571,24 @@ class HARIClient:
         self,
         subset: bool | None = False,
         visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
     ) -> list[models.DatasetResponse]:
-        """Returns all datasets that a user has access to.
+        """Returns datasets that a user has access to.
 
         Args:
             subset: Return also subsets. If False, returns only parent datasets
             visibility_statuses: Visibility statuses of the returned datasets
+            limit: limit the number of datasets returned
+            skip: skip the number of datasets returned
+            query: query parameters to filter the datasets
+            sort: sorting parameters to sort the datasets
+            name_filter: filter by dataset name
+            archived: if true, return only archived datasets; if false (default), return non-archived datasets.
 
         Returns:
             A list of datasets
@@ -582,6 +601,34 @@ class HARIClient:
             "/datasets",
             params=self._pack(locals()),
             success_response_item_model=list[models.DatasetResponse],
+        )
+
+    def get_datasets_count(
+        self,
+        visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns dataset count for the user.
+        Args:
+            visibility_statuses: Visibility statuses of the returned datasets
+            query: query parameters to filter the datasets
+            name_filter: filter by dataset name
+            archived: if true, count only archived datasets; if false (default), count non-archived datasets.
+
+        Returns:
+            The number of datasets
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/datasets:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
         )
 
     def get_subsets_for_dataset(
@@ -703,8 +750,7 @@ class HARIClient:
             success_response_item_model=str,
         )
 
-        ### scene ###
-
+    ### scene ###
     def create_scene(
         self,
         dataset_id: uuid.UUID,
@@ -742,12 +788,33 @@ class HARIClient:
             success_response_item_model=list[models.Scene],
         )
 
-        ### media ###
+    ### external media source ###
+    def get_external_media_source(
+        self, external_media_source_id: uuid.UUID
+    ) -> models.ExternalMediaSourceAPIResponse:
+        """Returns an external media source with a given external_media_source_id.
 
+        Args:
+            external_media_source_id: external media source id
+
+        Returns:
+            The external media source with the given external_media_source_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/externalMediaSources/{external_media_source_id}",
+            params=self._pack(locals()),
+            success_response_item_model=models.ExternalMediaSourceAPIResponse,
+        )
+
+    ### media ###
     def create_media(
         self,
         dataset_id: uuid.UUID,
-        file_path: str,
+        file_path: str | None,
         name: str,
         media_type: models.MediaType,
         back_reference: str,
@@ -760,6 +827,8 @@ class HARIClient:
         visualisations: list[models.VisualisationUnion] | None = None,
         subset_ids: set[str] | None = None,
         metadata: models.ImageMetadata | models.PointCloudMetadata | None = None,
+        file_key: str | None = None,
+        with_media_files_upload: bool = True,
     ) -> models.Media:
         """Accepts a single file, uploads it, and creates the media in the db.
 
@@ -778,24 +847,50 @@ class HARIClient:
             visualisations: Visualisations of the media
             subset_ids: Subset ids the media occurs in
             metadata: Image metadata
+            file_key: The file key is the key of the media file in cloud storage (excluding the bucket_name, container_name, etc.).
+            with_media_files_upload: Whether the media file has to be uploaded or not
 
         Returns:
             Media that was just created
 
         Raises:
             APIException: If the request fails.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
         """
-
-        # 1. upload file
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths={0: file_path}
-        )
-        media_url = media_upload_responses[0].media_url
+        if with_media_files_upload:
+            # 1. upload file
+            if not file_path:
+                raise errors.MediaCreateMissingFilePathError(
+                    models.MediaCreate(
+                        file_path=file_path,
+                        name=name,
+                        media_type=media_type,
+                        back_reference=back_reference,
+                    )
+                )
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths={0: file_path}
+            )
+            media_url = media_upload_responses[0].media_url
+        elif not file_key:
+            raise errors.MediaCreateMissingFileKeyError(
+                models.MediaCreate(
+                    name=name,
+                    media_type=media_type,
+                    back_reference=back_reference,
+                )
+            )
 
         # 2. create the media in HARI
         json_body = self._pack(
             locals(),
-            ignore=["file_path", "dataset_id", "media_upload_responses"],
+            ignore=[
+                "file_path",
+                "dataset_id",
+                "media_upload_responses",
+                "with_media_files_upload",
+            ],
         )
         return self._request(
             "POST",
@@ -805,7 +900,10 @@ class HARIClient:
         )
 
     def create_medias(
-        self, dataset_id: uuid.UUID, medias: list[models.BulkMediaCreate]
+        self,
+        dataset_id: uuid.UUID,
+        medias: list[models.BulkMediaCreate],
+        with_media_files_upload: bool = True,
     ) -> models.BulkResponse:
         """Accepts multiple media files, uploads them, and creates the media entries in the db.
         The limit is 500 per call.
@@ -813,6 +911,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             medias: A list of MediaCreate objects. Each object contains the file_path as a field.
+            with_media_files_upload: Whether the media files have to be uploaded or not.
 
         Returns:
             A BulkResponse with information on upload successes and failures.
@@ -820,7 +919,8 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
-            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field.
+            MediaCreateMissingFilePathError: if a MediaCreate object is missing the file_path field and with_media_files_upload is True.
+            MediaCreateMissingFileKeyError: if a MediaCreate object is missing the file_key field and with_media_files_upload is False.
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
@@ -828,23 +928,29 @@ class HARIClient:
             raise errors.BulkUploadSizeRangeError(
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
+        if with_media_files_upload:
+            # 1. upload files - if necessary
+            file_paths: dict[int, str] = {}
+            for idx, media in enumerate(medias):
+                if not media.file_path:
+                    raise errors.MediaCreateMissingFilePathError(media)
+                file_paths[idx] = media.file_path
 
-        # 1. upload files
-        file_paths: dict[int, str] = {}
-        for idx, media in enumerate(medias):
-            if not media.file_path:
-                raise errors.MediaCreateMissingFilePathError(media)
-            file_paths[idx] = media.file_path
+            media_upload_responses = self._upload_media_files_with_presigned_urls(
+                dataset_id, file_paths=file_paths
+            )
 
-        media_upload_responses = self._upload_media_files_with_presigned_urls(
-            dataset_id, file_paths=file_paths
-        )
-
-        # 2. set media_urls on medias and parse them to dicts
-        media_dicts = []
-        for idx, media in enumerate(medias):
-            media.media_url = media_upload_responses[idx].media_url
-            media_dicts.append(media.model_dump())
+            # 2. set media_urls on medias and parse them to dicts
+            media_dicts = []
+            for idx, media in enumerate(medias):
+                media.media_url = media_upload_responses[idx].media_url
+                media_dicts.append(media.model_dump())
+        else:
+            media_dicts = []
+            for media in medias:
+                if not media.file_key:
+                    raise errors.MediaCreateMissingFileKeyError(media)
+                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(
@@ -908,7 +1014,7 @@ class HARIClient:
         media_id: str,
         presign_media: bool | None = True,
         archived: bool | None = False,
-        projection: dict | None = None,
+        projection: dict[str, bool] | None = None,
     ) -> models.MediaResponse:
         """Get a media by its id.
 
@@ -921,7 +1027,7 @@ class HARIClient:
                 returned, keys with value False are not returned)
 
         Returns:
-            The media object matching the provided id
+            The media matching the provided id
 
         Raises:
             APIException: If the request fails.
@@ -944,11 +1050,11 @@ class HARIClient:
         sort: list[models.SortingParameter] | None = None,
         projection: dict[str, bool] | None = None,
     ) -> list[models.MediaResponse]:
-        """Get all medias of a dataset
+        """Get medias of a dataset
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to get archived media
+            archived: if true, return only archived medias; if false (default), return non-archived medias.
             presign_medias: Whether to presign medias
             limit: The number of medias tu return
             skip: The number of medias to skip
@@ -958,7 +1064,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            A list of all medias in a dataset
+            A list of medias in a dataset
 
         Raises:
             APIException: If the request fails.
@@ -970,6 +1076,61 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.MediaResponse],
         )
+
+    def get_medias_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        presign_medias: bool | None = True,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MediaResponse]:
+        """Get medias of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media
+            presign_medias: Whether to presign medias
+            batch_size: The number of medias to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
+
+        Returns:
+            A list of medias in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_medias: int = self.get_media_count(
+            dataset_id, archived, query
+        ).total_count
+
+        log.info(f"Fetching {total_medias} medias ...")
+
+        medias: list[models.MediaResponse] = []
+
+        # Loop through media pages until all are retrieved
+        for skip in tqdm(range(0, total_medias, batch_size)):
+            medias_page = self.get_medias(
+                dataset_id=dataset_id,
+                archived=archived,
+                presign_medias=presign_medias,
+                limit=batch_size,
+                skip=skip,
+                query=query,
+                sort=sort,
+                projection=projection,
+            )
+            medias.extend(medias_page)
+
+        log.info(f"Fetched {len(medias)} medias successfully.")
+
+        return medias
 
     def archive_media(self, dataset_id: uuid.UUID, media_id: str) -> str:
         """Archive the media
@@ -1083,7 +1244,7 @@ class HARIClient:
         Args:
             dataset_id: The dataset id
             subset_id: The subset id or None, if the result for the whole dataset
-            archived: Whether to consider archived medias (default: False)
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
 
         Returns:
             Dictionary, where the key is the number of medias in the dataset having
@@ -1109,7 +1270,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: Whether to consider archived medias
+            archived: if true, consider only archived medias; if false (default), consider only non-archived medias.
             query: Query
 
         Returns:
@@ -1398,9 +1559,9 @@ class HARIClient:
         media_object_id: str,
         archived: bool | None = False,
         presign_media: bool | None = True,
-        projection: dict | None = None,
+        projection: dict[str, bool] | None = None,
     ) -> models.MediaObjectResponse:
-        """Fetches a media_object by its id.
+        """Fetches a media object by its id.
 
         Args:
             dataset_id: dataset id
@@ -1411,7 +1572,7 @@ class HARIClient:
                 are not returned)
 
         Returns:
-            List of media object projections
+            Requested media object
 
         Raises:
             APIException: If the request fails.
@@ -1432,20 +1593,23 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
     ) -> list[models.MediaObjectResponse]:
-        """Queries the database based on the submitted parameters and returns a
+        """Queries the database based on the submitted parameters and returns a list of media objects
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, return only archived media objects; if false (default), return non-archived media objects.
             presign_medias: Presign Medias
             limit: Limit
             skip: Skip
             query: Query
             sort: Sort
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
 
         Returns:
-            list
+            list of media objects of a dataset
 
         Raises:
             APIException: If the request fails.
@@ -1457,6 +1621,61 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.MediaObjectResponse],
         )
+
+    def get_media_objects_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        presign_medias: bool | None = True,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MediaObjectResponse]:
+        """Get media objects of a dataset, pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived media objects
+            presign_medias: Whether to presign medias
+            batch_size: The number of media objects to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
+                are not returned)
+
+        Returns:
+            A list of media objects in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_media_objects: int = self.get_media_object_count(
+            dataset_id, archived, query
+        ).total_count
+
+        log.info(f"Fetching {total_media_objects} media objects ...")
+
+        media_objects: list[models.MediaObjectResponse] = []
+
+        # Loop through media object pages until all are retrieved
+        for skip in tqdm(range(0, total_media_objects, batch_size)):
+            media_objects_page = self.get_media_objects(
+                dataset_id=dataset_id,
+                archived=archived,
+                presign_medias=presign_medias,
+                limit=batch_size,
+                skip=skip,
+                query=query,
+                sort=sort,
+                projection=projection,
+            )
+            media_objects.extend(media_objects_page)
+
+        log.info(f"Fetched {len(media_objects)} media objects successfully.")
+
+        return media_objects
 
     def archive_media_object(self, dataset_id: uuid.UUID, media_object_id: str) -> str:
         """Delete (archive) a media object from the db.
@@ -1509,7 +1728,7 @@ class HARIClient:
 
         Args:
             dataset_id: dataset id
-            archived: Archived
+            archived: if true, consider only archived media objects; if false (default), consider only non-archived media objects.
             query: Query
 
         Returns:
@@ -1579,47 +1798,6 @@ class HARIClient:
         )
 
     ### metadata ###
-    def trigger_thumbnails_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Triggers the creation of thumbnails for a given dataset.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            max_size: The maximum size of the thumbnails
-            aspect_ratio: The aspect ratio of the thumbnails
-            force_recreate: If True already existing thumbnails will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: the methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/thumbnails",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
     def trigger_histograms_update_job(
         self,
         dataset_id: uuid.UUID,
@@ -1651,51 +1829,6 @@ class HARIClient:
             success_response_item_model=list[models.BaseProcessingJobMethod],
         )
 
-    def trigger_crops_creation_job(
-        self,
-        dataset_id: uuid.UUID,
-        subset_id: uuid.UUID | None = None,
-        trace_id: uuid.UUID | None = None,
-        padding_percent: int | None = None,
-        padding_minimum: int | None = None,
-        max_size: tuple[int, int] | None = None,
-        aspect_ratio: tuple[int, int] | None = None,
-        force_recreate: bool = False,
-    ) -> list[models.BaseProcessingJobMethod]:
-        """Creates the crops for a given dataset if the correct api key is provided in the request.
-
-        Args:
-            dataset_id: The dataset id
-            subset_id: The subset id
-            trace_id: An id to trace the processing job(s). Is created by the user
-            padding_percent: The padding (in percent) to add to the crops
-            padding_minimum: The minimum padding to add to the crops
-            max_size: The max size of the crops
-            aspect_ratio: The aspect ratio of the crops
-            force_recreate: If True already existing crops will be recreated
-
-        Raises:
-            APIException: If the request fails.
-
-        Returns:
-            list[models.BaseProcessingJobMethod]: The methods being executed
-
-        Restrictions:
-            This endpoint is restricted to qm internal users only.
-        """
-        params = {"subset_id": subset_id, "force_recreate": force_recreate}
-
-        if trace_id is not None:
-            params["trace_id"] = trace_id
-
-        return self._request(
-            "PUT",
-            f"/datasets/{dataset_id}/crops",
-            params=params,
-            json=self._pack(locals(), ignore=["dataset_id", "subset_id", "trace_id"]),
-            success_response_item_model=list[models.BaseProcessingJobMethod],
-        )
-
     def trigger_metadata_rebuild_job(
         self,
         dataset_ids: list[uuid.UUID],
@@ -1703,6 +1836,7 @@ class HARIClient:
         calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
+        compute_auto_attributes: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for all provided datasets.
 
@@ -1712,6 +1846,7 @@ class HARIClient:
             calculate_histograms: Calculate histograms if true
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
+            compute_auto_attributes: If True auto attributes will be computed
 
         Returns:
             The methods being executed
@@ -1738,6 +1873,7 @@ class HARIClient:
         calculate_histograms: bool = True,
         trace_id: uuid.UUID | None = None,
         force_recreate: bool = False,
+        compute_auto_attributes: bool = False,
     ) -> list[models.BaseProcessingJobMethod]:
         """Triggers execution of one or more jobs which (re-)build metadata for the provided dataset.
 
@@ -1748,6 +1884,7 @@ class HARIClient:
             calculate_histograms: Calculate histograms if true.
             trace_id: An id to trace the processing job
             force_recreate: If True already existing crops and thumbnails will be recreated; only available for qm internal users
+            compute_auto_attributes: If True auto attributes will be computed
 
         Returns:
             The methods being executed
@@ -1756,6 +1893,7 @@ class HARIClient:
             "anonymize": anonymize,
             "calculate_histograms": calculate_histograms,
             "force_recreate": force_recreate,
+            "compute_auto_attributes": compute_auto_attributes,
         }
         if subset_id:
             params["subset_id"] = subset_id
@@ -1892,9 +2030,11 @@ class HARIClient:
         cumulated_frequency: typing.Any | None = None,
         frequency: dict[str, int] | None = None,
         question: str | None = None,
+        ml_predictions: dict[str, float] | None = None,
+        ml_probability_distributions: dict[str, float] | None = None,
         repeats: int | None = None,
-        possible_values: list[str | int | float | bool] | None = None,
-    ) -> models.Attribute:
+        possible_values: list[str] | None = None,
+    ) -> models.AttributeResponse:
         """Create an attribute for a dataset.
 
         Args:
@@ -1924,10 +2064,11 @@ class HARIClient:
             cumulated_frequency: The cumulated frequency value
             frequency: The frequency value
             question: The question value
-            archived: The archived value
             range: The range value
             possible_values: The possible values for the given attribute
             repeats: The number of times the attribute was annotated
+            ml_predictions: The ML predictions for the attribute
+            ml_probability_distributions: The ML probability distributions for the attribute
 
         Returns:
             The created attribute.
@@ -1936,7 +2077,7 @@ class HARIClient:
             "POST",
             f"/datasets/{dataset_id}/attributes",
             json=self._pack(locals(), ignore=["dataset_id"], not_none=["question"]),
-            success_response_item_model=models.Attribute,
+            success_response_item_model=models.AttributeResponse,
         )
 
     def get_attributes(
@@ -1953,7 +2094,7 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            archived: True if archived attributes should be returned
+            archived: if true, return only archived attributes; if false (default), return non-archived attributes.
             limit: The maximum number of attributes to return
             skip: The number of attributes to skip
             query: A query to filter attributes
@@ -1973,6 +2114,142 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.AttributeResponse],
         )
+
+    def get_attribute_value_count(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+    ) -> models.FilterCount:
+        """Calculates the number of attribute values for a given filter setting
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to consider archived attribute values
+            query: Query
+
+        Returns:
+             a FilterCount object containing the total count of attribute values returned by the query.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues:count",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=models.FilterCount,
+        )
+
+    def get_attribute_value(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_id: str,
+        annotatable_id: str,
+        archived: bool | None = False,
+    ) -> models.AttributeValueResponse:
+        """Returns an attribute value with a given attribute_id.
+
+        Args:
+            dataset_id: The dataset id
+            attribute_id: The attribute id
+            annotatable_id: The id of the annotatable the attribute belongs to
+            archived: Whether to return archived attribute values
+
+        Returns:
+            The attribute with the given attribute_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues/{attribute_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_id"]),
+            success_response_item_model=models.AttributeValueResponse,
+        )
+
+    def get_attribute_values(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AttributeValueResponse]:
+        """Get attribute values of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived attribute values
+            limit: The number of medias tu return
+            skip: The number of medias to skip
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of attribute values in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/attributeValues",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AttributeValueResponse],
+        )
+
+    def get_attribute_values_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AttributeValueResponse]:
+        """Returns attribute values of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            dataset_id: The dataset id
+            archived: Whether to get archived attribute values
+            batch_size: The number of attribute values to fetch per request. Defaults to 100.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of attribute values in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        total_attributes: int = self.get_attribute_value_count(
+            dataset_id, archived, query
+        ).total_count
+
+        log.info(f"Fetching {total_attributes} attribute values ...")
+
+        attribute_values: list[models.AttributeValueResponse] = []
+
+        # Loop through attribute value pages until all are retrieved
+        for skip in tqdm(range(0, total_attributes, batch_size)):
+            attribute_values_page = self.get_attribute_values(
+                dataset_id=dataset_id,
+                archived=archived,
+                limit=batch_size,
+                skip=skip,
+                query=query,
+                sort=sort,
+            )
+            attribute_values.extend(attribute_values_page)
+
+        log.info(f"Fetched {len(attribute_values)} attribute values successfully.")
+
+        return attribute_values
 
     def get_attribute(
         self, dataset_id: uuid.UUID, attribute_id: str, annotatable_id: str
@@ -2025,7 +2302,7 @@ class HARIClient:
         archived: bool | None = None,
         ml_predictions: dict[str, float] | None = None,
         ml_probability_distributions: dict[str, float] | None = None,
-    ) -> models.Attribute:
+    ) -> models.AttributeResponse:
         """Updates the attribute with the given id.
 
         Args:
@@ -2071,7 +2348,7 @@ class HARIClient:
             json=self._pack(
                 locals(), ignore=["dataset_id", "attribute_id", "annotatable_id"]
             ),
-            success_response_item_model=models.Attribute,
+            success_response_item_model=models.AttributeResponse,
         )
 
     def delete_attribute(
@@ -2103,13 +2380,11 @@ class HARIClient:
         archived: bool | None = False,
         query: models.QueryList | None = None,
     ) -> list[models.AttributeMetadataResponse]:
-        """Returns all attribute metadata of a dataset.
+        """Returns attribute metadata of a dataset.
 
         Args:
             dataset_id: The dataset id
-            archived: Filters items based on their archived status (default: False):
-              - if set (True/False), returns only archived or non-archived items, respectively
-              - if None, returns all items, regardless of their archived status
+            archived: if true, return only archived attribute metadata; if false (default), return non-archived attribute metadata.
             query: A query to filter attribute metadata
 
          Returns:
@@ -2140,7 +2415,7 @@ class HARIClient:
 
         Args:
             dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
-            archived: Whether to include archived VisualisationConfigs (default: False)
+            archived: if true, return only archived visualisation configurations; if false (default), return non-archived visualisation configurations.
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             limit: How many visualisation_configs to return
@@ -2154,4 +2429,561 @@ class HARIClient:
             f"/datasets/{dataset_id}/visualisationConfigs",
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
+        )
+
+    ### AI Nano Tasks ###
+
+    def get_multiple_aint_learning_data(
+        self,
+    ) -> list[models.AINTLearningData]:
+        """
+        !!! Only available for qm internal users !!!
+
+        Retrieve all AINT learning data available to the user.
+
+        Returns:
+            A list of AINT learning data objects.
+        """
+        return self._request(
+            "GET",
+            f"/aintLearningData",
+            success_response_item_model=list[models.AINTLearningData],
+        )
+
+    def get_aint_learning_data(
+        self, aint_learning_data_id: uuid.UUID
+    ) -> models.AINTLearningData:
+        """
+        !!! Only available for qm internal users !!!
+
+        Get a single AINT learning data by its ID.
+
+        Args:
+            aint_learning_data_id: The unique identifier of the AINT learning data.
+
+        Returns:
+            The requested AINT learning data.
+        """
+        return self._request(
+            "GET",
+            f"/aintLearningData/{aint_learning_data_id}",
+            success_response_item_model=models.AINTLearningData,
+        )
+
+    def create_aint_learning_data(
+        self,
+        name: str,
+        training_attributes: list[models.TrainingAttribute],
+        id: uuid.UUID | None = None,
+        status: models.AIAnnotationRunStatus | None = None,
+        created_at: datetime.datetime | None = None,
+        updated_at: datetime.datetime | None = None,
+        archived_at: datetime.datetime | None = None,
+        owner: uuid.UUID | None = None,
+        user_group: str | None = None,
+    ) -> models.AINTLearningData:
+        """
+        !!! Only available for qm internal users !!!
+
+        Create a new AINT learning data from training attributes.
+
+        Args:
+            name: A descriptive name for the AINT learning data.
+            training_attributes: The training attributes to be used in the AINT learning data.
+            user_group: The user group for creating the AINT learning data (default: None).
+            id: The id of the AINT learning data. If None, random id will be generated during creation.
+            status: The status of the AINT learning data.
+            created_at: The creation date of the AINT learning data.
+            updated_at: The update date of the AINT learning data.
+            archived_at: The archived date of the AINT learning data.
+            owner: The owner of the AINT learning data.
+
+        Returns:
+            Created AINT learning data object.
+        """
+
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self", "training_attributes"]
+        }
+
+        training_attribute_dicts = [
+            training_attribute.model_dump()
+            for training_attribute in training_attributes
+        ]
+
+        body["training_attributes"] = training_attribute_dicts
+
+        return self._request(
+            "POST",
+            "/aintLearningData",
+            json=body,
+            success_response_item_model=models.AINTLearningData,
+        )
+
+    def update_aint_learning_data(
+        self,
+        aint_learning_data_id: uuid.UUID,
+        name: str | None = None,
+        question: str | None = None,
+        user_group: str | None = None,
+        status: models.AINTLearningDataStatus | None = None,
+    ) -> models.AINTLearningData:
+        """
+        !!! Only available for qm internal users !!!
+
+        Update AINT learning data.
+
+        Args:
+            aint_learning_data_id: The unique identifier of the AINT learning data.
+            name: The desired name of the AINT learning data.
+            question: The desired question of the AINT learning data.
+            user_group: The desired user group of the AINT learning data.
+            status: The desired status of the AINT learning data.
+
+        Returns:
+           Updated AINT learning data.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "PATCH",
+            f"/aintLearningData/{aint_learning_data_id}",
+            json=self._pack(locals(), ignore=["aint_learning_data_id"]),
+            success_response_item_model=models.AINTLearningData,
+        )
+
+    def delete_aint_learning_data(
+        self,
+        aint_learning_data_id: uuid.UUID,
+    ) -> str:
+        """
+        !!! Only available for qm internal users !!!
+
+        Delete AINT learning data.
+
+        Args:
+            aint_learning_data_id: The unique identifier of the AINT learning data.
+
+        Returns:
+           Deleted AINT learning data id.
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/aintLearningData/{aint_learning_data_id}",
+            success_response_item_model=str,
+        )
+
+    def get_ml_annotation_models(
+        self,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.MlAnnotationModel]:
+        """
+        Retrieve all ml annotation models available to the user.
+
+        Args:
+            projection: The fields to be returned (dictionary keys with value True are returned,
+            keys with value False are not returned).
+
+        Returns:
+             A list of ml annotation models.
+        """
+        return self._request(
+            "GET",
+            f"/mlAnnotationModels",
+            params=self._pack(locals()),
+            success_response_item_model=list[models.MlAnnotationModel],
+        )
+
+    def get_ml_annotation_model_by_id(
+        self,
+        ml_annotation_model_id: uuid.UUID,
+        projection: dict[str, bool] | None = None,
+    ) -> models.MlAnnotationModel:
+        """
+        Retrieve a specific ml model by its ID.
+
+        Args:
+            ml_annotation_model_id: The unique identifier of the AI annotation model.
+            projection: The fields to be returned (dictionary keys with value True are returned,
+            keys with value False are not returned).
+
+        Returns:
+            The requested ml model.
+        """
+        return self._request(
+            "GET",
+            f"/mlAnnotationModels/{ml_annotation_model_id}",
+            params=self._pack(locals(), ignore=["ml_annotation_model_id"]),
+            success_response_item_model=models.MlAnnotationModel,
+        )
+
+    def get_ml_annotation_models_by_training_ann_run_id(
+        self,
+        annotation_run_id: uuid.UUID,
+    ) -> list[models.MlAnnotationModel]:
+        """
+        Get all ml annotation  models trained on the data of a specific annotation run.
+
+        Args:
+            annotation_run_id: The id of the annotation run used for model training.
+
+        Returns:
+            The list of ml annotation models trained on the data of the annotation run.
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/annotationRun/{annotation_run_id}/mlAnnotationModels",
+            success_response_item_model=list[models.MlAnnotationModel],
+        )
+
+    def train_ml_annotation_model(
+        self,
+        name: str,
+        aint_learning_data_id: uuid.UUID | None = None,
+        reference_set_annotation_run_id: uuid.UUID | None = None,
+        id: uuid.UUID | None = None,
+        dataset_id: uuid.UUID | None = None,
+        created_at: datetime.datetime | None = None,
+        updated_at: datetime.datetime | None = None,
+        archived_at: datetime.datetime | None = None,
+        owner: uuid.UUID | None = None,
+        user_group: str | None = None,
+    ) -> models.MlAnnotationModel:
+        """
+        Train a new ml annotation model on the specified AINT learning data or reference set of the specified annotation run.
+
+        Args:
+            name: A descriptive name for the ml annotation model.
+            aint_learning_data_id: The unique identifier of the AINT learning data to use for training.
+            reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
+            id: The id of the model. If None, random id will be generated during creation.
+            dataset_id: The dataset id to train the model on.
+            created_at: The creation timestamp of the ml annotation model.
+            updated_at: The update timestamp of the ml annotation model.
+            archived_at: The archived timestamp of the ml annotation model.
+            owner: The owner of the ml annotation model.
+            user_group: The user group for scoping this annotation run (default: None).
+
+        Either aint_learning_data_id or reference_set_annotation_run_id must be specified.
+
+        Returns:
+            The created ml annotation model.
+        Raises:
+            APIException: If the request fails.
+        """
+
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self"]
+        }
+
+        return self._request(
+            "POST",
+            "/mlAnnotationModels",
+            json=body,
+            success_response_item_model=models.MlAnnotationModel,
+        )
+
+    def update_ml_annotation_model(
+        self,
+        ml_annotation_model_id: uuid.UUID,
+        name: str | None = None,
+        user_group: str | None = None,
+        status: models.MLAnnotationModelStatus | None = None,
+        training_subset_id: uuid.UUID | None = None,
+        validation_subset_id: uuid.UUID | None = None,
+        test_subset_id: uuid.UUID | None = None,
+        reference_set_annotation_run_id: uuid.UUID | None = None,
+        model_weight_location: str | None = None,
+        automation_correctness_curve: dict | None = None,
+        aint_learning_data_id: uuid.UUID | None = None,
+    ) -> models.MlAnnotationModel:
+        """
+        Update a ml annotation model.
+
+        Args:
+            ml_annotation_model_id: The id of the ml annotation model.
+            name: new desired name for the ml annotation model.
+            user_group: new desired user group for the ml annotation model.
+            status: new desired status for the ml annotation model.
+            training_subset_id: training subset id for the ml annotation model.
+            validation_subset_id: validation subset id for the ml annotation model.
+            test_subset_id: test subset id for the ml annotation model.
+            reference_set_annotation_run_id: reference set annotation run id for the ml annotation model.
+            model_weight_location: model weight location for the ml annotation model.
+            automation_correctness_curve: automation correctness curve for the ml annotation model.
+            aint_learning_data_id: AINT learning data id for the ml annotation model.
+
+        Returns:
+            The updated ml annotation model.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self", "ml_annotation_model_id"]
+        }
+
+        return self._request(
+            "PATCH",
+            f"/mlAnnotationModels/{ml_annotation_model_id}",
+            json=body,
+            success_response_item_model=models.MlAnnotationModel,
+        )
+
+    def delete_ml_annotation_model(
+        self,
+        ml_annotation_model_id: uuid.UUID,
+    ) -> str:
+        """
+        Delete a ml annotation model.
+
+        Args:
+            ml_annotation_model_id: The id of the ml annotation model.
+
+        Returns:
+            The id of the deleted ml annotation model.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "DELETE",
+            f"/mlAnnotationModels/{ml_annotation_model_id}",
+            success_response_item_model=str,
+        )
+
+    def get_ai_annotation_runs(
+        self,
+    ) -> list[models.AIAnnotationRun]:
+        """
+        Retrieve all AI annotation runs available to the user.
+
+        Returns:
+            A list of AI annotation runs.
+        """
+        return self._request(
+            "GET",
+            f"/aiAnnotationRuns",
+            success_response_item_model=list[models.AIAnnotationRun],
+        )
+
+    def get_ai_annotation_run(
+        self, ai_annotation_run_id: uuid.UUID
+    ) -> models.AIAnnotationRun:
+        """
+        Retrieve a specific AI annotation run by its ID.
+
+        Args:
+            ai_annotation_run_id: The unique identifier of the AI annotation run.
+
+        Returns:
+            The requested AI annotation run.
+        """
+        return self._request(
+            "GET",
+            f"/aiAnnotationRuns/{ai_annotation_run_id}",
+            success_response_item_model=models.AIAnnotationRun,
+        )
+
+    def start_ai_annotation_run(
+        self,
+        name: str,
+        dataset_id: uuid.UUID,
+        subset_id: uuid.UUID,
+        ml_annotation_model_id: uuid.UUID,
+        attribute_metadata_id: uuid.UUID | None = None,
+        id: uuid.UUID | None = None,
+        status: models.AIAnnotationRunStatus | None = None,
+        created_at: datetime.datetime | None = None,
+        updated_at: datetime.datetime | None = None,
+        archived_at: datetime.datetime | None = None,
+        owner: uuid.UUID | None = None,
+        user_group: str | None = None,
+    ) -> models.AIAnnotationRun:
+        """
+        Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
+
+        Args:
+            name: A descriptive name for the AI annotation run.
+            dataset_id: The unique identifier of the dataset to be annotated.
+            subset_id: The unique identifier of the subset to be annotated.
+            ml_annotation_model_id: The unique identifier of the ml annotation model to use.
+            user_group: The user group for scoping this annotation run (default: None).
+            attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
+            id: The id of the AINT learning data. If None, random id will be generated during creation.
+            status: The status of the AI annotation run.
+            created_at: The creation timestamp of the AI annotation run.
+            updated_at: The update timestamp of the AI annotation run.
+            archived_at: The archived timestamp of the AI annotation run.
+            owner: The owner of the AI annotation run.
+
+        Returns:
+            The created AI annotation run.
+        """
+
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key != "self"
+        }
+
+        return self._request(
+            "POST",
+            "/aiAnnotationRuns",
+            json=body,
+            success_response_item_model=models.AIAnnotationRun,
+        )
+
+    def update_ai_annotation_run(
+        self,
+        ai_annotation_run_id: uuid.UUID,
+        name: str | None = None,
+        user_group: str | None = None,
+        status: models.AIAnnotationRunStatus | None = None,
+        attribute_metadata_id: uuid.UUID | None = None,
+    ) -> models.AIAnnotationRun:
+        """
+        Update an AI annotation run.
+
+        Args:
+            ai_annotation_run_id: The id of the AI annotation run.
+            name: new desired name for the AI annotation run.
+            user_group: new desired user group for the AI annotation run.
+            status: status for the AI annotation run.
+            attribute_metadata_id: attribute metadata id for the AI annotation run.
+
+        Returns:
+            The updated AI annotation run.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        body = {
+            key: value
+            for key, value in locals().items()
+            if value is not None and key not in ["self", "ai_annotation_run_id"]
+        }
+
+        return self._request(
+            "PATCH",
+            f"/aiAnnotationRuns/{ai_annotation_run_id}",
+            json=body,
+            success_response_item_model=models.AIAnnotationRun,
+        )
+
+    def delete_ai_annotation_run(
+        self,
+        ai_annotation_run: uuid.UUID,
+    ) -> str:
+        """
+        Delete an AI annotation run.
+
+        Args:
+            ai_annotation_run: The id of the AI annotation run.
+
+        Returns:
+            The id of the deleted AI annotation run.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "DELETE",
+            f"/aiAnnotationRuns/{ai_annotation_run}",
+            success_response_item_model=str,
+        )
+
+    ### pipelines ###
+
+    def get_pipelines(self) -> list[models.Pipeline]:
+        """
+        Get all pipelines.
+
+        Returns:
+            A list of pipeline objects.
+        """
+        return self._request(
+            "GET",
+            "/pipelines",
+            success_response_item_model=list[models.Pipeline],
+        )
+
+    def get_pipeline(self, pipeline_id: uuid.UUID) -> models.PipelineWithNodes:
+        """
+        Get a pipeline by id.
+
+        Returns:
+            The requested pipeline.
+        """
+        return self._request(
+            "GET",
+            f"/pipelines/{pipeline_id}",
+            success_response_item_model=models.PipelineWithNodes,
+        )
+
+    ### annotation runs ###
+
+    def get_annotation_runs(self) -> list[models.AnnotationRun]:
+        """
+        Get all annotation runs.
+
+        Returns:
+            A list of annotation run objects.
+        """
+        return self._request(
+            "GET",
+            "/annotationRuns",
+            success_response_item_model=list[models.AnnotationRun],
+        )
+
+    def get_annotation_run(self, annotation_run_id: uuid.UUID) -> models.AnnotationRun:
+        """
+        Get an annotation run by id.
+
+        Args:
+            annotation_run_id: The id of the annotation run.
+
+        Returns:
+            The annotation run object matching the provided id.
+        """
+        return self._request(
+            "GET",
+            f"/annotationRuns/{annotation_run_id}",
+            success_response_item_model=models.AnnotationRun,
+        )
+
+    def create_annotation_run(
+        self, annotation_run: models.AnnotationRunCreate
+    ) -> models.AnnotationRun:
+        """Create an annotation run.
+
+        Args:
+            annotation_run: The annotation run to create
+
+        Returns:
+            The created annotation run
+        """
+        return self._request(
+            "POST",
+            "/annotationRuns",
+            json=annotation_run.model_dump(),
+            success_response_item_model=models.AnnotationRun,
         )

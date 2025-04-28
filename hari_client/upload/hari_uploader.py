@@ -105,6 +105,10 @@ class HARIInconsistentFieldError(Exception):
     """Error raised when a Media and its MediaObject have inconsistent fields."""
 
 
+class HARIMediaValidationError(Exception):
+    pass
+
+
 class HARIUniqueAttributesLimitExceeded(Exception):
     new_attributes_number: int
     existing_attributes_number: int
@@ -234,6 +238,7 @@ class HARIUploader:
         self._object_category_subsets: dict[str, str] = {}
         self._scenes: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
+        self._with_media_files_upload: bool = True
 
         # Set up the property validator for scene and object category validation
         self.validator = property_validator.PropertyValidator(
@@ -481,6 +486,15 @@ class HARIUploader:
             if media_subset_ids:
                 media.subset_ids = list(media_subset_ids)
 
+    def _load_dataset(self) -> models.DatasetResponse:
+        """Get the dataset from the HARI API."""
+        return self.client.get_dataset(dataset_id=self.dataset_id)
+
+    def _dataset_uses_external_media_source(self) -> bool:
+        """Returns whether the dataset uses an external media source."""
+        dataset = self._load_dataset()
+        return dataset and dataset.external_media_source is not None
+
     def validate_all_attributes(self) -> None:
         """Validates all attributes of medias and media objects."""
         all_attributes = []
@@ -490,26 +504,7 @@ class HARIUploader:
                 all_attributes.extend(media_object.attributes)
         validation.validate_attributes(all_attributes)
 
-    def upload(self) -> HARIUploadResults | None:
-        """
-        Upload all Media and their MediaObjects to HARI.
-
-        Returns:
-            HARIUploadResults | None: All upload results and summaries for the
-            upload of medias and media_objects, or None if nothing was uploaded
-
-        Raises:
-            HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids
-            exceeds the limit of MAX_ATTR_COUNT per dataset.
-        """
-
-        if len(self._medias) == 0:
-            log.info(
-                "No medias to upload. Add them with HARIUploader::add_media() first "
-                "before calling HARIUploader::upload()."
-            )
-            return None
-
+    def validate_unique_attributes_limit(self) -> None:
         existing_attr_metadata = self.client.get_attribute_metadata(
             dataset_id=self.dataset_id
         )
@@ -523,6 +518,56 @@ class HARIUploader:
                 intended_attributes_number=len(all_attribute_ids),
             )
 
+    def _determine_media_files_upload_behavior(self) -> None:
+        """Checks whether media file_path or file_key are set according to whether the dataset uses an external media source or not.
+        When using an external media source, the file_key must be set, otherwise the file_path must be set.
+        """
+        if self._dataset_uses_external_media_source():
+            if any(not media.file_key for media in self._medias):
+                raise HARIMediaValidationError(
+                    f"Dataset with id {self.dataset_id} uses an external media source, "
+                    "but not all medias have a file_key set. Make sure to set their file_key."
+                )
+
+            log.info(
+                "Dataset uses an external media source. No media files will be uploaded."
+            )
+            self._with_media_files_upload = False
+        else:
+            if any(not media.file_path for media in self._medias):
+                raise HARIMediaValidationError(
+                    f"Dataset with id {self.dataset_id} requires media files to be uploaded, "
+                    "but not all medias have a file_path set. Make sure to set their file_path."
+                )
+            self._with_media_files_upload = True
+
+    def upload(
+        self,
+    ) -> HARIUploadResults | None:
+        """
+        Upload all Media and their MediaObjects to HARI.
+
+        Returns:
+            HARIUploadResults | None: All upload results and summaries for the
+            upload of medias and media_objects, or None if nothing was uploaded
+
+        Raises:
+            HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids
+            exceeds the limit of MAX_ATTR_COUNT per dataset.
+        """
+
+        # sync important information with the BE
+        self._determine_media_files_upload_behavior()
+
+        # validations
+        if len(self._medias) == 0:
+            log.info(
+                "No medias to upload. Add them with HARIUploader::add_media() first "
+                "before calling HARIUploader::upload()."
+            )
+            return None
+
+        self.validate_unique_attributes_limit()
         self.validate_all_attributes()
 
         # Handle scene and object category setup and validation
@@ -581,7 +626,9 @@ class HARIUploader:
 
         # upload media batch
         media_upload_response = self.client.create_medias(
-            dataset_id=self.dataset_id, medias=medias_to_upload
+            dataset_id=self.dataset_id,
+            medias=medias_to_upload,
+            with_media_files_upload=self._with_media_files_upload,
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
