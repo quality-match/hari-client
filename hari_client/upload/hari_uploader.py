@@ -52,6 +52,7 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
 
     def add_attribute(self, *args: HARIAttribute) -> None:
         for attribute in args:
+            attribute.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
             self.attributes.append(attribute)
 
     def set_object_category_subset_name(self, object_category_subset_name: str) -> None:
@@ -176,6 +177,7 @@ class HARIMedia(models.BulkMediaCreate):
 
     def add_attribute(self, *args: HARIAttribute) -> None:
         for attribute in args:
+            attribute.annotatable_type = models.DataBaseObjectType.MEDIA
             self.attributes.append(attribute)
 
     @pydantic.field_validator("bulk_operation_annotatable_id")
@@ -280,9 +282,6 @@ class HARIUploader:
             self._attribute_cnt += len(media.attributes)
             for attr in media.attributes:
                 self._unique_attribute_ids.add(str(attr.id))
-                # annotatable_type is optional for a HARIAttribute, but can already be set here
-                if not attr.annotatable_type:
-                    attr.annotatable_type = models.DataBaseObjectType.MEDIA
 
             # check and remember media object back_references
             for media_object in media.media_objects:
@@ -296,12 +295,9 @@ class HARIUploader:
                 else:
                     self._media_object_back_references.add(media_object.back_reference)
                 self._media_object_cnt += 1
-                self._attribute_cnt += len(media_object.attributes)
+                self._attribute_cnt += len(media_object.attributes)  # same with count?
                 for attr in media_object.attributes:
-                    self._unique_attribute_ids.add(str(attr.id))
-                    # annotatable_type is optional for a HARIAttribute, but can already be set here
-                    if not attr.annotatable_type:
-                        attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
+                    self._unique_attribute_ids.add(str(attr.id))  # same with unique?
 
     def _get_existing_scenes(self) -> list[models.Scene]:
         """Retrieves all existing scenes from the server."""
@@ -792,9 +788,6 @@ class HARIUploader:
                 media_object.attributes[
                     i
                 ].annotatable_id = media_object_upload_response.item_id
-                media_object.attributes[
-                    i
-                ].annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     # Note: The following methods are here to allow the tests to demonstrate Idempotency.
 
@@ -939,7 +932,6 @@ class HARIUploader:
                 # Create a copy of the attribute to avoid changing shared attributes
                 media.attributes[i] = copy.deepcopy(attribute)
                 media.attributes[i].annotatable_id = media_upload_response.item_id
-                media.attributes[i].annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):
         if not item.bulk_operation_annotatable_id:
