@@ -806,7 +806,7 @@ class HARIClient:
         media_dicts = []
         for idx, media in enumerate(medias):
             media.media_url = media_upload_responses[idx].media_url
-            media_dicts.append(media.model_dump(exclude={"uploaded"}))
+            media_dicts.append(media.model_dump(exclude={"uploaded", "id"}))
 
         # 3. create the medias in HARI
         return self._request(

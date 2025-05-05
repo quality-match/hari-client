@@ -1356,7 +1356,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Question",
         description="Prompt or question posed to the annotator",
     )
-    result: str | None = pydantic.Field(
+    result: str | int | float | None = pydantic.Field(
         default=None,
         title="Result",
         description="Content or outcome of the annotation (e.g., text, labels, etc.)",
