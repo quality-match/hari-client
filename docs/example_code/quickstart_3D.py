@@ -40,7 +40,7 @@ point_cloud = hari_uploader.HARIMedia(
     name="test_point_cloud",
     back_reference="point_cloud",
     frame_idx=0,
-    scene_name="scene1",
+    scene_back_reference="scene1",
     media_type=models.MediaType.POINT_CLOUD,
     metadata=models.PointCloudMetadata(
         sensor_id="lidar_sensor_1",
@@ -62,7 +62,7 @@ media_object = hari_uploader.HARIMediaObject(
             -0.29868908721580645,
         ],
     ),
-    scene_name="scene1",
+    scene_back_reference="scene1",
     frame_idx=0,
 )
 media_object.set_object_category_subset_name("truck")
@@ -72,7 +72,7 @@ image = hari_uploader.HARIMedia(
     name="test_image_1",
     back_reference="test_image_1",
     frame_idx=0,
-    scene_name="scene1",
+    scene_back_reference="scene1",
     metadata=models.ImageMetadata(
         camera_intrinsics=models.CameraIntrinsics(
             camera_model=models.CameraModelType.PINHOLE,
@@ -141,7 +141,9 @@ print("Triggering metadata updates...")
 metadata_rebuild_trace_id = uuid.uuid4()
 print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
 metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
-    dataset_id=dataset_id, trace_id=metadata_rebuild_trace_id
+    dataset_id=dataset_id,
+    trace_id=metadata_rebuild_trace_id,
+    compute_auto_attributes=True,
 )
 
 # track the status of all metadata rebuild jobs and wait for them to finish
