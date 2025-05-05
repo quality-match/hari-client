@@ -2,6 +2,14 @@
 
 ### New Features
 
+- added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
+  - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
+  - disclaimer: there's no example data for this script yet, so it won't work out of the box.
+
+## [3.5.0] - 24-04-2025
+
+### New Features
+
 - updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - added pydantic models for AINTLearningData, MLAnnotationModel, AIAnnotationRun, AttributeValue
 - added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)

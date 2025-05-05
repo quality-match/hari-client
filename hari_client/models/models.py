@@ -149,7 +149,7 @@ class CuboidCenterPoint(BaseModel):
     """A 3D cuboid defined by its center point position, heading as quaternion and its
     dimensions along each axis."""
 
-    type: str = pydantic.Field(title="Type")
+    type: str = "cuboid_center_point"
     position: Point3DTuple = pydantic.Field()
     heading: QuaternionTuple = pydantic.Field()
     dimensions: Point3DTuple = pydantic.Field()
@@ -429,7 +429,7 @@ class CameraIntrinsics(BaseModel):
 
 class PointCloudMetadata(BaseModel):
     sensor_id: str = pydantic.Field(title="Sensor Id")
-    lidar_sensor_pose: dict[str, typing.Any] = pydantic.Field(title="Lidar Sensor Pose")
+    lidar_sensor_pose: dict[str, Pose3D] = pydantic.Field(title="Lidar Sensor Pose")
 
 
 class ImageMetadata(BaseModel):
@@ -439,6 +439,28 @@ class ImageMetadata(BaseModel):
         default=None, title="CameraIntrinsics"
     )
     camera_extrinsics: Pose3D | None = pydantic.Field(default=None, title="Pose3D")
+
+
+class SceneCreate(BaseModel):
+    back_reference: str
+    frames: list[Scene.Frame]
+
+
+class Frame(BaseModel):
+    index: int = pydantic.Field(title="Index")
+
+
+class Scene(BaseModel):
+    id: str = pydantic.Field(title="Id")
+    dataset_id: str = pydantic.Field(title="Dataset Id")
+    tags: list[str] | None = pydantic.Field(default=None, title="Tags")
+    timestamp: str = pydantic.Field(
+        default=None,
+        title="Timestamp",
+    )
+    archived: bool | None = pydantic.Field(default=None, title="Archived")
+    back_reference: str | None = pydantic.Field(default=None, title="Back Reference")
+    frames: list[Frame] = pydantic.Field(default=[], title="Frames")
 
 
 class TransformationParameters(BaseModel):
