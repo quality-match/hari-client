@@ -1813,3 +1813,22 @@ class BaseProcessingJobMethod(BaseModel):
     user_id: uuid.UUID | None = None
     user_group: str | None = None
     parameters: BaseProcessingJobParameters
+
+
+class AnnotatableEmbeddingCreate(BaseModel):
+    annotatable_id: uuid.UUID
+    annotatable_type: DataBaseObjectType
+    embedding_group_name: str
+    embedding: list[float]
+
+
+class AnnotatableEmbedding(BaseModel):
+    id: uuid.UUID
+    dataset_id: uuid.UUID
+    timestamp: datetime.datetime
+    tags: list[str] | None = None
+    archived: bool | None = False
+    annotatable_id: uuid.UUID
+    annotatable_type: DataBaseObjectType
+    embedding_group_name: str
+    embedding: list[float]
