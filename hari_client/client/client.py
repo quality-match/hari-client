@@ -2987,3 +2987,28 @@ class HARIClient:
             json=annotation_run.model_dump(),
             success_response_item_model=models.AnnotationRun,
         )
+
+    ### annotatable embeddings ###
+    def create_annotatable_embeddings(
+        self,
+        dataset_id: uuid.UUID,
+        annotatable_embeddings: list[models.AnnotatableEmbeddingCreate],
+    ) -> list[models.AnnotatableEmbedding]:
+        """Upload a batch of annotatable embeddings.
+
+        Args:
+            dataset_id: The dataset to which the annotatable embeddings belong
+            annotatable_embeddings: The annotatable embeddings to upload
+
+        Returns:
+            The uploaded annotatable embeddings
+        """
+        annotatable_embedding_dicts = [
+            item.model_dump() for item in annotatable_embeddings
+        ]
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/annotatableEmbeddings",
+            json=annotatable_embedding_dicts,
+            success_response_item_model=list[models.AnnotatableEmbedding],
+        )
