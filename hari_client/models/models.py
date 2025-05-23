@@ -1893,3 +1893,20 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
     name: str
     nodes: dict[str, AnnotationRunNodeDetails]
     started: bool
+class AnnotatableEmbeddingCreate(BaseModel):
+    annotatable_id: uuid.UUID
+    annotatable_type: DataBaseObjectType
+    embedding_group_name: str
+    embedding: list[float]
+
+
+class AnnotatableEmbedding(BaseModel):
+    id: uuid.UUID
+    dataset_id: uuid.UUID
+    timestamp: datetime.datetime
+    tags: list[str] | None = None
+    archived: bool | None = False
+    annotatable_id: uuid.UUID
+    annotatable_type: DataBaseObjectType
+    embedding_group_name: str
+    embedding: list[float]
