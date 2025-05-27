@@ -44,9 +44,6 @@ point_cloud = hari_uploader.HARIMedia(
     media_type=models.MediaType.POINT_CLOUD,
     metadata=models.PointCloudMetadata(
         sensor_id="lidar_sensor_1",
-        lidar_sensor_pose={
-            "test": models.Pose3D(heading=(0, 0, 0, 0), position=(0, 0, 0))
-        },
     ),
 )
 media_object = hari_uploader.HARIMediaObject(
