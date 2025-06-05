@@ -1428,8 +1428,9 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
             ],
             {
                 "num_failed_medias": 0,
-                "num_skipped_media_objects": 0,
-                "num_skipped_attributes": 0,
+                "num_failed_media_objects": 0,
+                "num_failed_media_attributes": 0,
+                "num_failed_media_object_attributes": 0,
             },
         ),
         (
@@ -1440,8 +1441,9 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
             ],
             {
                 "num_failed_medias": 1,
-                "num_skipped_media_objects": 1,
-                "num_skipped_attributes": 4,
+                "num_failed_media_objects": 1,
+                "num_failed_media_attributes": 2,
+                "num_failed_media_object_attributes": 2,
             },
         ),
         (
@@ -1452,8 +1454,9 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
             ],
             {
                 "num_failed_medias": 1,
-                "num_skipped_media_objects": 1,
-                "num_skipped_attributes": 4,
+                "num_failed_media_objects": 1,
+                "num_failed_media_attributes": 2,
+                "num_failed_media_object_attributes": 2,
             },
         ),
         (
@@ -1464,13 +1467,14 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
             ],
             {
                 "num_failed_medias": 2,
-                "num_skipped_media_objects": 3,
-                "num_skipped_attributes": 10,
+                "num_failed_media_objects": 3,
+                "num_failed_media_attributes": 4,
+                "num_failed_media_object_attributes": 6,
             },
         ),
     ],
 )
-def test_hari_uploader_skips_dependencies_when_media_upload_fails(
+def test_hari_uploader_marks_dependencies_as_failed_when_media_upload_fails(
     create_configurable_mock_uploader_successful_single_batch,
     bulk_operation_status,
     response_status_responses,
@@ -1637,14 +1641,17 @@ def test_hari_uploader_skips_dependencies_when_media_upload_fails(
 
     # Assert
     assert len(results.failures.failed_medias) == uploader_result["num_failed_medias"]
-    assert len(results.failures.failed_media_objects) == 0
     assert (
-        len(results.failures.skipped_media_objects)
-        == uploader_result["num_skipped_media_objects"]
+        len(results.failures.failed_media_objects)
+        == uploader_result["num_failed_media_objects"]
     )
     assert (
-        len(results.failures.skipped_attributes)
-        == uploader_result["num_skipped_attributes"]
+        len(results.failures.failed_media_attributes)
+        == uploader_result["num_failed_media_attributes"]
+    )
+    assert (
+        len(results.failures.failed_media_object_attributes)
+        == uploader_result["num_failed_media_object_attributes"]
     )
 
 
@@ -1661,7 +1668,8 @@ def test_hari_uploader_skips_dependencies_when_media_upload_fails(
             {
                 "num_failed_medias": 0,
                 "num_failed_media_objects": 0,
-                "num_skipped_attributes": 0,
+                "num_failed_media_attributes": 0,
+                "num_failed_media_object_attributes": 0,
             },
         ),
         (
@@ -1674,7 +1682,8 @@ def test_hari_uploader_skips_dependencies_when_media_upload_fails(
             {
                 "num_failed_medias": 0,
                 "num_failed_media_objects": 2,
-                "num_skipped_attributes": 4,
+                "num_failed_media_attributes": 4,
+                "num_failed_media_object_attributes": 0,
             },
         ),
         (
@@ -1687,7 +1696,8 @@ def test_hari_uploader_skips_dependencies_when_media_upload_fails(
             {
                 "num_failed_medias": 0,
                 "num_failed_media_objects": 2,
-                "num_skipped_attributes": 4,
+                "num_failed_media_attributes": 4,
+                "num_failed_media_object_attributes": 0,
             },
         ),
         (
@@ -1700,12 +1710,13 @@ def test_hari_uploader_skips_dependencies_when_media_upload_fails(
             {
                 "num_failed_medias": 0,
                 "num_failed_media_objects": 3,
-                "num_skipped_attributes": 6,
+                "num_failed_media_attributes": 6,
+                "num_failed_media_object_attributes": 0,
             },
         ),
     ],
 )
-def test_hari_uploader_skips_dependencies_when_media_object_upload_fails(
+def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fails(
     create_configurable_mock_uploader_successful_single_batch,
     bulk_operation_status,
     response_status_responses,
@@ -1880,12 +1891,15 @@ def test_hari_uploader_skips_dependencies_when_media_object_upload_fails(
 
     # Assert
     assert len(results.failures.failed_medias) == uploader_result["num_failed_medias"]
-    assert len(results.failures.skipped_media_objects) == 0
     assert (
         len(results.failures.failed_media_objects)
         == uploader_result["num_failed_media_objects"]
     )
     assert (
-        len(results.failures.skipped_attributes)
-        == uploader_result["num_skipped_attributes"]
+        len(results.failures.failed_media_attributes)
+        == uploader_result["num_failed_media_attributes"]
+    )
+    assert (
+        len(results.failures.failed_media_object_attributes)
+        == uploader_result["num_failed_media_object_attributes"]
     )
