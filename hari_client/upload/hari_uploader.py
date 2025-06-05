@@ -789,11 +789,9 @@ class HARIUploader:
                     ),
                     None,
                 )
-                if media_result and media_result.status in (
-                    models.ResponseStatesEnum.MISSING_DATA,
-                    models.ResponseStatesEnum.SERVER_ERROR,
-                    models.ResponseStatesEnum.BAD_DATA,
-                    models.ResponseStatesEnum.CONFLICT,
+                if (
+                    media_result
+                    and media_result.status is not models.ResponseStatesEnum.SUCCESS
                 ):
                     (
                         media_objects,
@@ -883,11 +881,10 @@ class HARIUploader:
                     ),
                     None,
                 )
-                if media_object_result and media_object_result.status in (
-                    models.ResponseStatesEnum.MISSING_DATA,
-                    models.ResponseStatesEnum.SERVER_ERROR,
-                    models.ResponseStatesEnum.BAD_DATA,
-                    models.ResponseStatesEnum.CONFLICT,
+                if (
+                    media_object_result
+                    and media_object_result.status
+                    is not models.ResponseStatesEnum.SUCCESS
                 ):
                     attributes = self.mark_media_object_failed_and_dependencies_skipped(
                         media_object
