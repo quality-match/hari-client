@@ -178,46 +178,101 @@ class HARIMedia(models.BulkMediaCreate):
 class HARIUploadFailures(pydantic.BaseModel):
     """Tracks failed uploads and their dependencies that will be skipped."""
 
-    failed_medias: list[HARIMedia] = pydantic.Field(default_factory=list)
-    failed_media_objects: list[HARIMediaObject] = pydantic.Field(default_factory=list)
+    failed_medias: list[tuple[HARIMedia, list[str]]] = pydantic.Field(
+        default_factory=list
+    )
+    failed_media_objects: list[tuple[HARIMediaObject, list[str]]] = pydantic.Field(
+        default_factory=list
+    )
     # TODO: this field is currently unused because HARI does not allow tracking of attributes during attribute bulk upload creation
-    failed_attributes: list[HARIAttribute] = pydantic.Field(default_factory=list)
-    skipped_media_objects: list[HARIMediaObject] = pydantic.Field(default_factory=list)
-    skipped_attributes: list[HARIAttribute] = pydantic.Field(default_factory=list)
+    failed_media_attributes: list[tuple[HARIAttribute, list[str]]] = pydantic.Field(
+        default_factory=list
+    )
+    failed_media_object_attributes: list[
+        tuple[HARIAttribute, list[str]]
+    ] = pydantic.Field(default_factory=list)
 
     def add_failed_media_and_dependencies(
-        self, media: HARIMedia
-    ) -> tuple[list[HARIMediaObject], list[HARIAttribute]]:
-        """Add a failed media and track its dependent objects that will be skipped.
-        Returns: The dependent media objects and attributes that will be skipped.
+        self, media: HARIMedia, upload_response_result: models.AnnotatableCreateResponse
+    ) -> tuple[list[HARIAttribute], list[HARIMediaObject], list[HARIAttribute]]:
+        """Add a failed media and its dependent objects that will be failed.
+        Returns: The dependent media objects and attributes that will be failed.
         """
-        self.failed_medias.append(media)
-        # Media objects and their attributes will be skipped since their related media failed
-        self.skipped_media_objects.extend(media.media_objects)
-        self.skipped_attributes.extend(media.attributes)
-        skipped_media_object_attributes = []
+        self.failed_medias.append((media, upload_response_result.errors))
+        # Media objects and their attributes will also be marked as failed since their related media failed
+        self.failed_media_attributes.extend(
+            map(
+                lambda attribute: (
+                    attribute,
+                    ["Parent media upload failed. Skipping attribute."],
+                ),
+                media.attributes,
+            )
+        )
+        self.failed_media_objects.extend(
+            map(
+                lambda media_object: (
+                    media_object,
+                    ["Parent media upload failed. Skipping media object."],
+                ),
+                media.media_objects,
+            )
+        )
+        media_object_attributes = []
         for media_object in media.media_objects:
-            skipped_media_object_attributes.extend(media_object.attributes)
-        # Attributes will be skipped since their related media object failed
-        self.skipped_attributes.extend(skipped_media_object_attributes)
-        return media.media_objects, media.attributes + skipped_media_object_attributes
+            self.failed_media_object_attributes.extend(
+                map(
+                    lambda attribute: (
+                        attribute,
+                        [
+                            "Parent media object upload failed. Skipping media object attribute."
+                        ],
+                    ),
+                    media_object.attributes,
+                )
+            )
+            media_object_attributes.extend(media_object.attributes)
+        return media.attributes, media.media_objects, media_object_attributes
 
     def add_failed_media_object_and_dependencies(
-        self, media_object: HARIMediaObject
+        self,
+        media_object: HARIMediaObject,
+        media_upload_response_result: models.AnnotatableCreateResponse,
     ) -> list[HARIAttribute]:
-        """Add a failed media object and track its dependent attributes that will be skipped.
+        """Add a failed media object and markits dependent attributes as failed as well
         Returns: The dependent attributes that will be skipped.
         """
-        self.failed_media_objects.append(media_object)
-        # Attributes will be skipped since their related media object failed
-        self.skipped_attributes.extend(media_object.attributes)
+        self.failed_media_objects.append(
+            (media_object, media_upload_response_result.errors)
+        )
+        # Attributes will be marked as failed since their related media object failed
+        self.failed_media_attributes.extend(
+            map(
+                lambda attribute: (
+                    attribute,
+                    [
+                        "Parent media object upload failed. Skipping media object attribute."
+                    ],
+                ),
+                media_object.attributes,
+            )
+        )
         return media_object.attributes
 
-    def add_failed_attribute(self, attribute: HARIAttribute) -> HARIAttribute:
-        """Add a failed attribute.""
-        Returns: the attribute that will be skipped.
+    def add_failed_media_attribute(self, attribute: HARIAttribute) -> HARIAttribute:
+        """Add a failed media attribute.""
+        Returns: the attribute that will be marked as failed.
         """
-        self.failed_attributes.append(attribute)
+        self.failed_media_attributes.append(attribute)
+        return attribute
+
+    def add_failed_media_object_attribute(
+        self, attribute: HARIAttribute
+    ) -> HARIAttribute:
+        """Add a failed media object attribute.""
+        Returns: the attribute that will be marked as failed.
+        """
+        self.failed_media_object_attributes.append(attribute)
         return attribute
 
 
@@ -558,7 +613,12 @@ class HARIUploader:
 
     def _upload_media_batch(
         self, medias_to_upload: list[HARIMedia]
-    ) -> tuple[models.BulkResponse, list[HARIMediaObject], list[HARIAttribute]]:
+    ) -> tuple[
+        models.BulkResponse,
+        list[HARIAttribute],
+        list[HARIMediaObject],
+        list[HARIAttribute],
+    ]:
         for media in medias_to_upload:
             self._set_bulk_operation_annotatable_id(item=media)
 
@@ -568,11 +628,18 @@ class HARIUploader:
             medias=medias_to_upload,
             with_media_files_upload=self._with_media_files_upload,
         )
-        skipped_media_objects, skipped_attributes = self._handle_media_upload_response(
-            medias_to_upload, media_upload_response
-        )
+        (
+            failed_media_attributes,
+            failed_media_objects,
+            failed_media_object_attributes,
+        ) = self._handle_media_upload_response(medias_to_upload, media_upload_response)
         self._media_upload_progress.update(len(medias_to_upload))
-        return media_upload_response, skipped_media_objects, skipped_attributes
+        return (
+            media_upload_response,
+            failed_media_attributes,
+            failed_media_objects,
+            failed_media_object_attributes,
+        )
 
     def _upload_attributes_in_batches(
         self, attributes: list[HARIAttribute]
@@ -752,21 +819,28 @@ class HARIUploader:
         if not item.bulk_operation_annotatable_id:
             item.bulk_operation_annotatable_id = str(uuid.uuid4())
 
-    def mark_media_failed_and_dependencies_skipped(
-        self, media: HARIMedia
-    ) -> tuple[list[HARIMediaObject], list[HARIAttribute]]:
-        """Marks a media-upload as failed and its dependent media objects and attributes as to be skipped."""
+    def mark_media_and_dependencies_as_failed(
+        self, media: HARIMedia, upload_response_result: models.AnnotatableCreateResponse
+    ) -> tuple[list[HARIAttribute], list[HARIMediaObject], list[HARIAttribute]]:
+        """Marks a media-upload and its dependent media objects and attributes as failed."""
         (
-            skipped_media_objects,
-            skipped_attributes,
-        ) = self.failures.add_failed_media_and_dependencies(media)
-        return skipped_media_objects, skipped_attributes
+            failed_media_attributes,
+            failed_media_objects,
+            failed_media_object_attributes,
+        ) = self.failures.add_failed_media_and_dependencies(
+            media, upload_response_result
+        )
+        return (
+            failed_media_attributes,
+            failed_media_objects,
+            failed_media_object_attributes,
+        )
 
     def _handle_media_upload_response(
         self,
         medias: list[HARIMedia],
         upload_response: models.BulkResponse,
-    ) -> tuple[list[HARIMediaObject], list[HARIAttribute]]:
+    ) -> tuple[list[HARIAttribute], list[HARIMediaObject], list[HARIAttribute]]:
         """Handles the response of a media upload by updating the medias' depending objects, marking failed media uploads accordingly, and marking depending objects as skipped."""
         # TODO: optimization possibility - repetitive iterations over the same data for code readability
         self._update_hari_media_object_media_ids(
@@ -777,8 +851,15 @@ class HARIUploader:
             medias_to_upload=medias,
             media_upload_bulk_response=upload_response,
         )
-        skipped_media_objects, skipped_attributes = [], []
-        if upload_response.status == models.BulkOperationStatusEnum.PARTIAL_SUCCESS:
+        (
+            failed_media_attributes,
+            failed_media_objects,
+            failed_media_object_attributes,
+        ) = ([], [], [])
+        if upload_response.status in [
+            models.BulkOperationStatusEnum.PARTIAL_SUCCESS,
+            models.BulkOperationStatusEnum.FAILURE,
+        ]:
             media_upload_response_result_lookup = {
                 result.bulk_operation_annotatable_id: result
                 for result in upload_response.results
@@ -793,21 +874,21 @@ class HARIUploader:
                     is not models.ResponseStatesEnum.SUCCESS
                 ):
                     (
+                        media_attributes,
                         media_objects,
                         attributes,
-                    ) = self.mark_media_failed_and_dependencies_skipped(media)
-                    skipped_media_objects.extend(media_objects)
-                    skipped_attributes.extend(attributes)
-        elif upload_response.status == models.BulkOperationStatusEnum.FAILURE:
-            for media in medias:
-                (
-                    media_objects,
-                    attributes,
-                ) = self.mark_media_failed_and_dependencies_skipped(media)
-                skipped_media_objects.extend(media_objects)
-                skipped_attributes.extend(attributes)
+                    ) = self.mark_media_and_dependencies_as_failed(
+                        media, media_upload_response_result
+                    )
+                    failed_media_attributes.extend(media_attributes)
+                    failed_media_objects.extend(media_objects)
+                    failed_media_object_attributes.extend(attributes)
 
-        return skipped_media_objects, skipped_attributes
+        return (
+            failed_media_attributes,
+            failed_media_objects,
+            failed_media_object_attributes,
+        )
 
     def _upload_single_batch(
         self, medias_to_upload: list[HARIMedia]
@@ -820,8 +901,9 @@ class HARIUploader:
         """
         (
             media_upload_response,
-            skipped_media_objects,
-            skipped_attributes,
+            failed_media_attributes,
+            failed_media_objects,
+            failed_media_object_attributes,
         ) = self._upload_media_batch(medias_to_upload=medias_to_upload)
 
         # filter out media_objects that should be skipped
@@ -829,13 +911,13 @@ class HARIUploader:
             media_object
             for media in medias_to_upload
             for media_object in media.media_objects
-            if media_object not in skipped_media_objects
+            if media_object not in failed_media_objects
         ]
         attributes_to_upload: list[HARIAttribute] = [
             attribute
             for media in medias_to_upload
             for attribute in media.attributes
-            if attribute not in skipped_attributes
+            if attribute not in failed_media_attributes + failed_media_object_attributes
         ]
 
         (
@@ -868,8 +950,11 @@ class HARIUploader:
             media_objects_to_upload=media_objects,
             media_object_upload_bulk_response=upload_response,
         )
-        skipped_attributes = []
-        if upload_response.status == models.BulkOperationStatusEnum.PARTIAL_SUCCESS:
+        failed_attributes = []
+        if upload_response.status in [
+            models.BulkOperationStatusEnum.PARTIAL_SUCCESS,
+            models.BulkOperationStatusEnum.FAILURE,
+        ]:
             media_object_upload_response_result_lookup = {
                 result.bulk_operation_annotatable_id: result
                 for result in upload_response.results
@@ -885,27 +970,23 @@ class HARIUploader:
                     and media_upload_response_result.status
                     is not models.ResponseStatesEnum.SUCCESS
                 ):
-                    attributes = self.mark_media_object_failed_and_dependencies_skipped(
-                        media_object
+                    attributes = self.mark_media_object_and_dependencies_as_failed(
+                        media_object, media_upload_response_result
                     )
-                    skipped_attributes.extend(attributes)
-        elif upload_response.status == models.BulkOperationStatusEnum.FAILURE:
-            for media_object in media_objects:
-                attributes = self.mark_media_object_failed_and_dependencies_skipped(
-                    media_object
-                )
-                skipped_attributes.extend(attributes)
+                    failed_attributes.extend(attributes)
 
-        return skipped_attributes
+        return failed_attributes
 
-    def mark_media_object_failed_and_dependencies_skipped(
-        self, media_object: HARIMediaObject
+    def mark_media_object_and_dependencies_as_failed(
+        self,
+        media_object: HARIMediaObject,
+        media_upload_response_result: models.AnnotatableCreateResponse,
     ) -> list[HARIAttribute]:
-        """Marks a media object-upload as failed and its dependent attributes as to be skipped."""
-        skipped_attributes = self.failures.add_failed_media_object_and_dependencies(
-            media_object
+        """Marks a media object-upload and its dependent attributes as failed."""
+        failed_attributes = self.failures.add_failed_media_object_and_dependencies(
+            media_object, media_upload_response_result
         )
-        return skipped_attributes
+        return failed_attributes
 
     def upload_data_in_batches(self) -> tuple[list[models.BulkResponse], ...]:
         """Uploads all medias and their media_objects and attributes in batches."""
