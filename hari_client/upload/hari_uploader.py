@@ -779,19 +779,18 @@ class HARIUploader:
         )
         skipped_media_objects, skipped_attributes = [], []
         if upload_response.status == models.BulkOperationStatusEnum.PARTIAL_SUCCESS:
+            media_upload_response_result_lookup = {
+                result.bulk_operation_annotatable_id: result
+                for result in upload_response.results
+            }
             for media in medias:
-                media_result = next(
-                    (
-                        result
-                        for result in upload_response.results
-                        if result.bulk_operation_annotatable_id
-                        == media.bulk_operation_annotatable_id
-                    ),
-                    None,
+                media_upload_response_result = media_upload_response_result_lookup.get(
+                    media.bulk_operation_annotatable_id
                 )
                 if (
-                    media_result
-                    and media_result.status is not models.ResponseStatesEnum.SUCCESS
+                    media_upload_response_result
+                    and media_upload_response_result.status
+                    is not models.ResponseStatesEnum.SUCCESS
                 ):
                     (
                         media_objects,
@@ -871,19 +870,19 @@ class HARIUploader:
         )
         skipped_attributes = []
         if upload_response.status == models.BulkOperationStatusEnum.PARTIAL_SUCCESS:
+            media_object_upload_response_result_lookup = {
+                result.bulk_operation_annotatable_id: result
+                for result in upload_response.results
+            }
             for media_object in media_objects:
-                media_object_result = next(
-                    (
-                        result
-                        for result in upload_response.results
-                        if result.bulk_operation_annotatable_id
-                        == media_object.bulk_operation_annotatable_id
-                    ),
-                    None,
+                media_upload_response_result = (
+                    media_object_upload_response_result_lookup.get(
+                        media_object.bulk_operation_annotatable_id
+                    )
                 )
                 if (
-                    media_object_result
-                    and media_object_result.status
+                    media_upload_response_result
+                    and media_upload_response_result.status
                     is not models.ResponseStatesEnum.SUCCESS
                 ):
                     attributes = self.mark_media_object_failed_and_dependencies_skipped(
