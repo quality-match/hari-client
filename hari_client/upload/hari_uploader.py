@@ -747,7 +747,7 @@ class HARIUploader:
                 media.attributes[i].annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(
-        self, item: HARIMedia | HARIMediaObject | HARIAttribute
+        self, item: HARIMedia | HARIMediaObject
     ) -> None:
         if not item.bulk_operation_annotatable_id:
             item.bulk_operation_annotatable_id = str(uuid.uuid4())
