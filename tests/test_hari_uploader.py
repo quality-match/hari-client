@@ -1858,7 +1858,10 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
             if media_object.back_reference == "media_obj_1":
                 results.append(
                     models.AnnotatableCreateResponse(
-                        item_id=None,
+                        item_id="id_0"
+                        if response_status_responses[0]
+                        == models.BulkOperationStatusEnum.SUCCESS
+                        else None,
                         status=response_status_responses[0],
                         bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
                     )
@@ -1866,7 +1869,10 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
             elif media_object.back_reference == "media_obj_2":
                 results.append(
                     models.AnnotatableCreateResponse(
-                        item_id="something",
+                        item_id="id_1"
+                        if response_status_responses[1]
+                        == models.BulkOperationStatusEnum.SUCCESS
+                        else None,
                         status=response_status_responses[1],
                         bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
                     )
@@ -1874,7 +1880,10 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
             else:
                 results.append(
                     models.AnnotatableCreateResponse(
-                        item_id="something else",
+                        item_id="id_2"
+                        if response_status_responses[2]
+                        == models.BulkOperationStatusEnum.SUCCESS
+                        else None,
                         status=response_status_responses[2],
                         bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
                     )
