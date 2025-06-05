@@ -239,7 +239,7 @@ class HARIUploadFailures(pydantic.BaseModel):
         media_object: HARIMediaObject,
         media_upload_response_result: models.AnnotatableCreateResponse,
     ) -> list[HARIAttribute]:
-        """Add a failed media object and markits dependent attributes as failed as well
+        """Add a failed media object and marks its dependent attributes as failed as well
         Returns: The dependent attributes that will be skipped.
         """
         self.failed_media_objects.append(
