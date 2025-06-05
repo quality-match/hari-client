@@ -459,7 +459,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
     assert media_spy.call_count == 11
     media_calls = media_spy.call_args_list
     for i in range(11):
-        assert len(media_calls[i].kwargs["medias"]) == 100
+        assert len(media_calls[i].kwargs["medias_to_upload"]) == 100
     assert len(uploader._medias) == 1100
 
     assert media_object_spy.call_count == 22
@@ -537,7 +537,7 @@ def test_hari_uploader_creates_single_batch_correctly(
     # check every batch upload method's call
     assert media_spy.call_count == 1
     media_calls = media_spy.call_args_list
-    assert len(media_calls[0].kwargs["medias"]) == 5
+    assert len(media_calls[0].kwargs["medias_to_upload"]) == 5
     assert len(uploader._medias) == 5
 
     assert media_object_spy.call_count == 1
@@ -615,7 +615,7 @@ def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_fi
     # check every batch upload method's call
     assert media_spy.call_count == 1
     media_calls = media_spy.call_args_list
-    assert len(media_calls[0].kwargs["medias"]) == 5
+    assert len(media_calls[0].kwargs["medias_to_upload"]) == 5
     assert len(uploader._medias) == 5
 
     assert media_object_spy.call_count == 1

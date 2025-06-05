@@ -557,21 +557,21 @@ class HARIUploader:
         )
 
     def _upload_media_batch(
-        self, medias: list[HARIMedia]
+        self, medias_to_upload: list[HARIMedia]
     ) -> tuple[models.BulkResponse, list[HARIMediaObject], list[HARIAttribute]]:
-        for media in medias:
+        for media in medias_to_upload:
             self._set_bulk_operation_annotatable_id(item=media)
 
         # upload media batch
         media_upload_response = self.client.create_medias(
             dataset_id=self.dataset_id,
-            medias=medias,
+            medias=medias_to_upload,
             with_media_files_upload=self._with_media_files_upload,
         )
         skipped_media_objects, skipped_attributes = self._handle_media_upload_response(
-            medias, media_upload_response
+            medias_to_upload, media_upload_response
         )
-        self._media_upload_progress.update(len(medias))
+        self._media_upload_progress.update(len(medias_to_upload))
         return media_upload_response, skipped_media_objects, skipped_attributes
 
     def _upload_attributes_in_batches(
@@ -767,7 +767,7 @@ class HARIUploader:
         medias: list[HARIMedia],
         upload_response: models.BulkResponse,
     ) -> tuple[list[HARIMediaObject], list[HARIAttribute]]:
-        """Handles the response of a media upload by updating item its of depending objects, marks failed media uploads accordingly, and marks depending objects as to skipped."""
+        """Handles the response of a media upload by updating the medias' depending objects, marking failed media uploads accordingly, and marking depending objects as skipped."""
         # TODO: optimization possibility - repetitive iterations over the same data for code readability
         self._update_hari_media_object_media_ids(
             medias_to_upload=medias,
@@ -812,7 +812,7 @@ class HARIUploader:
 
         return skipped_media_objects, skipped_attributes
 
-    def _upload_batch(
+    def _upload_single_batch(
         self, medias_to_upload: list[HARIMedia]
     ) -> tuple[
         models.BulkResponse, list[models.BulkResponse], list[models.BulkResponse]
@@ -825,7 +825,7 @@ class HARIUploader:
             media_upload_response,
             skipped_media_objects,
             skipped_attributes,
-        ) = self._upload_media_batch(medias=medias_to_upload)
+        ) = self._upload_media_batch(medias_to_upload=medias_to_upload)
 
         # filter out media_objects that should be skipped
         media_objects_to_upload: list[HARIMediaObject] = [
@@ -941,7 +941,7 @@ class HARIUploader:
                 media_upload_response,
                 media_object_upload_responses,
                 attributes_upload_responses,
-            ) = self._upload_batch(medias_to_upload)
+            ) = self._upload_single_batch(medias_to_upload)
             media_upload_responses.append(media_upload_response)
             media_object_upload_responses.extend(media_object_upload_responses)
             attribute_upload_responses.extend(attributes_upload_responses)
