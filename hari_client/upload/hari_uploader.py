@@ -1144,18 +1144,18 @@ class HARIUploader:
                 for result in upload_response.results
             }
             for media_object in media_objects:
-                media_upload_response_result = (
+                media_object_upload_response_result = (
                     media_object_upload_response_result_lookup.get(
                         media_object.bulk_operation_annotatable_id
                     )
                 )
                 if (
-                    media_upload_response_result
-                    and media_upload_response_result.status
+                    media_object_upload_response_result
+                    and media_object_upload_response_result.status
                     is not models.ResponseStatesEnum.SUCCESS
                 ):
                     attributes = self.mark_media_object_and_dependencies_as_failed(
-                        media_object, media_upload_response_result
+                        media_object, media_object_upload_response_result
                     )
                     failed_attributes.extend(attributes)
 
