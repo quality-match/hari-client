@@ -1048,7 +1048,7 @@ class HARIUploader:
                         (media_object, media_object_upload_response_result.errors)
                     )
                     # Attributes will be marked as failed since their related media object failed
-                    self.failures.failed_media_attributes.extend(
+                    self.failures.failed_media_object_attributes.extend(
                         map(
                             lambda attribute: (
                                 attribute,

@@ -1802,8 +1802,8 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_upload_fails(
             {
                 "num_failed_medias": 0,
                 "num_failed_media_objects": 2,
-                "num_failed_media_attributes": 4,
-                "num_failed_media_object_attributes": 0,
+                "num_failed_media_attributes": 0,
+                "num_failed_media_object_attributes": 4,
             },
         ),
         (
@@ -1816,8 +1816,8 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_upload_fails(
             {
                 "num_failed_medias": 0,
                 "num_failed_media_objects": 2,
-                "num_failed_media_attributes": 4,
-                "num_failed_media_object_attributes": 0,
+                "num_failed_media_attributes": 0,
+                "num_failed_media_object_attributes": 4,
             },
         ),
         (
@@ -1830,8 +1830,8 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_upload_fails(
             {
                 "num_failed_medias": 0,
                 "num_failed_media_objects": 3,
-                "num_failed_media_attributes": 6,
-                "num_failed_media_object_attributes": 0,
+                "num_failed_media_attributes": 0,
+                "num_failed_media_object_attributes": 6,
             },
         ),
     ],
@@ -2032,3 +2032,7 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         len(results.failures.failed_media_object_attributes)
         == uploader_result["num_failed_media_object_attributes"]
     )
+
+
+def test_hari_uploader_marks_hari_entities_as_failed():
+    pass
