@@ -1970,7 +1970,7 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         )
     )
 
-    # Mock the create_medias response to make the first media fail
+    # Mock the create_media_objects response to make the first media object fail
     def mock_create_media_objects(*args, **kwargs):
         media_objects = kwargs.get("media_objects", [])
         results = []
