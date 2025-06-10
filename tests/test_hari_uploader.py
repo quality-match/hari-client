@@ -1,5 +1,4 @@
 import collections
-import sys
 import uuid
 
 import pytest
@@ -896,14 +895,7 @@ def test_hari_uploader_upload_without_specified_object_categories(mock_client, m
     # Act + Assert
     media_1.add_media_object(media_object_1, media_object_2, media_object_3)
     uploader.add_media(media_1)
-
-    version = sys.version_info
-    match = ""
-    if version.major == 3 and version.minor == 11:
-        match = "(2 sub-exceptions)"
-    if version.major == 3 and version.minor == 12:
-        match = "Property validation failed"
-    with pytest.raises(ExceptionGroup, match=match) as err:
+    with pytest.raises(ExceptionGroup, match="Property validation failed") as err:
         uploader.upload()
     assert len(err.value.exceptions) == 2
     for sub_exception in err.value.exceptions:
@@ -1007,13 +999,7 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
     # Act + Assert
     media_1.add_media_object(media_object_1, media_object_2, media_object_3)
     uploader.add_media(media_1)
-    version = sys.version_info
-    match = ""
-    if version.major == 3 and version.minor == 11:
-        match = "(1 sub-exception)"
-    if version.major == 3 and version.minor == 12:
-        match = "Property validation failed"
-    with pytest.raises(ExceptionGroup, match=match) as err:
+    with pytest.raises(ExceptionGroup, match="Property validation failed") as err:
         uploader.upload()
     assert len(err.value.exceptions) == 1
     assert isinstance(
