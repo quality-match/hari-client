@@ -616,8 +616,14 @@ class HARIUploader:
             medias=medias_to_upload,
             with_media_files_upload=self._with_media_files_upload,
         )
-
-        self._handle_media_upload_response(medias_to_upload, media_upload_response)
+        self._update_hari_media_object_media_ids(
+            medias_to_upload=medias_to_upload,
+            media_upload_bulk_response=media_upload_response,
+        )
+        self._update_hari_attribute_media_ids(
+            medias_to_upload=medias_to_upload,
+            media_upload_bulk_response=media_upload_response,
+        )
         self._media_upload_progress.update(len(medias_to_upload))
         return media_upload_response
 
@@ -650,9 +656,11 @@ class HARIUploader:
                 media_objects_to_upload=media_objects_to_upload
             )
             media_object_upload_responses.append(response)
-            self._handle_media_objects_upload_response(
-                media_objects_to_upload, response
+            self._update_hari_attribute_media_object_ids(
+                media_objects_to_upload=media_objects_to_upload,
+                media_object_upload_bulk_response=response,
             )
+
             self._media_object_upload_progress.update(len(media_objects_to_upload))
         return media_object_upload_responses
 
@@ -904,21 +912,6 @@ class HARIUploader:
         if not item.bulk_operation_annotatable_id:
             item.bulk_operation_annotatable_id = str(uuid.uuid4())
 
-    def _handle_media_upload_response(
-        self,
-        medias: list[HARIMedia],
-        upload_response: models.BulkResponse,
-    ):
-        """Handles the response of a media upload by marking failed media uploads accordingly, and marking depending objects as skipped."""
-        self._update_hari_media_object_media_ids(
-            medias_to_upload=medias,
-            media_upload_bulk_response=upload_response,
-        )
-        self._update_hari_attribute_media_ids(
-            medias_to_upload=medias,
-            media_upload_bulk_response=upload_response,
-        )
-
     def _upload_single_batch(
         self, medias_to_upload: list[HARIMedia]
     ) -> tuple[
@@ -930,9 +923,6 @@ class HARIUploader:
         """
         media_upload_response = self._upload_media_batch(
             medias_to_upload=medias_to_upload
-        )
-        self._handle_media_upload_response(
-            medias=medias_to_upload, upload_response=media_upload_response
         )
 
         failed_medias = []
@@ -1077,14 +1067,6 @@ class HARIUploader:
             media_upload_response,
             media_object_upload_responses,
             attributes_upload_responses,
-        )
-
-    def _handle_media_objects_upload_response(
-        self, media_objects: list[HARIMediaObject], upload_response: models.BulkResponse
-    ) -> None:
-        self._update_hari_attribute_media_object_ids(
-            media_objects_to_upload=media_objects,
-            media_object_upload_bulk_response=upload_response,
         )
 
     def upload_data_in_batches(self) -> tuple[list[models.BulkResponse], ...]:
