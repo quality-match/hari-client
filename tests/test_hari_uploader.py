@@ -1532,7 +1532,7 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
 
 
 @pytest.mark.parametrize(
-    "bulk_operation_status, media_response_status_responses, media_object_response_status_responses, uploader_result",
+    "media_bulk_operation_status, media_response_status_responses, media_object_bulk_operation_status, media_object_response_status_responses, uploader_result",
     [
         (
             # success
@@ -1542,6 +1542,7 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
                 models.ResponseStatesEnum.SUCCESS,
                 models.ResponseStatesEnum.SUCCESS,
             ],
+            models.BulkOperationStatusEnum.SUCCESS,
             [
                 # 3 media objects (2 for first media, 1 for second)
                 models.ResponseStatesEnum.SUCCESS,
@@ -1557,11 +1558,12 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
         ),
         (
             # partial_success_medias_fail
-            models.BulkOperationStatusEnum.PARTIAL_SUCCESS,
+            models.BulkOperationStatusEnum.FAILURE,
             [
                 models.ResponseStatesEnum.MISSING_DATA,
                 models.ResponseStatesEnum.CONFLICT,
             ],
+            models.BulkOperationStatusEnum.SUCCESS,
             [
                 # these should not matter, since medias have failed and media objects should be skipped
                 models.ResponseStatesEnum.SUCCESS,
@@ -1577,11 +1579,12 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
         ),
         (
             # partial_success_media_objects_fail
-            models.BulkOperationStatusEnum.PARTIAL_SUCCESS,
+            models.BulkOperationStatusEnum.SUCCESS,
             [
                 models.ResponseStatesEnum.SUCCESS,
                 models.ResponseStatesEnum.SUCCESS,
             ],
+            models.BulkOperationStatusEnum.FAILURE,
             [
                 models.ResponseStatesEnum.MISSING_DATA,
                 models.ResponseStatesEnum.CONFLICT,
@@ -1601,6 +1604,7 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
                 models.ResponseStatesEnum.SERVER_ERROR,
                 models.ResponseStatesEnum.MISSING_DATA,
             ],
+            models.BulkOperationStatusEnum.FAILURE,
             [
                 models.ResponseStatesEnum.SERVER_ERROR,
                 models.ResponseStatesEnum.MISSING_DATA,
@@ -1617,8 +1621,9 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
 )
 def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fails(
     create_configurable_mock_uploader_successful_single_batch,
-    bulk_operation_status,
+    media_bulk_operation_status,
     media_response_status_responses,
+    media_object_bulk_operation_status,
     media_object_response_status_responses,
     uploader_result,
 ):
@@ -1750,8 +1755,7 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         )
     )
 
-    # TODO: add mock for media objects
-    # Mock the create_medias response to make the first media fail
+    # Mock the create_medias response to return specified response
     def mock_create_medias(*args, **kwargs):
         medias = kwargs.get("medias", [])
         results = []
@@ -1778,7 +1782,7 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
                         bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
                     )
                 )
-        return models.BulkResponse(results=results, status=bulk_operation_status)
+        return models.BulkResponse(results=results, status=media_bulk_operation_status)
 
     client.create_medias = mock_create_medias
 
@@ -1820,7 +1824,9 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
                         bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
                     )
                 )
-        return models.BulkResponse(results=results, status=bulk_operation_status)
+        return models.BulkResponse(
+            results=results, status=media_object_bulk_operation_status
+        )
 
     client.create_media_objects = mock_create_media_objects
 
