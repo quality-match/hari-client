@@ -2435,11 +2435,25 @@ class HARIClient:
 
     def get_multiple_aint_learning_data(
         self,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
     ) -> list[models.AINTLearningData]:
         """
         !!! Only available for qm internal users !!!
 
         Retrieve all AINT learning data available to the user.
+
+        Args:
+            limit: limit the number of AINT learning data returned
+            skip: skip the number of AINT learning data returned
+            query: query parameters to filter the AINT learning data
+            sort: sorting parameters to sort the AINT learning data
+            name_filter: filter by AINT learning data name
+            archived: whether to include archived AINT learning data
 
         Returns:
             A list of AINT learning data objects.
@@ -2447,6 +2461,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aintLearningData",
+            params=self._pack(locals()),
             success_response_item_model=list[models.AINTLearningData],
         )
 
@@ -2580,16 +2595,54 @@ class HARIClient:
             success_response_item_model=str,
         )
 
+    def get_aint_learning_data_count(
+        self,
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns aint learning data count for the user.
+        Args:
+            query: query parameters to filter the aint learning datas
+            name_filter: filter by aint learning data name
+            archived: if true, count only archived aint learning data; if false (default), count non-archived aint learning data.
+
+        Returns:
+            The number of aint learning data
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/aintLearningData:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
+        )
+
     def get_ml_annotation_models(
         self,
         projection: dict[str, bool] | None = None,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
     ) -> list[models.MlAnnotationModel]:
         """
-        Retrieve all ml annotation models available to the user.
+        Retrieve ml annotation models available to the user.
 
         Args:
             projection: The fields to be returned (dictionary keys with value True are returned,
             keys with value False are not returned).
+            limit: limit the number of ml annotation models returned
+            skip: skip the number of ml annotation models returned
+            query: query parameters to filter the ml annotation models
+            sort: sorting parameters to sort the ml annotation models
+            name_filter: filter by ml annotation model name
+            archived: whether to include archived ml annotation models
 
         Returns:
              A list of ml annotation models.
@@ -2768,11 +2821,51 @@ class HARIClient:
             success_response_item_model=str,
         )
 
+    def get_ml_annotation_model_count(
+        self,
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns ml annotation model count for the user.
+        Args:
+            query: query parameters to filter the ml annotation models
+            name_filter: filter by ml annotation model name
+            archived: if true, count only archived ml annotation models; if false (default), count non-archived ml annotation models.
+
+        Returns:
+            The number of ml annotation models
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/mlAnnotationModels:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
+        )
+
     def get_ai_annotation_runs(
         self,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
     ) -> list[models.AIAnnotationRun]:
         """
-        Retrieve all AI annotation runs available to the user.
+        Retrieve AI annotation runs available to the user.
+
+        Args:
+            limit: limit the number of AI annotation runs returned
+            skip: skip the number of AI annotation runs returned
+            query: query parameters to filter the AI annotation runs
+            sort: sorting parameters to sort the AI annotation runs
+            name_filter: filter by AI annotation run name
+            archived: whether to include archived AI annotation runs
 
         Returns:
             A list of AI annotation runs.
@@ -2780,6 +2873,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/aiAnnotationRuns",
+            params=self._pack(locals()),
             success_response_item_model=list[models.AIAnnotationRun],
         )
 
@@ -2911,11 +3005,53 @@ class HARIClient:
             success_response_item_model=str,
         )
 
+    def get_ai_annotation_run_count(
+        self,
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns ai annotation run count for the user.
+        Args:
+            query: query parameters to filter the ai annotation runs
+            name_filter: filter by ai annotation run name
+            archived: if true, count only archived ai annotation runs; if false (default), count non-archived ai annotation runs.
+
+        Returns:
+            The number of ai annotation runs
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/aiAnnotationRuns:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
+        )
+
     ### pipelines ###
 
-    def get_pipelines(self) -> list[models.Pipeline]:
+    def get_pipelines(
+        self,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> list[models.Pipeline]:
         """
-        Get all pipelines.
+        Get pipelines available for the user.
+
+        Args:
+            limit: limit the number of pipelines returned
+            skip: skip the number of pipelines returned
+            query: query parameters to filter the pipelines
+            sort: sorting parameters to sort the pipelines
+            name_filter: filter by pipeline name
+            archived: whether to include archived pipelines
 
         Returns:
             A list of pipeline objects.
@@ -2923,6 +3059,7 @@ class HARIClient:
         return self._request(
             "GET",
             "/pipelines",
+            params=self._pack(locals()),
             success_response_item_model=list[models.Pipeline],
         )
 
@@ -2939,11 +3076,53 @@ class HARIClient:
             success_response_item_model=models.PipelineWithNodes,
         )
 
+    def get_pipeline_count(
+        self,
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns pipeline count for the user.
+        Args:
+            query: query parameters to filter the pipelines
+            name_filter: filter by pipeline name
+            archived: if true, count only archived pipelines; if false (default), count non-archived pipelines.
+
+        Returns:
+            The number of pipelines
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/pipelines:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
+        )
+
     ### annotation runs ###
 
-    def get_annotation_runs(self) -> list[models.AnnotationRun]:
+    def get_annotation_runs(
+        self,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> list[models.AnnotationRun]:
         """
-        Get all annotation runs.
+        Get annotation runs available to the users.
+
+        Args:
+            limit: limit the number of annotation runs returned
+            skip: skip the number of annotation runs returned
+            query: query parameters to filter the annotation runs
+            sort: sorting parameters to sort the annotation runs
+            name_filter: filter by annotation run name
+            archived: whether to include archived annotation runs
 
         Returns:
             A list of annotation run objects.
@@ -2951,6 +3130,7 @@ class HARIClient:
         return self._request(
             "GET",
             "/annotationRuns",
+            params=self._pack(locals()),
             success_response_item_model=list[models.AnnotationRun],
         )
 
@@ -2986,4 +3166,30 @@ class HARIClient:
             "/annotationRuns",
             json=annotation_run.model_dump(),
             success_response_item_model=models.AnnotationRun,
+        )
+
+    def get_annotation_run_count(
+        self,
+        query: models.QueryList | None = None,
+        name_filter: str | None = None,
+        archived: bool | None = False,
+    ) -> int:
+        """
+        Returns annotation run count for the user.
+        Args:
+            query: query parameters to filter the annotation runs
+            name_filter: filter by annotation run name
+            archived: if true, count only archived annotation runs; if false (default), count non-archived annotation runs.
+
+        Returns:
+            The number of annotation runs
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            "/annotationRuns:count",
+            params=self._pack(locals()),
+            success_response_item_model=int,
         )
