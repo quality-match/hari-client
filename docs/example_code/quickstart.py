@@ -109,6 +109,7 @@ print(f"media object upload summary\n  {upload_results.media_objects.summary}")
 print(f"attribute upload status: {upload_results.attributes.status.value}")
 print(f"attribute upload summary\n  {upload_results.attributes.summary}")
 
+
 if (
     upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
     or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
@@ -117,9 +118,16 @@ if (
     print(
         "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
     )
-    print(f"media upload details: {upload_results.medias.results}")
-    print(f"media objects upload details: {upload_results.media_objects.results}")
-    print(f"attributes upload details: {upload_results.attributes.results}")
+    print(f"media upload failures\n  {upload_results.failures.failed_medias}")
+    print(
+        f"media object upload failures\n  {upload_results.failures.failed_media_objects}"
+    )
+    print(
+        f"media-attribute upload failures\n  {upload_results.failures.failed_media_attributes}"
+    )
+    print(
+        f"media object-attribute upload failures\n  {upload_results.failures.failed_media_object_attributes}"
+    )
     sys.exit(1)
 
 # 6. Create a subset
