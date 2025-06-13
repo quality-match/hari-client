@@ -1081,7 +1081,7 @@ class Attribute(BaseModel):
     question: str
     annotatable_id: str
     annotatable_type: DataBaseObjectType
-    subset_ids: set[str] = set()
+    subset_ids: set[str] | None = None
     attribute_type: AttributeType | None = None
     attribute_group: AttributeGroup
     value: typeT
