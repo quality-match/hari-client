@@ -2,6 +2,26 @@
 
 ### New Features
 
+#### Consistency in partially failed uploads
+
+- partially failed bulk uploads of medias and media objects are now handled consistently [PR#80](https://github.com/quality-match/hari-client/pull/80)
+  - for failed media uploads, any media_objects and attributes for these medias will not be tried to be uploaded
+  - for media_objects, any attributes for these media_objects will not be tried to be uploaded
+
+#### Better reporting of failed and skipped uploads
+
+- improved reporting of failed and skipped uploads [PR#80](https://github.com/quality-match/hari-client/pull/80)
+  - failed uploads are now reported in the `HARIUploadResults.failures` field
+
+#### 3D
+- added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
+  - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
+  - disclaimer: there's no example data for this script yet, so it won't work out of the box.
+
+## [3.5.0] - 24-04-2025
+
+### New Features
+
 - updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
   - added pydantic models for AINTLearningData, MLAnnotationModel, AIAnnotationRun, AttributeValue
 - added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
@@ -27,6 +47,7 @@
 - added upload utilities [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added helper methods to check for existing datasets and subsets before upload
   - added helper method to trigger metadata rebuild and track its progress
+- added user group as a possible argument in the update dataset method
 
 ### Fixes
 

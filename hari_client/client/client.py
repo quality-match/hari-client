@@ -519,6 +519,7 @@ class HARIClient:
         num_attributes: int | None = None,
         num_instances: int | None = None,
         visibility_status: models.VisibilityStatus | None = None,
+        user_group: str | None = None,
     ) -> models.DatasetResponse:
         """Updates the dataset with the given id.
 
@@ -538,6 +539,7 @@ class HARIClient:
             num_attributes: Number of attributes
             num_instances: Number of instances
             visibility_status: Visibility status of the new dataset
+            user_group: new desired user group for the dataset.
 
         Returns:
             The updated dataset
@@ -751,6 +753,44 @@ class HARIClient:
             ),
             json=body,
             success_response_item_model=str,
+        )
+
+    ### scene ###
+    def create_scene(
+        self,
+        dataset_id: uuid.UUID,
+        back_reference: str,
+        frames: list[models.Frame],
+    ) -> models.Scene:
+        """creates a new scene and uploads it to the database
+
+        Args:
+            dataset_id (uuid.UUID): the id of the dataset
+            back_reference (str): the id of the media object
+
+        Returns:
+            The created scene
+        """
+        frames = [frame.model_dump() for frame in frames]
+        json_body = self._pack(
+            locals(),
+            ignore=["dataset_id"],
+        )
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/scenes",
+            json=json_body,
+            success_response_item_model=models.Scene,
+        )
+
+    def get_scenes(self, dataset_id: uuid.UUID) -> list[models.Scene]:
+        """
+        Get all scenes in a dataset.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/scenes",
+            success_response_item_model=list[models.Scene],
         )
 
     ### external media source ###
