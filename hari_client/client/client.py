@@ -1,10 +1,13 @@
 import datetime
 import json
+import os
 import pathlib
 import types
 import typing
 import uuid
 import warnings
+from concurrent import futures
+from urllib.parse import urlparse
 
 import pydantic
 import requests
@@ -1131,6 +1134,73 @@ class HARIClient:
         log.info(f"Fetched {len(medias)} medias successfully.")
 
         return medias
+
+    def download_media_files(
+        self,
+        dataset_id: uuid.UUID,
+        query: models.QueryList | None = None,
+        output_dir: str | None = os.getcwd(),
+        max_workers: int = 32,
+    ) -> None:
+        """Download media files of a dataset.
+
+        Args:
+            dataset_id: The dataset id
+            query: The filters to be applied to the search
+            output_dir: The directory where the media files will be downloaded (defaults to the current directory)
+            max_workers: The maximum number of threads to use for downloading media files (defaults to 8).
+
+        Raises:
+            APIException: If any of the requests fails.
+        """
+
+        medias = self.get_medias_paginated(
+            dataset_id=dataset_id,
+            batch_size=100,
+            query=query,
+        )
+        media_urls = [media.media_url for media in medias if media.media_url]
+
+        def download_single_media(url: str, output_dir: str):
+            name = urlparse(url).path.strip("/")
+            output_path = pathlib.Path(output_dir) / name
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            if output_path.exists():
+                return None
+
+            try:
+                with requests.get(url, stream=True) as response:
+                    response.raise_for_status()
+                    with open(output_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                return None
+            except requests.RequestException as e:
+                return url, str(e)
+
+        log.info("Starting to download media files...")
+        failed = []
+        with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            failed_url = {
+                executor.submit(download_single_media, url, output_dir): url
+                for url in media_urls
+            }
+
+            for future in tqdm(
+                futures.as_completed(failed_url),
+                total=len(media_urls),
+                desc="Downloading media files",
+            ):
+                result = future.result()
+                if result is not None:
+                    failed.append(result)
+
+        if failed:
+            log.warning(f"\nFailed to download {len(failed)} files:")
+            for url, error in failed:
+                log.warning(f"`{url}`: {error}")
 
     def archive_media(self, dataset_id: uuid.UUID, media_id: str) -> str:
         """Archive the media
