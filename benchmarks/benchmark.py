@@ -30,10 +30,10 @@ def get_latest_benchmark_file(results_dir: pathlib.Path) -> pathlib.Path | None:
 
 
 REUSE_SAME_MEDIA_BINARY = False
-NUM_MEDIAS = 1000
-NUM_MEDIA_OBJECTS_BY_MEDIA = 4
+NUM_MEDIAS = 10
+NUM_MEDIA_OBJECTS_BY_MEDIA = 10
 NUM_ATTRIBUTES_BY_MEDIA = 1
-NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 30
+NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 10
 REUSE_PREVIOUS_CONFIGURATION = False
 
 if REUSE_PREVIOUS_CONFIGURATION:
@@ -203,7 +203,9 @@ monitor.start()
 # 5. Trigger the upload process
 upload_results = uploader.upload()
 monitor.stop()
-avg_upload_utilization, avg_download_utilization = monitor.get_averages()
+avg_upload_speed = monitor.get_average_upload_speed()
+avg_download_speed = monitor.get_average_download_speed()
+
 total_time = time.time() - start_time
 average_client_times = {
     key: sum(endpoint_timing) / len(endpoint_timing)
@@ -234,8 +236,8 @@ benchmark_results = {
         "NUM_ATTRIBUTES_BY_MEDIA_OBJECT": NUM_ATTRIBUTES_BY_MEDIA_OBJECT,
     },
     "network": {
-        "average_upload_utilization_in_kb_per_s": avg_upload_utilization,
-        "average_download_utilization_in_kb_per_s": avg_download_utilization,
+        "average_upload_speed_in_byte_per_s": avg_upload_speed,
+        "average_download_speed_in_byte_per_s": avg_download_speed,
     },
     "upload_results": {
         "medias": str(upload_results.medias.summary),

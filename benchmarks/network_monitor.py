@@ -8,22 +8,20 @@ class NetworkMonitor:
     def __init__(self, interval=1):
         self.interval = interval
         self.running = False
-        self.upload_utilization = []
-        self.download_utilization = []
+        self.upload_speeds = []
+        self.download_speeds = []
 
     def _monitor(self):
         prev = psutil.net_io_counters()
         while self.running:
             time.sleep(self.interval)
             current = psutil.net_io_counters()
-            upload = (
-                (current.bytes_sent - prev.bytes_sent) / self.interval / 1024
-            )  # KB/s
-            download = (
-                (current.bytes_recv - prev.bytes_recv) / self.interval / 1024
-            )  # KB/s
-            self.upload_utilization.append(upload)
-            self.download_utilization.append(download)
+            upload_speed = (current.bytes_sent - prev.bytes_sent) / self.interval  # B/s
+            download_speed = (
+                current.bytes_recv - prev.bytes_recv
+            ) / self.interval  # B/s
+            self.upload_speeds.append(upload_speed)
+            self.download_speeds.append(download_speed)
             prev = current
 
     def start(self):
@@ -35,15 +33,18 @@ class NetworkMonitor:
         self.running = False
         self.thread.join()
 
-    def get_averages(self):
-        avg_upload = (
-            sum(self.upload_utilization) / len(self.upload_utilization)
-            if self.upload_utilization
-            else 0
-        )
+    def get_average_download_speed(self):
         avg_download = (
-            sum(self.download_utilization) / len(self.download_utilization)
-            if self.download_utilization
+            sum(self.download_speeds) / len(self.download_speeds)
+            if self.download_speeds
             else 0
         )
-        return avg_upload, avg_download
+        return avg_download
+
+    def get_average_upload_speed(self):
+        avg_upload = (
+            sum(self.upload_speeds) / len(self.upload_speeds)
+            if self.upload_speeds
+            else 0
+        )
+        return avg_upload
