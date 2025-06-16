@@ -2,7 +2,7 @@
 
 ### New Features
 
-- Add method to download media files from dataset [PR#81](https://github.com/quality-match/hari-client/pull/94)
+- add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
 
 #### Consistency in partially failed uploads
 
