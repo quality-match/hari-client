@@ -1148,18 +1148,21 @@ class HARIClient:
             dataset_id: The dataset id
             query: The filters to be applied to the search
             output_dir: The directory where the media files will be downloaded (defaults to the current directory)
-            max_workers: The maximum number of threads to use for downloading media files (defaults to 8).
+            max_workers: The maximum number of threads to use for downloading media files (defaults to 32).
 
         Raises:
-            APIException: If any of the requests fails.
+            APIException: If get medias request fails.
         """
-
-        medias = self.get_medias_paginated(
-            dataset_id=dataset_id,
-            batch_size=100,
-            query=query,
-        )
-        media_urls = [media.media_url for media in medias if media.media_url]
+        try:
+            medias = self.get_medias_paginated(
+                dataset_id=dataset_id,
+                batch_size=100,
+                query=query,
+            )
+            media_urls = [media.media_url for media in medias if media.media_url]
+        except errors.APIError as e:
+            log.error(f"Failed to fetch medias to download: {e}")
+            raise e
 
         def download_single_media(url: str, output_dir: str):
             name = urlparse(url).path.strip("/")
