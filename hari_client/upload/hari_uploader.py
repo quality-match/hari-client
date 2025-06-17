@@ -1096,13 +1096,13 @@ class HARIUploader:
                 idx : idx + self._config.media_upload_batch_size
             ]
             (
-                media_upload_response,
-                media_object_upload_responses,
-                attributes_upload_responses,
+                media_response,
+                media_object_responses,
+                attributes_responses,
             ) = self._upload_single_batch(medias_to_upload)
-            media_upload_responses.append(media_upload_response)
-            media_object_upload_responses.extend(media_object_upload_responses)
-            attribute_upload_responses.extend(attributes_upload_responses)
+            media_upload_responses.append(media_response)
+            media_object_upload_responses.extend(media_object_responses)
+            attribute_upload_responses.extend(attributes_responses)
 
         self._media_upload_progress.close()
         self._media_object_upload_progress.close()

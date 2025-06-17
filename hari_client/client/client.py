@@ -1,10 +1,13 @@
 import datetime
 import json
+import os
 import pathlib
 import types
 import typing
 import uuid
 import warnings
+from concurrent import futures
+from urllib.parse import urlparse
 
 import pydantic
 import requests
@@ -575,7 +578,6 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> list[models.DatasetResponse]:
         """Returns datasets that a user has access to.
@@ -587,7 +589,6 @@ class HARIClient:
             skip: skip the number of datasets returned
             query: query parameters to filter the datasets
             sort: sorting parameters to sort the datasets
-            name_filter: filter by dataset name
             archived: if true, return only archived datasets; if false (default), return non-archived datasets.
 
         Returns:
@@ -607,7 +608,6 @@ class HARIClient:
         self,
         visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
         query: models.QueryList | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> int:
         """
@@ -615,7 +615,6 @@ class HARIClient:
         Args:
             visibility_statuses: Visibility statuses of the returned datasets
             query: query parameters to filter the datasets
-            name_filter: filter by dataset name
             archived: if true, count only archived datasets; if false (default), count non-archived datasets.
 
         Returns:
@@ -1131,6 +1130,76 @@ class HARIClient:
         log.info(f"Fetched {len(medias)} medias successfully.")
 
         return medias
+
+    def download_media_files(
+        self,
+        dataset_id: uuid.UUID,
+        query: models.QueryList | None = None,
+        output_dir: str | None = os.getcwd(),
+        max_workers: int = 32,
+    ) -> None:
+        """Download media files of a dataset.
+
+        Args:
+            dataset_id: The dataset id
+            query: The filters to be applied to the search
+            output_dir: The directory where the media files will be downloaded (defaults to the current directory)
+            max_workers: The maximum number of threads to use for downloading media files (defaults to 32).
+
+        Raises:
+            APIException: If get medias request fails.
+        """
+        try:
+            medias = self.get_medias_paginated(
+                dataset_id=dataset_id,
+                batch_size=100,
+                query=query,
+            )
+            media_urls = [media.media_url for media in medias if media.media_url]
+        except errors.APIError as e:
+            log.error(f"Failed to fetch medias to download: {e}")
+            raise e
+
+        def download_single_media(url: str, output_dir: str):
+            name = urlparse(url).path.strip("/")
+            output_path = pathlib.Path(output_dir) / name
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            if output_path.exists():
+                return None
+
+            try:
+                with requests.get(url, stream=True) as response:
+                    response.raise_for_status()
+                    with open(output_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                return None
+            except requests.RequestException as e:
+                return url, str(e)
+
+        log.info("Starting to download media files...")
+        failed = []
+        with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            failed_url = {
+                executor.submit(download_single_media, url, output_dir): url
+                for url in media_urls
+            }
+
+            for future in tqdm(
+                futures.as_completed(failed_url),
+                total=len(media_urls),
+                desc="Downloading media files",
+            ):
+                result = future.result()
+                if result is not None:
+                    failed.append(result)
+
+        if failed:
+            log.warning(f"\nFailed to download {len(failed)} files:")
+            for url, error in failed:
+                log.warning(f"`{url}`: {error}")
 
     def archive_media(self, dataset_id: uuid.UUID, media_id: str) -> str:
         """Archive the media
@@ -2439,7 +2508,6 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> list[models.AINTLearningData]:
         """
@@ -2452,7 +2520,6 @@ class HARIClient:
             skip: skip the number of AINT learning data returned
             query: query parameters to filter the AINT learning data
             sort: sorting parameters to sort the AINT learning data
-            name_filter: filter by AINT learning data name
             archived: whether to include archived AINT learning data
 
         Returns:
@@ -2598,14 +2665,12 @@ class HARIClient:
     def get_aint_learning_data_count(
         self,
         query: models.QueryList | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> int:
         """
         Returns aint learning data count for the user.
         Args:
             query: query parameters to filter the aint learning datas
-            name_filter: filter by aint learning data name
             archived: if true, count only archived aint learning data; if false (default), count non-archived aint learning data.
 
         Returns:
@@ -2628,7 +2693,6 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> list[models.MlAnnotationModel]:
         """
@@ -2641,7 +2705,6 @@ class HARIClient:
             skip: skip the number of ml annotation models returned
             query: query parameters to filter the ml annotation models
             sort: sorting parameters to sort the ml annotation models
-            name_filter: filter by ml annotation model name
             archived: whether to include archived ml annotation models
 
         Returns:
@@ -2824,14 +2887,12 @@ class HARIClient:
     def get_ml_annotation_model_count(
         self,
         query: models.QueryList | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> int:
         """
         Returns ml annotation model count for the user.
         Args:
             query: query parameters to filter the ml annotation models
-            name_filter: filter by ml annotation model name
             archived: if true, count only archived ml annotation models; if false (default), count non-archived ml annotation models.
 
         Returns:
@@ -2853,7 +2914,6 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> list[models.AIAnnotationRun]:
         """
@@ -2864,7 +2924,6 @@ class HARIClient:
             skip: skip the number of AI annotation runs returned
             query: query parameters to filter the AI annotation runs
             sort: sorting parameters to sort the AI annotation runs
-            name_filter: filter by AI annotation run name
             archived: whether to include archived AI annotation runs
 
         Returns:
@@ -3008,14 +3067,12 @@ class HARIClient:
     def get_ai_annotation_run_count(
         self,
         query: models.QueryList | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> int:
         """
         Returns ai annotation run count for the user.
         Args:
             query: query parameters to filter the ai annotation runs
-            name_filter: filter by ai annotation run name
             archived: if true, count only archived ai annotation runs; if false (default), count non-archived ai annotation runs.
 
         Returns:
@@ -3039,7 +3096,6 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> list[models.Pipeline]:
         """
@@ -3050,7 +3106,6 @@ class HARIClient:
             skip: skip the number of pipelines returned
             query: query parameters to filter the pipelines
             sort: sorting parameters to sort the pipelines
-            name_filter: filter by pipeline name
             archived: whether to include archived pipelines
 
         Returns:
@@ -3079,14 +3134,12 @@ class HARIClient:
     def get_pipeline_count(
         self,
         query: models.QueryList | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> int:
         """
         Returns pipeline count for the user.
         Args:
             query: query parameters to filter the pipelines
-            name_filter: filter by pipeline name
             archived: if true, count only archived pipelines; if false (default), count non-archived pipelines.
 
         Returns:
@@ -3110,7 +3163,6 @@ class HARIClient:
         skip: int | None = None,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> list[models.AnnotationRun]:
         """
@@ -3121,7 +3173,6 @@ class HARIClient:
             skip: skip the number of annotation runs returned
             query: query parameters to filter the annotation runs
             sort: sorting parameters to sort the annotation runs
-            name_filter: filter by annotation run name
             archived: whether to include archived annotation runs
 
         Returns:
@@ -3171,14 +3222,12 @@ class HARIClient:
     def get_annotation_run_count(
         self,
         query: models.QueryList | None = None,
-        name_filter: str | None = None,
         archived: bool | None = False,
     ) -> int:
         """
         Returns annotation run count for the user.
         Args:
             query: query parameters to filter the annotation runs
-            name_filter: filter by annotation run name
             archived: if true, count only archived annotation runs; if false (default), count non-archived annotation runs.
 
         Returns:
