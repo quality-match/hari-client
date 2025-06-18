@@ -686,6 +686,61 @@ class FilterCount(BaseModel):
     total_count: int = pydantic.Field(title="Total Count")
 
 
+class VisualisationParameterType(str, enum.Enum):
+    DEFAULT = "default"
+    LIDAR_VIDEO = "lidar_video"
+    LIDAR_VIDEO_STACKED = "lidar_video_stacked"
+    COMPOSITE_LIDAR_VIEWER = "composite_lidar_viewer"
+    TILE = "tile"
+    CROP = "crop"
+    PCD = "pcd"
+    RENDERED = "rendered"
+
+
+class VisualisationConfigParameters(BaseModel):
+    type: VisualisationParameterType
+
+
+class PCDVisualisationConfigParameters(VisualisationConfigParameters):
+    type: typing.Literal[
+        VisualisationParameterType.PCD
+    ] = VisualisationParameterType.PCD.value
+    pcd_padding_percent: int = 1
+    pcd_camera_behavior: typing.Literal["static", "dynamic"] = "dynamic"
+    sides_to_view: (
+        list[typing.Literal["front", "back", "left", "right", "top", "bottom"]] | None
+    ) = None
+
+    @pydantic.model_validator(mode="after")
+    def validate_sides_to_view(self):
+        if self.pcd_camera_behavior == "static" and self.sides_to_view is None:
+            raise ValueError(
+                "sides_to_view must be set if pcd_camera_behavior is static."
+            )
+        return self
+
+
+class CompositeLidarViewerVisualisationConfigParameters(VisualisationConfigParameters):
+    type: typing.Literal[
+        VisualisationParameterType.COMPOSITE_LIDAR_VIEWER
+    ] = VisualisationParameterType.COMPOSITE_LIDAR_VIEWER.value
+
+    # 2D Image Crop
+    image_configs: list[CropVisualisationConfigParameters] = pydantic.Field(
+        default_factory=lambda: [
+            CropVisualisationConfigParameters(padding_percent=1, padding_minimum=20)
+        ]
+    )
+    image_camera_selection: list[typing.Literal["best_camera"] | str]
+
+    # 3D PCD Crop
+    pcd_configs: list[PCDVisualisationConfigParameters] = pydantic.Field(
+        default_factory=lambda: [
+            PCDVisualisationConfigParameters(pcd_padding_percent=1)
+        ]
+    )
+
+
 class RenderedVisualisationConfigParameters(BaseModel):
     type: str = pydantic.Field(default="rendered", title="Type")
 
@@ -720,13 +775,15 @@ class VisualisationConfiguration(BaseModel):
     timestamp: str = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=False, title="Archived")
     name: str = pydantic.Field(title="Name")
-    parameters: (
+    parameters: typing.Annotated[
         CropVisualisationConfigParameters
         | LidarVideoVisualisationConfigParameters
         | LidarVideoStackedVisualisationConfigParameters
         | TileVisualisationConfigParameters
         | RenderedVisualisationConfigParameters
-    ) = pydantic.Field(title="CropVisualisationConfigParameters")
+        | CompositeLidarViewerVisualisationConfigParameters,
+        pydantic.Field(discriminator="type"),
+    ]
     subset_ids: list = pydantic.Field(title="Subset Ids")
 
 
