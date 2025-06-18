@@ -120,8 +120,20 @@ if (
         "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
     )
     print(f"media upload details: {upload_results.medias.results}")
+    print(f"media upload failures\n  {upload_results.failures.failed_medias}")
+
     print(f"media objects upload details: {upload_results.media_objects.results}")
+    print(
+        f"media object upload failures\n  {upload_results.failures.failed_media_objects}"
+    )
+
     print(f"attributes upload details: {upload_results.attributes.results}")
+    print(
+        f"media-attribute upload failures\n  {upload_results.failures.failed_media_attributes}"
+    )
+    print(
+        f"media object-attribute upload failures\n  {upload_results.failures.failed_media_object_attributes}"
+    )
     sys.exit(1)
 
 # 5. Create a subset

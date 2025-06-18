@@ -35,7 +35,7 @@ class VisualisationParameters(str, enum.Enum):
 
 any_response_type = str | int | float | list | dict | None
 
-ComparisonOperator = typing.Literal["<", "<=", ">", ">=", "==", "!="]
+ComparisonOperator = typing.Literal["<", "<=", ">", ">=", "==", "!=", "ilike"]
 SetOperator = typing.Literal["in", "not in", "all"]
 LogicOperator = typing.Literal["and", "or", "not"]
 QueryOperator = ComparisonOperator | SetOperator
