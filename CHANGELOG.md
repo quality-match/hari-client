@@ -12,6 +12,7 @@
 - Add `ilike` query operator [PR#91](https://github.com/quality-match/hari-client/pull/91)
 - Add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
 - Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
+  - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
 
 #### Consistency in partially failed uploads
 
