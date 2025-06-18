@@ -427,11 +427,16 @@ class CameraIntrinsics(BaseModel):
     )
 
 
-class PointCloudMetadata(BaseModel):
-    sensor_id: str = pydantic.Field(title="Sensor Id")
+class MediaMetadata(BaseModel):
+    sensor_id: str | None = pydantic.Field(title="Sensor Id")
+    timestamp: float | None = pydantic.Field(title="Timestamp")
 
 
-class ImageMetadata(BaseModel):
+class PointCloudMetadata(MediaMetadata):
+    pass
+
+
+class ImageMetadata(MediaMetadata):
     width: int | None = pydantic.Field(default=None, title="Width")
     height: int | None = pydantic.Field(default=None, title="Height")
     camera_intrinsics: CameraIntrinsics | None = pydantic.Field(

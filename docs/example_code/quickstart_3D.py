@@ -71,6 +71,7 @@ image = hari_uploader.HARIMedia(
     frame_idx=0,
     scene_back_reference="scene1",
     metadata=models.ImageMetadata(
+        sensor_id="camera_1",
         camera_intrinsics=models.CameraIntrinsics(
             camera_model=models.CameraModelType.PINHOLE,
             focal_length=(1266.417203046554, 1266.417203046554),
