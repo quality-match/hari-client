@@ -741,27 +741,37 @@ class CompositeLidarViewerVisualisationConfigParameters(VisualisationConfigParam
     )
 
 
-class RenderedVisualisationConfigParameters(BaseModel):
-    type: str = pydantic.Field(default="rendered", title="Type")
+class RenderedVisualisationConfigParameters(VisualisationConfigParameters):
+    type: typing.Literal[
+        VisualisationParameterType.RENDERED
+    ] = VisualisationParameterType.RENDERED.value
 
 
-class TileVisualisationConfigParameters(BaseModel):
-    type: str = pydantic.Field(default="tile", title="Type")
+class TileVisualisationConfigParameters(VisualisationConfigParameters):
+    type: typing.Literal[
+        VisualisationParameterType.TILE
+    ] = VisualisationParameterType.TILE.value
     columns: int = pydantic.Field(title="Columns")
     rows: int = pydantic.Field(title="Rows")
     overlap_percent: typing.Any = pydantic.Field(title="Overlap Percent")
 
 
-class LidarVideoStackedVisualisationConfigParameters(BaseModel):
-    type: str = pydantic.Field(default="lidar_video_stacked", title="Type")
+class LidarVideoStackedVisualisationConfigParameters(VisualisationConfigParameters):
+    type: typing.Literal[
+        VisualisationParameterType.LIDAR_VIDEO_STACKED
+    ] = VisualisationParameterType.LIDAR_VIDEO_STACKED.value
 
 
-class LidarVideoVisualisationConfigParameters(BaseModel):
-    type: str = pydantic.Field(default="lidar_video", title="Type")
+class LidarVideoVisualisationConfigParameters(VisualisationConfigParameters):
+    type: typing.Literal[
+        VisualisationParameterType.LIDAR_VIDEO
+    ] = VisualisationParameterType.LIDAR_VIDEO.value
 
 
-class CropVisualisationConfigParameters(BaseModel):
-    type: str = pydantic.Field(default="crop", title="Type")
+class CropVisualisationConfigParameters(VisualisationConfigParameters):
+    type: typing.Literal[
+        VisualisationParameterType.CROP
+    ] = VisualisationParameterType.CROP.value
     padding_percent: int = pydantic.Field(title="Padding Percent")
     padding_minimum: int = pydantic.Field(title="Padding Minimum")
     max_size: list | None = pydantic.Field(default=None, title="Max Size")
@@ -1487,6 +1497,7 @@ class PipelineConfig(BaseModel):
     limit_tasks: int | None = None
     shuffle_tasks: bool = False
     add_tasks_n_times: int = 1
+    auto_annotate: bool = False
 
 
 class Pipeline(BaseModel):
@@ -1538,13 +1549,15 @@ class PipelineNodeConfig(pydantic.BaseModel):
     should_workpackage_include_task_outputs: typing.Literal[
         "parallel", "sequential"
     ] = "parallel"
-    visualisation_type: VisualisationType | None = None
+    position2D: tuple[float, float] | None = None
+    visualisation_type: VisualisationParameterType | None = None
     gui_type: str | None = None
     possible_answers: list[dict[str, str]] | None = None
     cant_solve_options: list[dict[str, str]] | None = None
     split_map: dict[str, list[str]] = {}
     convergence_threshold: float | None = pydantic.Field(None, ge=0, le=1)
     auto_annotate: bool = False
+    aggregate_repeats: bool = True
 
 
 class PipelineNode(pydantic.BaseModel):
@@ -1659,6 +1672,7 @@ class AnnotationRunNodeConfig(BaseModel):
     override_wp_tasks: int | None = None
     override_wp_timeout: int | None = None
     initial_attribute_id: str | None = None
+    visualisation_type: VisualisationParameterType | None = None
 
 
 class AnnotationRunNode(BaseModel):
