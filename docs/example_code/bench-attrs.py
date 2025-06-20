@@ -32,7 +32,7 @@ uploader = hari_uploader.HARIUploader(
 )
 
 all_media = hari.get_medias(dataset_id=dataset_id)
-all_media_objects = hari.get_media_objects_paginated(dataset_id=dataset_id)
+all_media_objects = hari.get_media_objects(dataset_id=dataset_id, limit=5000)
 
 
 attrs = []
