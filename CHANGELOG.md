@@ -3,7 +3,7 @@
 ### Breaking Changes
 
 - Deleted `name_filter` from get multiple datasets endpoint [PR#91](https://github.com/quality-match/hari-client/pull/91)
-- removed `lidar_sensor_pose` from `PointCloudMetadata` model, because it's not unsupported in the HARI backend [PR#90](https://github.com/quality-match/hari-client/pull/90)
+- removed `lidar_sensor_pose` from `PointCloudMetadata` model, because it's not supported in the HARI backend [PR#90](https://github.com/quality-match/hari-client/pull/90)
 
 ### New Features
 
