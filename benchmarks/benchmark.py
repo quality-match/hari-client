@@ -30,10 +30,10 @@ def get_latest_benchmark_file(results_dir: pathlib.Path) -> pathlib.Path | None:
 
 
 REUSE_SAME_MEDIA_BINARY = False
-NUM_MEDIAS = 10
-NUM_MEDIA_OBJECTS_BY_MEDIA = 10
-NUM_ATTRIBUTES_BY_MEDIA = 1
-NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 10
+NUM_MEDIAS = 500
+NUM_MEDIA_OBJECTS_BY_MEDIA = 8
+NUM_ATTRIBUTES_BY_MEDIA = 2
+NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 2
 REUSE_PREVIOUS_CONFIGURATION = False
 
 if REUSE_PREVIOUS_CONFIGURATION:
@@ -75,7 +75,7 @@ def load_s3_file_list_from_txt() -> list[str]:
     return s3_file_list
 
 
-def get_s3_file_list(limit: int = 15000) -> list[str]:
+def get_s3_file_list(limit: int = 5000) -> list[str]:
     if "s3_file_list.json" not in os.listdir():
         s3_file_list = get_s3_file_list_from_bucket("zod-external", limit)
         write_s3_file_list_to_file("zod-external", s3_file_list)
@@ -90,6 +90,11 @@ def get_s3_file_list(limit: int = 15000) -> list[str]:
 def generate_random_media_objects(number_of_objects: int) -> list[str]:
     media_objects = []
     scaling_factor = random.random() * 6
+
+    media_object_attribute_ids = [
+        uuid.uuid4() for _ in range(NUM_ATTRIBUTES_BY_MEDIA_OBJECT)
+    ]
+
     for idx in range(number_of_objects):
         if idx % 2 == 0:
             media_object = hari_uploader.HARIMediaObject(
@@ -118,9 +123,6 @@ def generate_random_media_objects(number_of_objects: int) -> list[str]:
         media_objects.append(media_object)
 
     for media_object in media_objects:
-        media_object_attribute_ids = [
-            uuid.uuid4() for _ in range(NUM_ATTRIBUTES_BY_MEDIA_OBJECT)
-        ]
         for media_object_attribute_id in media_object_attribute_ids:
             attribute_media_1 = hari_uploader.HARIAttribute(
                 id=media_object_attribute_id,
@@ -138,6 +140,8 @@ def generate_medias(
     limit: int | None = None,
 ) -> list[hari_uploader.HARIMedia]:
     medias = []
+    media_attribute_ids = [uuid.uuid4() for _ in range(NUM_ATTRIBUTES_BY_MEDIA)]
+
     for idx, item in enumerate(s3_files_list):
         media = hari_uploader.HARIMedia(
             file_key=item.split("/")[-1],
@@ -149,7 +153,6 @@ def generate_medias(
         for media_object in new_media_objects:
             media.add_media_object(media_object)
 
-        media_attribute_ids = [uuid.uuid4() for _ in range(NUM_ATTRIBUTES_BY_MEDIA)]
         for media_attribute_id in media_attribute_ids:
             media_attribute = hari_uploader.HARIAttribute(
                 id=media_attribute_id,
@@ -182,7 +185,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 new_dataset = hari.create_dataset(
-    name="performance_test",
+    name="katia_performance_test_server",
     user_group="QM-ops",
     external_media_source=models.ExternalMediaSourceAPICreate(
         credentials=models.ExternalMediaSourceS3CrossAccountAccessInfo(

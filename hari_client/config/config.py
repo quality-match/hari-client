@@ -4,8 +4,8 @@ import pydantic_settings
 
 class HARIUploaderConfig(pydantic.BaseModel):
     media_upload_batch_size: int = pydantic.Field(default=30, ge=1, le=500)
-    media_object_upload_batch_size: int = pydantic.Field(default=500, ge=1, le=500)
-    attribute_upload_batch_size: int = pydantic.Field(default=500, ge=1, le=500)
+    media_object_upload_batch_size: int = pydantic.Field(default=500, ge=1, le=5000)
+    attribute_upload_batch_size: int = pydantic.Field(default=500, ge=1, le=5000)
 
 
 class Config(pydantic_settings.BaseSettings):
