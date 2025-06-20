@@ -44,9 +44,6 @@ point_cloud = hari_uploader.HARIMedia(
     media_type=models.MediaType.POINT_CLOUD,
     metadata=models.PointCloudMetadata(
         sensor_id="lidar_sensor_1",
-        lidar_sensor_pose={
-            "test": models.Pose3D(heading=(0, 0, 0, 0), position=(0, 0, 0))
-        },
     ),
 )
 media_object = hari_uploader.HARIMediaObject(
@@ -74,6 +71,7 @@ image = hari_uploader.HARIMedia(
     frame_idx=0,
     scene_back_reference="scene1",
     metadata=models.ImageMetadata(
+        sensor_id="camera_1",
         camera_intrinsics=models.CameraIntrinsics(
             camera_model=models.CameraModelType.PINHOLE,
             focal_length=(1266.417203046554, 1266.417203046554),
