@@ -324,21 +324,14 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         # need to add filter out ones as manual responses
         medias_skipped = [media for media in medias_to_upload if media.uploaded]
-        media_upload_response.summary.failed += len(medias_skipped)
+        media_upload_response.summary.successful += len(medias_skipped)
         media_upload_response.summary.total += len(medias_skipped)
         media_upload_response.results.extend(
             [
-                # TODO we add here manually error messages for skipped entries
-                # Motivation for attributes we also show these errors
-                # We realigned and the default behavior should that they are successful, this is also true for attributes
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
-                    status=models.ResponseStatesEnum.CONFLICT,
+                    status=models.ResponseStatesEnum.SUCCESS,
                     item_id=media.id,
-                    errors=[
-                        f"Skipped the upload of media {media.id} "
-                        f"since media with back reference {media.back_reference} already exists."
-                    ],
                 )
                 for media in medias_skipped
             ]
@@ -434,22 +427,15 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         # need to add filter out ones as manual responses
         media_objects_skipped = [mo for mo in media_objects_to_upload if mo.uploaded]
-        response.summary.failed += len(media_objects_skipped)
+        response.summary.successful += len(media_objects_skipped)
         response.summary.total += len(media_objects_skipped)
 
-        # TODO we add here manually error messages for skipped entries
-        # Motivation for attributes we also show these errors
-        # We realigned and the default behavior should that they are successful, this is also true for attributes
         response.results.extend(
             [
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=mo.bulk_operation_annotatable_id,
-                    status=models.ResponseStatesEnum.CONFLICT,
+                    status=models.ResponseStatesEnum.SUCCESS,
                     item_id=mo.id,
-                    errors=[
-                        f"Skipped the upload of media object {mo.id} "
-                        f"since object with back reference {mo.back_reference} already exists."
-                    ],
                 )
                 for mo in media_objects_skipped
             ]
