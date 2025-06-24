@@ -9,6 +9,7 @@ import warnings
 import pydantic
 import requests
 from requests import adapters
+from tqdm import tqdm
 
 from hari_client.client import errors
 from hari_client.config import config
@@ -903,13 +904,13 @@ class HARIClient:
             media_dicts = []
             for idx, media in enumerate(medias):
                 media.media_url = media_upload_responses[idx].media_url
-                media_dicts.append(media.model_dump())
+                media_dicts.append(media.model_dump(exclude={"uploaded"}))
         else:
             media_dicts = []
             for media in medias:
                 if not media.file_key:
                     raise errors.MediaCreateMissingFileKeyError(media)
-                media_dicts.append(media.model_dump())
+                media_dicts.append(media.model_dump(exclude={"uploaded"}))
 
         # 3. create the medias in HARI
         return self._request(
@@ -1394,7 +1395,8 @@ class HARIClient:
 
         # 1. parse media_objects to dicts before upload
         media_object_dicts = [
-            media_object.model_dump() for media_object in media_objects
+            media_object.model_dump(exclude={"uploaded"})
+            for media_object in media_objects
         ]
 
         # 2. send media_objects to HARI
@@ -1834,7 +1836,9 @@ class HARIClient:
             )
 
         # 1. parse attributes to dicts before upload
-        attribute_dicts = [attribute.model_dump() for attribute in attributes]
+        attribute_dicts = [
+            attribute.model_dump(exclude={"uploaded"}) for attribute in attributes
+        ]  # uploaded is an internal variable for bookkeeping
 
         # 2. send attributes to HARI
         return self._request(

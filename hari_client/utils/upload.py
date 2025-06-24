@@ -2,7 +2,7 @@ import time
 import uuid
 from typing import Tuple
 
-from hari_client import hari_uploader
+import hari_client.upload.state_aware_hari_uploader as hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.upload.hari_uploader import HARIMedia
@@ -86,11 +86,11 @@ def get_or_create_dataset(
             is_anonymized=is_anonymized,
             external_media_source=external_media_source,
         )
-        log.info("Dataset created with id:", new_dataset.id)
+        log.info(f"Dataset created with id: {new_dataset.id}")
         return new_dataset.id
     else:
         dataset_id = datasets[dataset_names.index(dataset_name)].id
-        log.info("Found existing dataset with id:", dataset_id)
+        log.info(f"Found existing dataset with id: {dataset_id}")
 
         return dataset_id
 
@@ -127,7 +127,7 @@ def get_or_create_subset_for_all(
     else:
         subset = subsets[subset_names.index(subset_name)]
         new_subset_id = subset.id
-        log.info("Found existing subset with id:", new_subset_id)
+        log.info(f"Found existing subset with id: {new_subset_id}")
 
         return new_subset_id, True
 
@@ -158,34 +158,66 @@ def check_and_upload_dataset(
         client=hari, dataset_id=dataset_id, object_categories=object_categories
     )
 
-    uploader.add_media(*medias)
+    for media in medias:
+        uploader.add_media(media)
+
     upload_results = uploader.upload()
 
     # Inspect upload results
-    log.info(f"media upload status: {upload_results.medias.status.value}")
-    log.info(f"media upload summary\n  {upload_results.medias.summary}")
+    num_conflict_media = len(
+        [
+            r.status
+            for r in upload_results.medias.results
+            if r.status == models.ResponseStatesEnum.CONFLICT
+        ]
+    )
+    num_conflict_media_objects = len(
+        [
+            r.status
+            for r in upload_results.media_objects.results
+            if r.status == models.ResponseStatesEnum.CONFLICT
+        ]
+    )
+    num_conflict_attributes = len(
+        [
+            r.status
+            for r in upload_results.attributes.results
+            if r.status == models.ResponseStatesEnum.CONFLICT
+        ]
+    )
+    print(f"media upload status: {upload_results.medias.status.value}")
+    print(
+        f"media upload summary\n  {upload_results.medias.summary} due to skipped {num_conflict_media}"
+    )
 
-    log.info(f"media object upload status: {upload_results.media_objects.status.value}")
-    log.info(f"media object upload summary\n  {upload_results.media_objects.summary}")
+    print(f"media object upload status: {upload_results.media_objects.status.value}")
+    print(
+        f"media object upload summary\n  {upload_results.media_objects.summary} due to skipped {num_conflict_media_objects}"
+    )
 
-    log.info(f"attribute upload status: {upload_results.attributes.status.value}")
-    log.info(f"attribute upload summary\n  {upload_results.attributes.summary}")
+    print(f"attribute upload status: {upload_results.attributes.status.value}")
+    print(
+        f"attribute upload summary\n  {upload_results.attributes.summary} due to skipped {num_conflict_attributes}"
+    )
 
+    # check if any failed (not due to skipping/conflict)
     if (
-        upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
-        or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
-        or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
+        upload_results.medias.summary.failed - num_conflict_media > 0
+        or upload_results.media_objects.summary.failed - num_conflict_media_objects > 0
+        or upload_results.attributes.summary.failed - num_conflict_attributes > 0
     ):
-        log.info(
-            "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
-        )
-        log.info(f"media upload details: {upload_results.medias.results}")
+        print("The data upload wasn't fully successful. See the details below.")
+        print(f"media upload details: {upload_results.medias.results}")
+        print(f"media objects upload details: {upload_results.media_objects.results}")
+        print(f"attributes upload details: {upload_results.attributes.results}")
 
     new_subset_id, exists = get_or_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
     )
 
     if exists:
+        # TODO This is not optimal, if data is appended to a dataset
+        #  The subset is not updated and only this error message is shown
         log.warning(
             "You did not create a new subset since the name already exists. "
             "If you added new images during upload the metadata update will be skipped for the new images. "
