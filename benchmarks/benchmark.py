@@ -121,16 +121,21 @@ def generate_random_media_objects(number_of_objects: int) -> list[str]:
     attr_ids = [uuid.uuid4() for _ in range(100)]
     names = [f"media_object_attribute_{i}" for i in range(100)]
     attr_ids_vs_names = [(_id, name) for _id, name in zip(attr_ids, names)]
+    attributes = [
+        hari_uploader.HARIAttribute(
+            id=_id,
+            name=name,
+            value=random.randint(0, 100),
+            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+        )
+        for _id, name in attr_ids_vs_names
+    ]
+
     for media_object in media_objects:
         for _ in range(NUM_ATTRIBUTES_BY_MEDIA_OBJECT):
             # randomly choose an attribute id from the list of 100 attributes
-            attr = random.choice(attr_ids_vs_names)
-            attribute_media_1 = hari_uploader.HARIAttribute(
-                id=attr[0],
-                name=attr[1],
-                value=random.randint(0, 100),
-            )
-            media_object.add_attribute(attribute_media_1)
+            media_object_attribute = random.choice(attributes)
+            media_object.add_attribute(media_object_attribute)
 
     return media_objects
 
@@ -141,6 +146,18 @@ def generate_medias(
     limit: int | None = None,
 ) -> list[hari_uploader.HARIMedia]:
     medias = []
+    attr_ids = [uuid.uuid4() for _ in range(100)]
+    names = [f"media_attribute_{i}" for i in range(100)]
+    attr_ids_vs_names = [(_id, name) for _id, name in zip(attr_ids, names)]
+    attributes = [
+        hari_uploader.HARIAttribute(
+            id=_id,
+            name=name,
+            value=random.randint(0, 100),
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+        )
+        for _id, name in attr_ids_vs_names
+    ]
     for idx, item in enumerate(s3_files_list):
         media = hari_uploader.HARIMedia(
             # file_key=item.split("/")[-1],
@@ -155,18 +172,10 @@ def generate_medias(
             media.add_media_object(media_object)
 
         # generate 100 different attributes
-        attr_ids = [uuid.uuid4() for _ in range(100)]
-        names = [f"media_attribute_{i}" for i in range(100)]
-        attr_ids_vs_names = [(_id, name) for _id, name in zip(attr_ids, names)]
+
         for _ in range(NUM_ATTRIBUTES_BY_MEDIA):
-            # randomly choose an attribute id from the list of 100 attributes
-            attr = random.choice(attr_ids_vs_names)
-            media_attribute = hari_uploader.HARIAttribute(
-                id=attr[0],
-                name=attr[1],
-                value=random.randint(0, 100),
-            )
-            media.add_attribute(media_attribute)
+            # randomly choose an attribute id from the list of 100 attributes)
+            media.add_attribute(random.choice(attributes))
         medias.append(media)
         if limit and idx >= limit - 1:
             break
