@@ -119,13 +119,15 @@ def generate_random_media_objects(number_of_objects: int) -> list[str]:
 
     # generate 100 different attributes
     attr_ids = [uuid.uuid4() for _ in range(100)]
+    names = [f"media_object_attribute_{i}" for i in range(100)]
+    attr_ids_vs_names = [(_id, name) for _id, name in zip(attr_ids, names)]
     for media_object in media_objects:
         for _ in range(NUM_ATTRIBUTES_BY_MEDIA_OBJECT):
             # randomly choose an attribute id from the list of 100 attributes
-            attr = random.choice(attr_ids)
+            attr = random.choice(attr_ids_vs_names)
             attribute_media_1 = hari_uploader.HARIAttribute(
-                id=attr,
-                name="random_name",
+                id=attr[0],
+                name=attr[1],
                 value=random.randint(0, 100),
             )
             media_object.add_attribute(attribute_media_1)
@@ -154,12 +156,14 @@ def generate_medias(
 
         # generate 100 different attributes
         attr_ids = [uuid.uuid4() for _ in range(100)]
+        names = [f"media_attribute_{i}" for i in range(100)]
+        attr_ids_vs_names = [(_id, name) for _id, name in zip(attr_ids, names)]
         for _ in range(NUM_ATTRIBUTES_BY_MEDIA):
             # randomly choose an attribute id from the list of 100 attributes
-            attr = random.choice(attr_ids)
+            attr = random.choice(attr_ids_vs_names)
             media_attribute = hari_uploader.HARIAttribute(
-                id=attr,
-                name="random_name",
+                id=attr[0],
+                name=attr[1],
                 value=random.randint(0, 100),
             )
             media.add_attribute(media_attribute)
