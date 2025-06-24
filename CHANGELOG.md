@@ -2,13 +2,23 @@
 
 ### New Features
 
-- added new client endpoint methods and corresponsding models [PR#65](https://github.com/quality-match/hari-client/pull/65):
+- updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - added pydantic models for AINTLearningData, MLAnnotationModel, AIAnnotationRun, AttributeValue
+- added new client endpoint methods [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - paginated download of media, media_objects and attributes to the client to enable download of large dataset data to prevent download timeout
+  - added handling of attribute values
+  - added methods for AINTLearningData, MLAnnotationModel and AIAnnotationRun
+- added helper/example scripts for usage of `AI Nano Tasks` (AINT) [PR#63](https://github.com/quality-match/hari-client/pull/63)
+  - `aint/start_ai_annotation_run.py`,
+  - `aint/create_aint_model.py`,
+  - `aint/get_aint_attribute_info.py`
+- added new client endpoint methods and models for pipelines and annotation runs [PR#65](https://github.com/quality-match/hari-client/pull/65):
   - `get_pipelines`
   - `get_pipeline`
   - `get_annotation_runs`
   - `get_annotation_run`
   - `create_annotation_run`
-- added scripts [PR#58](https://github.com/quality-match/hari-client/pull/58)
+- added helper/example scripts for data upload [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added script `data_upload/trigger_metadata_rebuild.py`
   - added script `data_upload/upload_coco_like_dataset.py`
   - added script `data_upload/upload_yolo_like_dataset.py`
@@ -17,10 +27,16 @@
 - added upload utilities [PR#58](https://github.com/quality-match/hari-client/pull/58)
   - added helper methods to check for existing datasets and subsets before upload
   - added helper method to trigger metadata rebuild and track its progress
+- added user group as a possible argument in the update dataset method
 
 ### Fixes
 
 - made `media_url` and `pii_media_url` optional in the `Media` model [PR#83](https://github.com/quality-match/hari-client/pull/83)
+
+### Internal
+
+- set new default value for `hari_api_base_url` in the config model [PR#85](https://github.com/quality-match/hari-client/pull/85)
+- increase internal token expiration time buffer from 1 to 10 seconds
 
 ## [3.4.0] - 07-03-2025
 

@@ -127,7 +127,7 @@ def get_or_create_subset_for_all(
     else:
         subset = subsets[subset_names.index(subset_name)]
         new_subset_id = subset.id
-        log.info(f"Found existing subset with id: {new_subset_id}")
+        log.info(f"Found existing subset with id {new_subset_id}")
 
         return new_subset_id, True
 

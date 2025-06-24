@@ -14,7 +14,13 @@ typeT = typing.TypeVar("typeT", bound=typing.Any)
 
 
 class BaseModel(pydantic.BaseModel):
-    model_config = pydantic.ConfigDict(extra="allow")
+    model_config = pydantic.ConfigDict(
+        extra="allow",
+        json_encoders={
+            pydantic.BaseModel: lambda v: v.model_dump(),  # Serialize all nested Pydantic models using .model_dump()
+            uuid.UUID: lambda v: str(v),
+        },
+    )
 
 
 class VideoParameters(str, enum.Enum):
@@ -258,6 +264,33 @@ class VisualisationType(str, enum.Enum):
     IMAGETRANSFORMATION = "ImageTransformation"
     VIDEO = "Video"
     RENDERED = "Rendered"
+
+
+class MLAnnotationModelStatus(str, enum.Enum):
+    CREATED = "created"
+    TRAINING = "training"
+    TRAINING_FAILED = "training_failed"
+    TRAINING_DONE = "training_done"
+
+
+class AIAnnotationRunStatus(str, enum.Enum):
+    CREATED = "created"
+    ANNOTATING = "annotating"
+    CREATION_FAILED = "creation_failed"
+    AI_ANNOTATION_FAILED = "ai_annotation_failed"
+    DONE = "done"
+
+
+class AINTLearningDataStatus(str, enum.Enum):
+    SUBMITTED = "submitted"
+    VALIDATING = "validating"
+    VALIDATION_FAILED = "validation_failed"
+    CREATED = "created"
+
+
+class AnnotationAnswer(BaseModel):
+    annotation_id: str
+    value: typeT
 
 
 class ExternalMediaSourceCredentialsType(str, enum.Enum):
@@ -553,7 +586,9 @@ class Media(BaseModel):
     archived: bool | None = pydantic.Field(default=False, title="Archived")
     back_reference: str = pydantic.Field(title="Back Reference")
     subset_ids: list = pydantic.Field(default=[], title="Subset Ids")
-    attributes: list = pydantic.Field(default=[], title="Attributes")
+    attributes: list[AttributeValueResponse] = pydantic.Field(
+        default=[], title="Attributes"
+    )
     thumbnails: dict[str, typing.Any] = pydantic.Field(default={}, title="Thumbnails")
     visualisations: list[VisualisationUnion] | None = pydantic.Field(
         default=None, title="Visualisations"
@@ -586,7 +621,9 @@ class MediaResponse(BaseModel):
     archived: bool | None = pydantic.Field(default=None, title="Archived")
     back_reference: str | None = pydantic.Field(default=None, title="Back Reference")
     subset_ids: list | None = pydantic.Field(default=None, title="Subset Ids")
-    attributes: list | None = pydantic.Field(default=None, title="Attributes")
+    attributes: list[AttributeValueResponse] | None = pydantic.Field(
+        default=None, title="Attributes"
+    )
     thumbnails: dict[str, typing.Any] | None = pydantic.Field(
         default=None, title="Thumbnails"
     )
@@ -710,7 +747,9 @@ class MediaObject(BaseModel):
     archived: bool | None = pydantic.Field(default=False, title="Archived")
     back_reference: str = pydantic.Field(title="Back Reference")
     subset_ids: list = pydantic.Field(default=[], title="Subset Ids")
-    attributes: list = pydantic.Field(default=[], title="Attributes")
+    attributes: list[AttributeValueResponse] = pydantic.Field(
+        default=[], title="Attributes"
+    )
     thumbnails: dict[str, typing.Any] = pydantic.Field(default={}, title="Thumbnails")
     visualisations: list[VisualisationUnion] | None = pydantic.Field(
         default=None, title="Visualisations"
@@ -746,7 +785,9 @@ class MediaObjectResponse(BaseModel):
     archived: bool | None = pydantic.Field(default=None, title="Archived")
     back_reference: str | None = pydantic.Field(default=None, title="Back Reference")
     subset_ids: list | None = pydantic.Field(default=None, title="Subset Ids")
-    attributes: list | None = pydantic.Field(default=None, title="Attributes")
+    attributes: list[AttributeValueResponse] | None = pydantic.Field(
+        default=None, title="Attributes"
+    )
     thumbnails: dict[str, typing.Any] | None = pydantic.Field(
         default=None, title="Thumbnails"
     )
@@ -773,6 +814,103 @@ class MediaObjectResponse(BaseModel):
     instance_id: str | None = pydantic.Field(default=None, title="Instance Id")
     media_object_type: MediaObjectType | None = pydantic.Field(
         default=None, title="Media Object Type"
+    )
+
+
+class TrainingAttribute(BaseModel):
+    dataset_id: uuid.UUID = pydantic.Field(default=None, title="Dataset Id")
+    attribute_id: str = pydantic.Field(default=None, title="Attribute Id")
+    query: QueryList | None = pydantic.Field(default_factory=list, title="Query")
+
+
+class AINTLearningData(BaseModel):
+    id: uuid.UUID = pydantic.Field(title="Id")
+    name: str = pydantic.Field(title="Name")
+    created_at: datetime.datetime | None = pydantic.Field(
+        title="Created At", default=None
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        title="Updated At", default=None
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        title="Archived At", default=None
+    )
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    training_attributes: list[TrainingAttribute] = pydantic.Field(
+        default_factory=list, title="Training Attributes"
+    )
+    question: str = pydantic.Field(title="Question")
+    possible_answers: list[str] = pydantic.Field(
+        default_factory=list, title="Possible Answers"
+    )
+    repeats: int = pydantic.Field(title="Repeats")
+    subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
+    status: AINTLearningDataStatus = pydantic.Field(title="Status")
+
+
+class MlAnnotationModel(BaseModel):
+    id: uuid.UUID = pydantic.Field(title="Id")
+    created_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Created At"
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Updated At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    status: MLAnnotationModelStatus = pydantic.Field(title="Status")
+    dataset_id: str = pydantic.Field(title="Dataset Id")
+    reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Reference Set Annotation Run Id"
+    )
+    name: str = pydantic.Field(title="Name")
+    training_subset_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Training Subset Id"
+    )
+    validation_subset_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Validation Subset Id"
+    )
+    test_subset_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Test Subset Id"
+    )
+    automation_correctness_curve: dict | None = pydantic.Field(
+        default_factory=dict, title="Automation Correctness Curve"
+    )
+    model_weight_location: str | None = pydantic.Field(
+        default=None, title="Model Weight Location"
+    )
+    aint_learning_data_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="AINT learning data Id"
+    )
+
+
+class AIAnnotationRun(BaseModel):
+    id: uuid.UUID = pydantic.Field(title="Id")
+    created_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Created At"
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Updated At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+    name: str = pydantic.Field(title="Name")
+    status: AIAnnotationRunStatus = pydantic.Field(title="Status")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
+    subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
+    ml_annotation_model_id: uuid.UUID = pydantic.Field(title="ML Annotation Model Id")
+    attribute_metadata_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Attribute Metadata Id"
+    )
+    completed_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Completed At"
     )
 
 
@@ -1051,6 +1189,8 @@ class AttributeCreate(BaseModel):
     cumulated_frequency: typing.Any | None = None
     frequency: dict[str, int] | None = None
     question: str | None = None
+    ml_predictions: dict[str, float] | None = None
+    ml_probability_distributions: dict[str, float] | None = None
     repeats: int | None = None
     possible_values: list[str] | None = None
 
@@ -1065,43 +1205,10 @@ class AttributeCreate(BaseModel):
         return values
 
 
-class Attribute(BaseModel):
-    id: str = pydantic.Field(title="ID")
-    name: str
-    question: str
-    annotatable_id: str
-    annotatable_type: DataBaseObjectType
-    subset_ids: set[str] = set()
-    attribute_type: AttributeType | None = None
-    attribute_group: AttributeGroup
-    value: typeT
-    min: typeT | None = None
-    max: typeT | None = None
-    sum: typeT | None = None
-    cant_solves: int | None = None
-    solvability: float | None = None
-    aggregate: typeT | None = None
-    modal: typeT | None = None
-    credibility: float | None = None
-    convergence: float | None = None
-    ambiguity: float | None = None
-    median: typeT | None = None
-    variance: float | None = None
-    standard_deviation: float | None = None
-    range: typing.Any | None = None
-    average_absolute_deviation: float | None = None
-    cumulated_frequency: typing.Any | None = None
-    frequency: dict[str, int] | None = None
-    question: str | None = None
-    ml_predictions: dict[str, float] | None = None
-    ml_probability_distributions: dict[str, float] | None = None
-    cant_solve_ratio: float | None = None
-    repeats: int | None = None
-    possible_values: list[str] | None = None
-
-
 class AttributeResponse(BaseModel):
+    # AttributeValue + AttributeMetadata = Attribute
     id: str | None = pydantic.Field(default=None, title="Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
     dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
@@ -1119,12 +1226,22 @@ class AttributeResponse(BaseModel):
     attribute_group: AttributeGroup | None = pydantic.Field(
         default=None, title="Attribute Group"
     )
+    pipeline_project: dict | None = pydantic.Field(
+        default=None, title="Pipeline Project"
+    )
+    annotation_run_node_id: str | None = pydantic.Field(
+        default=None, title="Annotation Run Node ID"
+    )
+    annotation_run_id: str | None = pydantic.Field(
+        default=None, title="Annotation Run ID"
+    )
     value: typeT | None = pydantic.Field(default=None, title="Value")
     min: typeT | None = pydantic.Field(default=None, title="Min")
     max: typeT | None = pydantic.Field(default=None, title="Max")
     sum: typeT | None = pydantic.Field(default=None, title="Sum")
     cant_solves: int | None = pydantic.Field(default=None, title="Cant Solves")
     solvability: float | None = pydantic.Field(default=None, title="Solvability")
+    confidence: float | None = pydantic.Field(default=None, title="Confidence")
     aggregate: typeT | None = pydantic.Field(default=None, title="Aggregate")
     modal: typeT | None = pydantic.Field(default=None, title="Modal")
     credibility: float | None = pydantic.Field(default=None, title="Credibility")
@@ -1169,17 +1286,101 @@ class AttributeResponse(BaseModel):
         title="Possible Values",
         description="Possible values for this attribute",
     )
+    annotations: list[AnnotationAnswer] | None = pydantic.Field(
+        default=None,
+        title="Annotations",
+        description="Annotations for this attribute",
+    )
+    visualisation_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation ID",
+        description="Visualisation ID for this attribute",
+    )
+    visualisation_config_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation Config ID",
+        description="Visualisation Config ID for this attribute",
+    )
+
+
+class AttributeValueResponse(BaseModel):
+    # AttributeValue + AttributeMetadata = Attribute
+    id: str | None = pydantic.Field(default=None, title="Id")
+    dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
+    tags: list | None = pydantic.Field(default=None, title="Tags")
+    timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
+    archived: bool | None = pydantic.Field(default=None, title="Archived")
+    annotatable_id: str | None = pydantic.Field(default=None, title="Annotatable ID")
+    metadata_id: str | None = pydantic.Field(default=None, title="Metadata Id")
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
+        default=None, title="Annotatable Type"
+    )
+    value: typeT | None = pydantic.Field(default=None, title="Value")
+    min: typeT | None = pydantic.Field(default=None, title="Min")
+    max: typeT | None = pydantic.Field(default=None, title="Max")
+    sum: typeT | None = pydantic.Field(default=None, title="Sum")
+    cant_solves: int | None = pydantic.Field(default=None, title="Cant Solves")
+    cant_solve_ratio: float | None = pydantic.Field(
+        default=None, title="Can't Solve Ratio"
+    )
+    solvability: float | None = pydantic.Field(default=None, title="Solvability")
+    aggregate: typeT | None = pydantic.Field(default=None, title="Aggregate")
+    modal: typeT | None = pydantic.Field(default=None, title="Modal")
+    credibility: float | None = pydantic.Field(default=None, title="Credibility")
+    convergence: float | None = pydantic.Field(default=None, title="Convergence")
+    confidence: float | None = pydantic.Field(default=None, title="Confidence")
+    ambiguity: float | None = pydantic.Field(default=None, title="Ambiguity")
+    median: typeT | None = pydantic.Field(default=None, title="Median")
+    variance: float | None = pydantic.Field(default=None, title="Variance")
+    standard_deviation: float | None = pydantic.Field(
+        default=None, title="Standard Deviation"
+    )
+    range: typing.Any | None = pydantic.Field(default=None, title="Range")
+    average_absolute_deviation: float | None = pydantic.Field(
+        default=None, title="Average Absolute Deviation"
+    )
+    cumulated_frequency: typing.Any | None = pydantic.Field(
+        default=None, title="Cumulated Frequency"
+    )
+    frequency: dict[str, int] | None = pydantic.Field(default=None, title="Frequency")
+    ml_predictions: dict[str, float] | None = pydantic.Field(
+        default=None,
+        title="ML Predictions",
+        description="These are the parameters of the posterior Dirichlet distribution",
+    )
+    ml_probability_distributions: dict[str, float] | None = pydantic.Field(
+        default=None,
+        title="ML Probability Distributions",
+        description="A point estimate for the probability associated with each category,"
+        " obtained from the full Dirichlet distribution predicted by the model.",
+    )
+    annotations: list[AnnotationAnswer] | None = pydantic.Field(
+        default=None,
+        title="Annotations",
+        description="Annotations for this attribute",
+    )
+    visualisation_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation ID",
+        description="Visualisation ID for this attribute",
+    )
+    visualisation_config_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation Config ID",
+        description="Visualisation Config ID for this attribute",
+    )
 
 
 class AttributeMetadataResponse(BaseModel):
+    # AttributeValue + AttributeMetadata = Attribute
     id: str | None = pydantic.Field(default=None, title="Id")
     dataset_id: str | None = pydantic.Field(default=None, title="Dataset Id")
-    tags: set[str] | None = pydantic.Field(default=set(), title="Tags")
+    tags: set[str] | None = pydantic.Field(default=None, title="Tags")
     timestamp: str | None = pydantic.Field(default=None, title="Timestamp")
     archived: bool | None = pydantic.Field(default=None, title="Archived")
     name: str | None = pydantic.Field(default=None, title="Name")
     question: str | None = pydantic.Field(default=None, title="Question")
-    subset_ids: set[str] = pydantic.Field(default=set(), title="Subset Ids")
+    subset_ids: set[str] | None = pydantic.Field(default=None, title="Subset Ids")
     attribute_type: AttributeType | None = pydantic.Field(
         default=None, title="Attribute Type"
     )
@@ -1197,6 +1398,16 @@ class AttributeMetadataResponse(BaseModel):
     )
     pipeline_project: dict | None = pydantic.Field(
         default=None, title="Pipeline Project"
+    )
+    possible_values: list[str] | None = pydantic.Field(
+        default=None,
+        title="Possible Values",
+        description="Possible values for this attribute",
+    )
+    repeats: int | None = pydantic.Field(
+        default=None,
+        title="Repeats",
+        description="Number of repeats for this attribute",
     )
 
 
