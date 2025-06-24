@@ -7,25 +7,15 @@ from hari_client import models
 from hari_client import validation
 from hari_client.client.client import _parse_response_model
 from hari_client.client.errors import APIError
-from hari_client.upload.hari_uploader import _merge_bulk_responses
-from hari_client.upload.hari_uploader import HARIAttribute
-from hari_client.upload.hari_uploader import HARIMedia
-from hari_client.upload.hari_uploader import HARIMediaObject
-from hari_client.upload.hari_uploader import HARIUploader
-from hari_client.upload.hari_uploader import HARIUniqueAttributesLimitExceeded
-from hari_client.upload.hari_uploader import HARIUploadResults
+from hari_client.upload import hari_uploader
 from hari_client.utils import logger
 
 log = logger.setup_logger(__name__)
 
-# the maximum attributes number for the whole dataset/upload
-MAX_ATTR_COUNT = 1000
-
-
 class HARIMediaValidationError(Exception):
     pass
 
-class StateAwareHARIUploader(HARIUploader):
+class StateAwareHARIUploader(hari_uploader.HARIUploader):
     def __init__(self, client: HARIClient, dataset_id: uuid.UUID, object_categories: set[str] | None = None,
                  check_duplicate_medias=True, check_duplicate_media_objects=True) -> None:
         """Inherited from HARIUploader, this class is used to upload media and media objects to the HARI backend
@@ -42,16 +32,16 @@ class StateAwareHARIUploader(HARIUploader):
         self.check_duplicate_medias = check_duplicate_medias
         self.check_duplicate_media_objects = check_duplicate_media_objects
 
-    def add_media(self, *args: HARIMedia) -> None:
+    def add_media(self, *args: hari_uploader.HARIMedia) -> None:
         """
-        Add one or more HARIMedia objects to the uploader.
+        Add one or more hari_uploader.HARIMedia objects to the uploader.
         Args:
-            *args: Multiple HARIMedia objects
+            *args: Multiple hari_uploader.HARIMedia objects
         """
 
         self._medias.extend(args)
 
-    def validate_all_attributes(self) -> list[HARIAttribute]:
+    def validate_all_attributes(self) -> list[hari_uploader.HARIAttribute]:
         """
         Validate all attributes for both media and media objects, ensuring they meet the
         dataset's requirements and do not exceed the allowed unique attribute limit.
@@ -102,8 +92,8 @@ class StateAwareHARIUploader(HARIUploader):
         # Raises an error if any requirements for attribute consistency aren't met.
         validation.validate_attributes(all_attributes)
 
-        if len(attribute_name_to_ids) > MAX_ATTR_COUNT:
-            raise HARIUniqueAttributesLimitExceeded(
+        if len(attribute_name_to_ids) > hari_uploader.MAX_ATTR_COUNT:
+            raise hari_uploader.HARIUniqueAttributesLimitExceeded(
                 new_attributes_number=len(attribute_name_to_ids)
                 - len(existing_attr_metadata),
                 existing_attributes_number=len(existing_attr_metadata),
@@ -112,7 +102,7 @@ class StateAwareHARIUploader(HARIUploader):
 
         return all_attributes
 
-    def validate_all_media_and_media_objects(self) -> list[HARIMediaObject]:
+    def validate_all_media_and_media_objects(self) -> list[hari_uploader.HARIMediaObject]:
         """
         Validate media and media object back_references for duplicates, collect all
         media objects into a single list, and log warnings for any repeated references.
@@ -148,7 +138,7 @@ class StateAwareHARIUploader(HARIUploader):
 
         return all_media_objects
 
-    def check_duplicates_medias(self, medias: list[HARIMedia]) -> None:
+    def check_duplicates_medias(self, medias: list[hari_uploader.HARIMedia]) -> None:
         """
         Check if any medias about to be uploaded already exist on the server by comparing
         back_references.
@@ -163,7 +153,7 @@ class StateAwareHARIUploader(HARIUploader):
         self._check_duplicates_media_media_objects(medias, uploaded_medias)
 
     def check_duplicates_media_objects(
-        self, media_objects: list[HARIMediaObject]
+        self, media_objects: list[hari_uploader.HARIMediaObject]
     ) -> None:
         """
         Check if any media objects about to be uploaded already exist on the server by comparing
@@ -172,29 +162,29 @@ class StateAwareHARIUploader(HARIUploader):
         Args:
             media_objects: The list of media objects intended for upload.
         """
-        uploaded_mos = self.client.get_media_objects(
+        uploaded_media_objects = self.client.get_media_objects(
             self.dataset_id
         )  # TODO paging and faster query, might be needed for larger datasets
 
-        self._check_duplicates_media_media_objects(media_objects, uploaded_mos)
+        self._check_duplicates_media_media_objects(media_objects, uploaded_media_objects)
 
     def _check_duplicates_media_media_objects(
         self,
-        objectsToUpload: list[HARIMediaObject] | list[HARIMedia],
-        objectsUploaded: list[HARIMediaObject] | list[HARIMedia],
+        objects_to_upload: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
+        objects_uploaded: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
     ) -> None:
         """
-        Mark items in objectsToUpload as already uploaded if their back_references appear
-        among the objectsUploaded. Prints warnings if multiple references are found.
+        Mark items in objects_to_upload as already uploaded if their back_references appear
+        among the objects_uploaded. Prints warnings if multiple references are found.
 
         Args:
-            objectsToUpload: The list of media or media objects to be uploaded.
-            objectsUploaded: The media or media objects already in the dataset.
+            objects_to_upload: The list of media or media objects to be uploaded.
+            objects_uploaded: The media or media objects already in the dataset.
         """
         # build look up table for back references
         # add warning if multiple of the same backreference are given, value will be overwritten
         uploaded_back_references = {}
-        for m in objectsUploaded:
+        for m in objects_uploaded:
             if m.back_reference in uploaded_back_references:
                 log.warning(
                     f"Multiple of the same backreference '{m.back_reference}' encountered; "
@@ -202,14 +192,14 @@ class StateAwareHARIUploader(HARIUploader):
                 )
             uploaded_back_references[m.back_reference] = m.id
 
-        for m in objectsToUpload:
+        for m in objects_to_upload:
             # ensure uploaded marked are always having an id
             m.uploaded = m.back_reference in uploaded_back_references
             m.id = uploaded_back_references.get(m.back_reference, None)
 
     def upload(
         self,
-    ) -> HARIUploadResults | None:
+    ) -> hari_uploader.HARIUploadResults | None:
         """
         Uploads all HARIMedia items along with their media objects and attributes to the HARI backend.
 
@@ -295,14 +285,14 @@ class StateAwareHARIUploader(HARIUploader):
         self._media_object_upload_progress.close()
         self._attribute_upload_progress.close()
 
-        return HARIUploadResults(
-            medias=_merge_bulk_responses(*media_upload_responses),
-            media_objects=_merge_bulk_responses(*media_object_upload_responses),
-            attributes=_merge_bulk_responses(*attribute_upload_responses),
+        return hari_uploader.HARIUploadResults(
+            medias=hari_uploader._merge_bulk_responses(*media_upload_responses),
+            media_objects=hari_uploader._merge_bulk_responses(*media_object_upload_responses),
+            attributes=hari_uploader._merge_bulk_responses(*attribute_upload_responses),
         )
 
     def _upload_media_batch(
-        self, medias_to_upload: list[HARIMedia]
+        self, medias_to_upload: list[hari_uploader.HARIMedia]
     ) -> tuple[
         models.BulkResponse, list[models.BulkResponse], list[models.BulkResponse]
     ]:
@@ -366,8 +356,8 @@ class StateAwareHARIUploader(HARIUploader):
         )
 
         # upload media_objects of this batch of media in batches
-        all_media_objects: list[HARIMediaObject] = []
-        all_attributes: list[HARIAttribute] = []
+        all_media_objects: list[hari_uploader.HARIMediaObject] = []
+        all_attributes: list[hari_uploader.HARIAttribute] = []
         for media in medias_to_upload:
             all_media_objects.extend(media.media_objects)
             all_attributes.extend(media.attributes)
@@ -389,7 +379,7 @@ class StateAwareHARIUploader(HARIUploader):
 
 
     def _upload_attribute_batch(
-        self, attributes_to_upload: list[HARIAttribute]
+        self, attributes_to_upload: list[hari_uploader.HARIAttribute]
     ) -> models.BulkResponse:
         """
         Upload a batch of attributes, returning the bulk response from the server.
@@ -419,7 +409,7 @@ class StateAwareHARIUploader(HARIUploader):
         return response
 
     def _upload_media_object_batch(
-        self, media_objects_to_upload: list[HARIMediaObject]
+        self, media_objects_to_upload: list[hari_uploader.HARIMediaObject]
     ) -> models.BulkResponse:
         """
         Upload a batch of media objects, then update relevant IDs so attributes can reference them.
