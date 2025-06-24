@@ -240,7 +240,7 @@ class HARIUploader:
 
     # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
     # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
-    # --> refactor this, so that all logic happenning in the add_* functions happens when the upload method is run.
+    # --> refactor this, so that all logic happening in the add_* functions happens when the upload method is run.
     def add_media(self, *args: HARIMedia) -> None:
         """
         Add one or more HARIMedia objects to the uploader. Only use this method to add
@@ -292,9 +292,23 @@ class HARIUploader:
                         attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
+        """
+        Store the subset ID for the specified object category in an internal dictionary.
+
+        Args:
+            object_category: The name or label of the object category.
+            subset_id: The subset identifier corresponding to this object category.
+        """
         self._object_category_subsets[object_category] = subset_id
 
     def _create_object_category_subsets(self, object_categories: list[str]) -> None:
+        """
+        Create and register new object_category subsets on the server for any categories
+        that do not yet exist.
+
+        Args:
+            object_categories: The list of object categories that need subsets.
+        """
         log.info(f"Creating {len(object_categories)} object_category subsets.")
         # create only the object_category subsets that don't exist on the server, yet
         newly_created_object_category_subsets = {}
@@ -384,6 +398,13 @@ class HARIUploader:
                         media.subset_ids = list(set(media.subset_ids))
 
     def get_existing_object_category_subsets(self) -> list[models.DatasetResponse]:
+        """
+        Fetch existing object_category subsets for the current dataset.
+
+        Returns:
+            A list of DatasetResponse objects representing subsets that have
+            object_category set to True.
+        """
         # fetch existing object_category subsets
         subsets = self.client.get_subsets_for_dataset(dataset_id=self.dataset_id)
         # filter out subsets that are object_category subsets
@@ -448,7 +469,18 @@ class HARIUploader:
         return dataset and dataset.external_media_source is not None
 
     def validate_all_attributes(self) -> None:
-        """Validates all attributes of medias and media objects."""
+        """
+        Validate all attributes for both media and media objects, ensuring they meet the
+        dataset's requirements and do not exceed the allowed unique attribute limit.
+
+        Returns:
+            A list of all validated attributes from the media and media objects.
+
+        Raises:
+            HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids exceeds
+            the limit of MAX_ATTR_COUNT per dataset.
+        """
+
         all_attributes = []
         for media in self._medias:
             all_attributes.extend(media.attributes)
@@ -497,15 +529,19 @@ class HARIUploader:
         self,
     ) -> HARIUploadResults | None:
         """
-        Upload all Media and their MediaObjects to HARI.
+        Uploads all HARIMedia items along with their media objects and attributes to HARI.
+
+        This method:
+          1. Ensures all object categories subsets are either reused or created if not yet exist.
+          2. Batches the actual uploading of medias, media objects, and attributes. The items are uploaded as media batches, if medias are uploaded, the corresponding media objects and attributes for this media batch are uploaded.
 
         Returns:
             HARIUploadResults | None: All upload results and summaries for the
-            upload of medias and media_objects, or None if nothing was uploaded
+            upload of medias media_objects and attributes, or None if nothing was uploaded
 
         Raises:
-            HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids
-            exceeds the limit of MAX_ATTR_COUNT per dataset.
+          HARIUniqueAttributesLimitExceeded: If the total number of unique attributes in the
+          dataset would exceed the configured limit (MAX_ATTR_COUNT) per dataset.
         """
 
         # sync important information with the BE
@@ -573,6 +609,20 @@ class HARIUploader:
     ) -> tuple[
         models.BulkResponse, list[models.BulkResponse], list[models.BulkResponse]
     ]:
+        """
+        Uploads a batch of medias, then updates their IDs so that subsequent media object
+        and attribute uploads can correctly reference them.
+        Subsequently, uploads associated media objects and attributes.
+
+        Args:
+            medias_to_upload: A list of HARIMedia to upload.
+
+        Returns:
+            A tuple containing:
+            1. The bulk response for medias.
+            2. A list of bulk responses for media objects.
+            3. A list of bulk responses for attributes.
+        """
         for media in medias_to_upload:
             self._set_bulk_operation_annotatable_id(item=media)
 
@@ -619,6 +669,15 @@ class HARIUploader:
     def _upload_attributes_in_batches(
         self, attributes: list[HARIAttribute]
     ) -> list[models.BulkResponse]:
+        """
+        Uploads attributes in configured batch sizes, aggregating bulk responses.
+
+        Args:
+            attributes: A list of HARIAttribute objects to be uploaded.
+
+        Returns:
+            A list of BulkResponse objects, one for each batch of attributes uploaded.
+        """
         attributes_upload_responses: list[models.BulkResponse] = []
         for idx in range(0, len(attributes), self._config.attribute_upload_batch_size):
             attributes_to_upload = attributes[
@@ -634,6 +693,15 @@ class HARIUploader:
     def _upload_media_objects_in_batches(
         self, media_objects: list[HARIMediaObject]
     ) -> list[models.BulkResponse]:
+        """
+        Uploads media objects in configured batch sizes, aggregating bulk responses.
+
+        Args:
+            media_objects: a list of HARIMediaObject objects to be uploaded.
+
+        Returns:
+            A list of BulkResponse objects, one for each batch of media objects uploaded.
+        """
         media_object_upload_responses: list[models.BulkResponse] = []
         for idx in range(
             0, len(media_objects), self._config.media_object_upload_batch_size
@@ -651,6 +719,17 @@ class HARIUploader:
     def _upload_attribute_batch(
         self, attributes_to_upload: list[HARIAttribute]
     ) -> models.BulkResponse:
+        """
+        Upload a batch of attributes, returning the bulk response from the server.
+        If a conflict or other API error occurs, it attempts to parse the response into
+        a BulkResponse object to provide detailed feedback.
+
+        Args:
+            attributes_to_upload: A batch of attributes to be uploaded.
+
+        Returns:
+            The BulkResponse result of uploading these attributes.
+        """
         response = self.client.create_attributes(
             dataset_id=self.dataset_id, attributes=attributes_to_upload
         )
@@ -659,6 +738,15 @@ class HARIUploader:
     def _upload_media_object_batch(
         self, media_objects_to_upload: list[HARIMediaObject]
     ) -> models.BulkResponse:
+        """
+        Upload a batch of media objects, then update relevant IDs so attributes can reference them.
+
+        Args:
+            media_objects_to_upload: A batch of media objects to be uploaded.
+
+        Returns:
+            The BulkResponse result of uploading these media objects.
+        """
         for media_object in media_objects_to_upload:
             self._set_bulk_operation_annotatable_id(item=media_object)
         response = self.client.create_media_objects(
@@ -675,6 +763,14 @@ class HARIUploader:
         medias_to_upload: list[HARIMedia],
         media_upload_bulk_response: models.BulkResponse,
     ) -> None:
+        """
+        Update the media_id field for each media object's references using the server-generated
+        IDs from the media upload response.
+
+        Args:
+            medias_to_upload: The batch of HARIMedia that was just uploaded (or skipped).
+            media_upload_bulk_response: The server response for the batch upload of medias.
+        """
         for media in medias_to_upload:
             if len(media.media_objects) == 0:
                 continue
@@ -712,6 +808,14 @@ class HARIUploader:
         media_objects_to_upload: list[HARIMedia] | list[HARIMediaObject],
         media_object_upload_bulk_response: models.BulkResponse,
     ) -> None:
+        """
+        Update the annotatable_id field for attributes belonging to media objects, using
+        the IDs from the server's media object upload response.
+
+        Args:
+            media_objects_to_upload: The batch of HARIMediaObjects that was just uploaded.
+            media_object_upload_bulk_response: The server response for uploading these media objects.
+        """
         for media_object in media_objects_to_upload:
             if len(media_object.attributes) == 0:
                 continue
@@ -753,6 +857,14 @@ class HARIUploader:
         medias_to_upload: list[HARIMedia] | list[HARIMediaObject],
         media_upload_bulk_response: models.BulkResponse,
     ) -> None:
+        """
+        Update the annotatable_id field for attributes belonging to media, using
+        the IDs from the server's media upload response.
+
+        Args:
+            medias_to_upload: The batch of HARIMedia that was just uploaded.
+            media_upload_bulk_response: The server response for uploading these medias.
+        """
         for media in medias_to_upload:
             if len(media.attributes) == 0:
                 continue
@@ -787,6 +899,14 @@ class HARIUploader:
                 media.attributes[i].annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):
+        """
+        Assign a random UUID as the bulk_operation_annotatable_id for items that do not already
+        have one, enabling the server to match each upload to the correct response entry.
+
+        Args:
+            item: The HARIMedia or HARIMediaObject whose bulk_operation_annotatable_id
+            should be set if not already present.
+        """
         if not item.bulk_operation_annotatable_id:
             item.bulk_operation_annotatable_id = str(uuid.uuid4())
 
