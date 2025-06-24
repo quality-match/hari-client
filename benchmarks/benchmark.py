@@ -117,15 +117,16 @@ def generate_random_media_objects(number_of_objects: int) -> list[str]:
             media_object.set_object_category_subset_name("car")
         media_objects.append(media_object)
 
+    # generate 100 different attributes
+    attr_ids = [uuid.uuid4() for _ in range(100)]
     for media_object in media_objects:
-        media_object_attribute_ids = [
-            uuid.uuid4() for _ in range(NUM_ATTRIBUTES_BY_MEDIA_OBJECT)
-        ]
-        for media_object_attribute_id in media_object_attribute_ids:
+        for _ in range(NUM_ATTRIBUTES_BY_MEDIA_OBJECT):
+            # randomly choose an attribute id from the list of 100 attributes
+            attr = random.choice(attr_ids)
             attribute_media_1 = hari_uploader.HARIAttribute(
-                id=media_object_attribute_id,
-                name=f"attr_{media_object_attribute_id}",
-                value=f"value_{media_object_attribute_id}",
+                id=attr,
+                name="random_name",
+                value=random.randint(0, 100),
             )
             media_object.add_attribute(attribute_media_1)
 
@@ -151,12 +152,15 @@ def generate_medias(
         for media_object in new_media_objects:
             media.add_media_object(media_object)
 
-        media_attribute_ids = [uuid.uuid4() for _ in range(NUM_ATTRIBUTES_BY_MEDIA)]
-        for media_attribute_id in media_attribute_ids:
+        # generate 100 different attributes
+        attr_ids = [uuid.uuid4() for _ in range(100)]
+        for _ in range(NUM_ATTRIBUTES_BY_MEDIA):
+            # randomly choose an attribute id from the list of 100 attributes
+            attr = random.choice(attr_ids)
             media_attribute = hari_uploader.HARIAttribute(
-                id=media_attribute_id,
-                name=f"attr_{media_attribute_id}",
-                value=f"value_{media_attribute_id}",
+                id=attr,
+                name="random_name",
+                value=random.randint(0, 100),
             )
             media.add_attribute(media_attribute)
         medias.append(media)
