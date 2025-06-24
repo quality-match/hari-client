@@ -146,9 +146,9 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         Args:
             medias: The list of medias intended for upload.
         """
-        uploaded_medias = self.client.get_medias(
+        uploaded_medias = self.client.get_medias_paginated(
             self.dataset_id
-        )  # TODO paging and faster query, might be needed for larger datasets
+        )
 
         self._check_duplicates_media_media_objects(medias, uploaded_medias)
 
@@ -162,9 +162,9 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         Args:
             media_objects: The list of media objects intended for upload.
         """
-        uploaded_media_objects = self.client.get_media_objects(
+        uploaded_media_objects = self.client.get_media_objects_paginated(
             self.dataset_id
-        )  # TODO paging and faster query, might be needed for larger datasets
+        )
 
         self._check_duplicates_media_media_objects(media_objects, uploaded_media_objects)
 
