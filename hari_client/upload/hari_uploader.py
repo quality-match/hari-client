@@ -55,6 +55,8 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
 
     def add_attribute(self, *args: HARIAttribute) -> None:
         for attribute in args:
+            if not attribute.annotatable_type:
+                attribute.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
             self.attributes.append(attribute)
 
     def set_object_category_subset_name(self, object_category_subset_name: str) -> None:
@@ -170,6 +172,8 @@ class HARIMedia(models.BulkMediaCreate):
 
     def add_attribute(self, *args: HARIAttribute) -> None:
         for attribute in args:
+            if not attribute.annotatable_type:
+                attribute.annotatable_type = models.DataBaseObjectType.MEDIA
             self.attributes.append(attribute)
 
     @pydantic.field_validator("bulk_operation_annotatable_id")
@@ -229,18 +233,19 @@ class HARIUploader:
         self.object_categories = object_categories or set()
         self._config: HARIUploaderConfig = self.client.config.hari_uploader
         self._medias: list[HARIMedia] = []
-        self._media_back_references: set[str] = set()
-        self._media_object_back_references: set[str] = set()
-        self._media_object_cnt: int = 0
-        self._attribute_cnt: int = 0
+        self._media_back_references: set[str] = set()  # may be not necessary
+        self._media_object_back_references: set[str] = set()  # may be not necessary
+        self._media_object_cnt: int = (
+            0  # useless if we don't increase counter on add media anymore
+        )
+        self._attribute_cnt: int = (
+            0  # useless if we don't increase counter on add media anymore
+        )
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         self._object_category_subsets: dict[str, str] = {}
         self._unique_attribute_ids: set[str] = set()
         self._with_media_files_upload: bool = True
 
-    # TODO: add_media shouldn't do validation logic, because that expects that a specific order of operation is necessary,
-    # specifically that means that media_objects and attributes have to be added to media before the media is added to the uploader.
-    # --> refactor this, so that all logic happening in the add_* functions happens when the upload method is run.
     def add_media(self, *args: HARIMedia) -> None:
         """
         Add one or more HARIMedia objects to the uploader.
@@ -250,21 +255,14 @@ class HARIUploader:
         """
         for media in args:
             self._medias.append(media)
-            self._attribute_cnt += len(media.attributes)
             for attr in media.attributes:
-                self._unique_attribute_ids.add(str(attr.id))
-                # annotatable_type is optional for a HARIAttribute, but can already be set here
-                if not attr.annotatable_type:
-                    attr.annotatable_type = models.DataBaseObjectType.MEDIA
+                self._unique_attribute_ids.add(
+                    str(attr.id)
+                )  # todo we shoul do it in another place
 
-            # check and remember media object back_references
             for media_object in media.media_objects:
-                self._attribute_cnt += len(media_object.attributes)
                 for attr in media_object.attributes:
                     self._unique_attribute_ids.add(str(attr.id))
-                    # annotatable_type is optional for a HARIAttribute, but can already be set here
-                    if not attr.annotatable_type:
-                        attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
         """
@@ -480,12 +478,17 @@ class HARIUploader:
             HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids exceeds
             the limit of MAX_ATTR_COUNT per dataset.
         """
+        self.validate_unique_attributes_limit()
 
         all_attributes = []
         for media in self._medias:
             all_attributes.extend(media.attributes)
+            self._attribute_cnt += len(media.attributes)
+
             for media_object in media.media_objects:
                 all_attributes.extend(media_object.attributes)
+                self._attribute_cnt += len(media_object.attributes)
+
         validation.validate_attributes(all_attributes)
 
     def validate_unique_attributes_limit(self) -> None:
@@ -563,7 +566,6 @@ class HARIUploader:
 
         self.validate_medias()
         self.validate_media_objects(all_media_objects)
-        self.validate_unique_attributes_limit()
         self.validate_all_attributes()
 
         # validation and object_category subset syncing
@@ -886,9 +888,6 @@ class HARIUploader:
                 media_object.attributes[
                     i
                 ].annotatable_id = media_object_upload_response.item_id
-                media_object.attributes[
-                    i
-                ].annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
     def _update_hari_attribute_media_ids(
         self,
@@ -934,7 +933,6 @@ class HARIUploader:
                 # Create a copy of the attribute to avoid changing shared attributes
                 media.attributes[i] = copy.deepcopy(attribute)
                 media.attributes[i].annotatable_id = media_upload_response.item_id
-                media.attributes[i].annotatable_type = models.DataBaseObjectType.MEDIA
 
     def _set_bulk_operation_annotatable_id(self, item: HARIMedia | HARIMediaObject):
         """

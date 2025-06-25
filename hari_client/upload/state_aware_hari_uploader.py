@@ -49,13 +49,10 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         self._medias.extend(args)
 
-    def validate_all_attributes(self) -> list[hari_uploader.HARIAttribute]:
+    def validate_all_attributes(self) -> None:
         """
         Validate all attributes for both media and media objects, ensuring they meet the
         dataset's requirements and do not exceed the allowed unique attribute limit.
-
-        Returns:
-            A list of all validated attributes from the media and media objects.
 
         Raises:
             HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids exceeds
@@ -73,29 +70,23 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         all_attributes = []
         for media in self._medias:
             all_attributes.extend(media.attributes)
+            self._attribute_cnt += len(media.attributes)
 
-            # set annotatable type
             for attr in media.attributes:
-                # check that all attribute ids are correctly set or create new ones
+                # assign an existing id if attribute with the same name exists, otherwise create a new one
                 if attr.name not in attribute_name_to_ids:
                     attribute_name_to_ids[attr.name] = uuid.uuid4()
                 attr.id = attribute_name_to_ids[attr.name]
 
-                # annotatable_type is optional for a HARIAttribute, but can already be set here
-                attr.annotatable_type = models.DataBaseObjectType.MEDIA
-
             for media_object in media.media_objects:
                 all_attributes.extend(media_object.attributes)
+                self._attribute_cnt += len(media_object.attributes)
 
-                # set annotatable type
                 for attr in media_object.attributes:
-                    # check that all attribute ids are correctly set or create new ones
+                    # assign an existing id if attribute with the same name exists, otherwise create a new one
                     if attr.name not in attribute_name_to_ids:
                         attribute_name_to_ids[attr.name] = uuid.uuid4()
                     attr.id = attribute_name_to_ids[attr.name]
-
-                    # annotatable_type is optional for a HARIAttribute, but can already be set here
-                    attr.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
 
         # Raises an error if any requirements for attribute consistency aren't met.
         validation.validate_attributes(all_attributes)
@@ -208,7 +199,7 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         # validate intended upload, this only checks for inconsistency which can be checked locally
         self.validate_medias()
         self.validate_media_objects(all_media_objects)
-        validated_attributes = self.validate_all_attributes()
+        self.validate_all_attributes()
 
         # validate that the intended uploads do not already exists on the server
         # for attributes the check is automatically done via the server during upload
@@ -227,7 +218,7 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         # upload batches of medias
         log.info(
             f"Starting upload of {len(self._medias)} medias with "
-            f"{self._media_object_cnt} media_objects and {len(validated_attributes)} "
+            f"{self._media_object_cnt} media_objects and {self._attribute_cnt} "
             f"attributes to HARI. "
             f"Already uploaded entities will be skipped if configured."
         )
@@ -238,7 +229,7 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             desc="Media Object Upload", total=self._media_object_cnt
         )
         self._attribute_upload_progress = tqdm.tqdm(
-            desc="Attribute Upload", total=len(validated_attributes)
+            desc="Attribute Upload", total=self._attribute_cnt
         )
 
         media_upload_responses: list[models.BulkResponse] = []

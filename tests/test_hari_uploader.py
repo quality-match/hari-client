@@ -14,7 +14,6 @@ def test_add_media(mock_uploader_for_object_category_validation):
         object_categories_vs_subsets,
     ) = mock_uploader_for_object_category_validation
     assert len(uploader._medias) == 0
-    assert uploader._attribute_cnt == 0
 
     # Act
     uploader.add_media(
@@ -34,7 +33,6 @@ def test_add_media(mock_uploader_for_object_category_validation):
 
     # Assert
     assert len(uploader._medias) == 1
-    assert uploader._attribute_cnt == 1
 
     # Act
     # add another media without attributes
@@ -47,7 +45,6 @@ def test_add_media(mock_uploader_for_object_category_validation):
     )
     # Assert
     assert len(uploader._medias) == 2
-    assert uploader._attribute_cnt == 1
 
 
 def test_create_object_category_subset_sets_uploader_attribute_correctly(
@@ -300,7 +297,6 @@ def test_update_hari_attribute_media_ids(mock_uploader_for_object_category_valid
     assert media_2.attributes[0].annotatable_type == models.DataBaseObjectType.MEDIA
     assert media_2.attributes[1].annotatable_id == "new_media_id_2"
     assert media_2.attributes[1].annotatable_type == models.DataBaseObjectType.MEDIA
-    assert uploader._attribute_cnt == 3
 
 
 def test_update_hari_attribute_media_object_ids(
