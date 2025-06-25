@@ -292,10 +292,10 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         medias_need_upload = []
         medias_skipped = []
         for media in medias_to_upload:
+            self._set_bulk_operation_annotatable_id(media)
             if media.uploaded:
                 medias_skipped.append(media)
             else:
-                self._set_bulk_operation_annotatable_id(media)
                 medias_need_upload.append(media)
         # upload media batch
         media_upload_response = self.client.create_medias(
