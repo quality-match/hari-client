@@ -17,20 +17,20 @@ class HARIMediaValidationError(Exception):
 
 class StateAwareHARIUploader(hari_uploader.HARIUploader):
     def __init__(self, client: HARIClient, dataset_id: uuid.UUID, object_categories: set[str] | None = None,
-                 check_duplicate_medias=True, check_duplicate_media_objects=True) -> None:
-        """Inherited from HARIUploader, this class is used to upload media and media objects to the HARI backend
-        and to handle the state of the upload process. It allows to check for duplicates before uploading.
+                 skip_uploaded_medias=True, skip_uploaded_media_objects=True) -> None:
+        """Inherited from HARIUploader, this class is a helper to upload media, media objects and attributes to HARI.
+        It is state aware, meaning it checks if media, media objects already exist on the server before uploading them.
 
         Args:
-            check_duplicate_media_objects: Defines if backreferences are used to check before upload if media objects exists.
-             It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
-             check_duplicate_medias: Defines if backreferences are used to check before upload if media exists.
-             It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
+            skip_uploaded_media_objects: Whether to skip media objects that have already been uploaded by comparing their back references.
+                It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
+            skip_uploaded_medias: Whether to skip medias that have already been uploaded by comparing their back references.
+                It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
         """
         super().__init__(client, dataset_id, object_categories)
 
-        self.check_duplicate_medias = check_duplicate_medias
-        self.check_duplicate_media_objects = check_duplicate_media_objects
+        self.skip_uploaded_medias = skip_uploaded_medias
+        self.skip_uploaded_media_objects = skip_uploaded_media_objects
 
     def add_media(self, *args: hari_uploader.HARIMedia) -> None:
         """
@@ -138,10 +138,9 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         return all_media_objects
 
-    def check_duplicates_medias(self, medias: list[hari_uploader.HARIMedia]) -> None:
+    def check_uploaded_medias(self, medias: list[hari_uploader.HARIMedia]) -> None:
         """
-        Check if any medias about to be uploaded already exist on the server by comparing
-        back_references.
+        Check medias about to be uploaded that already exist on the server by comparing back_references.
 
         Args:
             medias: The list of medias intended for upload.
@@ -150,14 +149,13 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             self.dataset_id
         )
 
-        self._check_duplicates_media_media_objects(medias, uploaded_medias)
+        self._check_uploaded_entities(medias, uploaded_medias)
 
-    def check_duplicates_media_objects(
+    def check_uploaded_media_objects(
         self, media_objects: list[hari_uploader.HARIMediaObject]
     ) -> None:
         """
-        Check if any media objects about to be uploaded already exist on the server by comparing
-        back_references.
+        Check media objects about to be uploaded that already exist on the server by comparing back_references.
 
         Args:
             media_objects: The list of media objects intended for upload.
@@ -166,36 +164,36 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             self.dataset_id
         )
 
-        self._check_duplicates_media_media_objects(media_objects, uploaded_media_objects)
+        self._check_uploaded_entities(media_objects, uploaded_media_objects)
 
-    def _check_duplicates_media_media_objects(
+    def _check_uploaded_entities( # naming
         self,
-        objects_to_upload: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
-        objects_uploaded: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
+        entities_to_upload: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
+        entities_uploaded: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
     ) -> None:
         """
-        Mark items in objects_to_upload as already uploaded if their back_references appear
-        among the objects_uploaded. Prints warnings if multiple references are found.
+        Mark items in entities_to_upload as already uploaded if their back_references appear
+        among the entities_uploaded. Prints warnings if multiple references are found.
 
         Args:
-            objects_to_upload: The list of media or media objects to be uploaded.
-            objects_uploaded: The media or media objects already in the dataset.
+            entities_to_upload: The list of media or media objects to be uploaded.
+            entities_uploaded: The media or media objects already present in the dataset.
         """
         # build look up table for back references
-        # add warning if multiple of the same backreference are given, value will be overwritten
+        # add warning if multiple of the same back reference are given, value will be overwritten
         uploaded_back_references = {}
-        for m in objects_uploaded:
-            if m.back_reference in uploaded_back_references:
+        for entity in entities_uploaded:
+            if entity.back_reference in uploaded_back_references:
                 log.warning(
-                    f"Multiple of the same backreference '{m.back_reference}' encountered; "
+                    f"Multiple of the same back reference '{entity.back_reference}' encountered; "
                     f"overwriting previous value."
                 )
-            uploaded_back_references[m.back_reference] = m.id
+            uploaded_back_references[entity.back_reference] = entity.id
 
-        for m in objects_to_upload:
+        for entity in entities_to_upload:
             # ensure uploaded marked are always having an id
-            m.uploaded = m.back_reference in uploaded_back_references
-            m.id = uploaded_back_references.get(m.back_reference, None)
+            entity.uploaded = entity.back_reference in uploaded_back_references
+            entity.id = uploaded_back_references.get(entity.back_reference)
 
     def upload(
         self,
@@ -237,12 +235,12 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         # for attributes the check is automatically done via the server during upload
 
         # check upload status of medias
-        if self.check_duplicate_medias:
-            self.check_duplicates_medias(self._medias)
+        if self.skip_uploaded_medias:
+            self.check_uploaded_medias(self._medias)
 
         # check upload status of media objects
-        if self.check_duplicate_media_objects:
-            self.check_duplicates_media_objects(validated_media_objects)
+        if self.skip_uploaded_media_objects:
+            self.check_uploaded_media_objects(validated_media_objects)
 
         # make sure all needed object categories exists otherwise create them
         self._handle_object_categories()
