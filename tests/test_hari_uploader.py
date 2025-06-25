@@ -635,47 +635,47 @@ def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_fi
 
 
 def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(
-    mock_uploader_for_object_category_validation, mocker
+    mock_uploader_for_batching, mocker
 ):
     # Arrange
-    (
-        uploader,
-        object_categories_vs_subsets,
-    ) = mock_uploader_for_object_category_validation
+    uploader, media_spy, media_object_spy, attribute_spy = mock_uploader_for_batching
     log_spy = mocker.spy(hari_uploader.log, "warning")
     uploader.add_media(
         hari_uploader.HARIMedia(
             name="my image 1",
             media_type=models.MediaType.IMAGE,
             back_reference="img_1",
+            file_path="images/image_1.jpg",
         )
     )
-
-    # Act
     uploader.add_media(
         hari_uploader.HARIMedia(
             name="my image 2",
             media_type=models.MediaType.IMAGE,
             back_reference="img_1",
+            file_path="images/image_2.jpg",
         )
     )
+
+    # Act
+    uploader.upload()
 
     # Assert
     assert log_spy.call_count == 1
 
 
 def test_warning_for_hari_uploader_receives_duplicate_media_object_back_reference(
-    mock_uploader_for_object_category_validation,
+    mock_uploader_for_batching,
     mocker,
 ):
     # Arrange
-    (
-        uploader,
-        object_categories_vs_subsets,
-    ) = mock_uploader_for_object_category_validation
+    uploader, media_spy, media_object_spy, attribute_spy = mock_uploader_for_batching
     log_spy = mocker.spy(hari_uploader.log, "warning")
     media = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
+        name="my image 1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img_1",
+        file_path="images/image_1.jpg",
     )
     media.add_media_object(
         hari_uploader.HARIMediaObject(
@@ -687,9 +687,10 @@ def test_warning_for_hari_uploader_receives_duplicate_media_object_back_referenc
             source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
         )
     )
+    uploader.add_media(media)
 
     # Act
-    uploader.add_media(media)
+    uploader.upload()
 
     # Assert
     assert log_spy.call_count == 1

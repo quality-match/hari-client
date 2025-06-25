@@ -243,27 +243,12 @@ class HARIUploader:
     # --> refactor this, so that all logic happening in the add_* functions happens when the upload method is run.
     def add_media(self, *args: HARIMedia) -> None:
         """
-        Add one or more HARIMedia objects to the uploader. Only use this method to add
-        medias to the uploader.
+        Add one or more HARIMedia objects to the uploader.
 
         Args:
             *args: Multiple HARIMedia objects
-
-        Raises:
-            HARIMediaUploadError: If an unrecoverable problem with the media upload
-                was detected
         """
         for media in args:
-            # check and remember media back_references
-            if media.back_reference in self._media_back_references:
-                log.warning(
-                    f"Found duplicate media back_reference: {media.back_reference}. If "
-                    f"you want to be able to match HARI objects 1:1 to your own, "
-                    f"consider using unique back_references."
-                )
-            else:
-                self._media_back_references.add(media.back_reference)
-
             self._medias.append(media)
             self._attribute_cnt += len(media.attributes)
             for attr in media.attributes:
@@ -274,16 +259,6 @@ class HARIUploader:
 
             # check and remember media object back_references
             for media_object in media.media_objects:
-                if media_object.back_reference in self._media_object_back_references:
-                    log.warning(
-                        f"Found duplicate media_object back_reference: "
-                        f"{media.back_reference}. If you want to be able to match HARI "
-                        f"objects 1:1 to your own, consider using unique "
-                        f"back_references."
-                    )
-                else:
-                    self._media_object_back_references.add(media_object.back_reference)
-                self._media_object_cnt += 1
                 self._attribute_cnt += len(media_object.attributes)
                 for attr in media_object.attributes:
                     self._unique_attribute_ids.add(str(attr.id))
@@ -468,6 +443,31 @@ class HARIUploader:
         dataset = self._load_dataset()
         return dataset and dataset.external_media_source is not None
 
+    def validate_medias(self) -> None:
+        for media in self._medias:
+            # validate back reference uniqueness
+            if media.back_reference in self._media_back_references:
+                log.warning(
+                    f"Found duplicate media back_reference: {media.back_reference}. If "
+                    f"you want to be able to match HARI objects 1:1 to your own, "
+                    f"consider using unique back_references."
+                )
+            else:
+                self._media_back_references.add(media.back_reference)
+
+    def validate_media_objects(self, media_objects: list[HARIMediaObject]) -> None:
+        for media_object in media_objects:
+            # validate back reference uniquenesspy
+            if media_object.back_reference in self._media_object_back_references:
+                log.warning(
+                    f"Found duplicate media_object back_reference: "
+                    f"{media_object.back_reference}. If you want to be able to match HARI "
+                    f"objects 1:1 to your own, consider using unique "
+                    f"back_references."
+                )
+            else:
+                self._media_object_back_references.add(media_object.back_reference)
+
     def validate_all_attributes(self) -> None:
         """
         Validate all attributes for both media and media objects, ensuring they meet the
@@ -555,6 +555,14 @@ class HARIUploader:
             )
             return None
 
+        all_media_objects = []
+        for media in self._medias:
+            for media_object in media.media_objects:
+                self._media_object_cnt += 1
+                all_media_objects.append(media_object)
+
+        self.validate_medias()
+        self.validate_media_objects(all_media_objects)
         self.validate_unique_attributes_limit()
         self.validate_all_attributes()
 
@@ -634,8 +642,11 @@ class HARIUploader:
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
-        # upload media objects and attributes of this batch of media in batches
-        media_object_upload_responses, attributes_upload_responses = self._upload_media_objects_and_attributes_for_media_batch(
+        # upload media objects and attributes for this batch of media in batches
+        (
+            media_object_upload_responses,
+            attributes_upload_responses,
+        ) = self._upload_media_objects_and_attributes_for_media_batch(
             medias_to_upload=medias_to_upload,
             media_upload_response=media_upload_response,
         )
@@ -647,10 +658,10 @@ class HARIUploader:
         )
 
     def _upload_media_objects_and_attributes_for_media_batch(
-            self,
-            medias_to_upload: list[HARIMedia],
-            media_upload_response: models.BulkResponse,
-        ) -> tuple[ list[models.BulkResponse], list[models.BulkResponse]]:
+        self,
+        medias_to_upload: list[HARIMedia],
+        media_upload_response: models.BulkResponse,
+    ) -> tuple[list[models.BulkResponse], list[models.BulkResponse]]:
         """
         Upload all corresponding media objects and attributes for a batch of medias.
 
@@ -692,7 +703,6 @@ class HARIUploader:
             media_object_upload_responses,
             attributes_upload_responses,
         )
-
 
     def _upload_attributes_in_batches(
         self, attributes: list[HARIAttribute]

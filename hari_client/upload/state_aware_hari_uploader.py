@@ -12,12 +12,20 @@ from hari_client.utils import logger
 
 log = logger.setup_logger(__name__)
 
+
 class HARIMediaValidationError(Exception):
     pass
 
+
 class StateAwareHARIUploader(hari_uploader.HARIUploader):
-    def __init__(self, client: HARIClient, dataset_id: uuid.UUID, object_categories: set[str] | None = None,
-                 skip_uploaded_medias=True, skip_uploaded_media_objects=True) -> None:
+    def __init__(
+        self,
+        client: HARIClient,
+        dataset_id: uuid.UUID,
+        object_categories: set[str] | None = None,
+        skip_uploaded_medias=True,
+        skip_uploaded_media_objects=True,
+    ) -> None:
         """Inherited from HARIUploader, this class is a helper to upload media, media objects and attributes to HARI.
         It is state aware, meaning it checks if media, media objects already exist on the server before uploading them.
 
@@ -102,42 +110,6 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         return all_attributes
 
-    def validate_all_media_and_media_objects(self) -> list[hari_uploader.HARIMediaObject]:
-        """
-        Validate media and media object back_references for duplicates, collect all
-        media objects into a single list, and log warnings for any repeated references.
-
-        Returns:
-            A list containing all media objects across the loaded medias.
-        """
-        all_media_objects = []
-        for media in self._medias:
-            # check and remember media back_references
-            if media.back_reference in self._media_back_references:
-                log.warning(
-                    f"Found duplicate media back_reference: {media.back_reference}. If "
-                    f"you want to be able to match HARI objects 1:1 to your own, "
-                    f"consider using unique back_references."
-                )
-            else:
-                self._media_back_references.add(media.back_reference)
-
-            # check and remember media object back_references
-            for media_object in media.media_objects:
-                if media_object.back_reference in self._media_object_back_references:
-                    log.warning(
-                        f"Found duplicate media_object back_reference: "
-                        f"{media.back_reference}. If you want to be able to match HARI "
-                        f"objects 1:1 to your own, consider using unique "
-                        f"back_references."
-                    )
-                else:
-                    self._media_object_back_references.add(media_object.back_reference)
-
-                all_media_objects.append(media_object)
-
-        return all_media_objects
-
     def check_uploaded_medias(self, medias: list[hari_uploader.HARIMedia]) -> None:
         """
         Check medias about to be uploaded that already exist on the server by comparing back_references.
@@ -145,9 +117,7 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         Args:
             medias: The list of medias intended for upload.
         """
-        uploaded_medias = self.client.get_medias_paginated(
-            self.dataset_id
-        )
+        uploaded_medias = self.client.get_medias_paginated(self.dataset_id)
 
         self._check_uploaded_entities(medias, uploaded_medias)
 
@@ -166,10 +136,12 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         self._check_uploaded_entities(media_objects, uploaded_media_objects)
 
-    def _check_uploaded_entities( # naming
+    def _check_uploaded_entities(  # naming
         self,
-        entities_to_upload: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
-        entities_uploaded: list[hari_uploader.HARIMediaObject] | list[hari_uploader.HARIMedia],
+        entities_to_upload: list[hari_uploader.HARIMediaObject]
+        | list[hari_uploader.HARIMedia],
+        entities_uploaded: list[hari_uploader.HARIMediaObject]
+        | list[hari_uploader.HARIMedia],
     ) -> None:
         """
         Mark items in entities_to_upload as already uploaded if their back_references appear
@@ -227,8 +199,15 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             )
             return None
 
+        all_media_objects = []
+        for media in self._medias:
+            for media_object in media.media_objects:
+                self._media_object_cnt += 1
+                all_media_objects.append(media_object)
+
         # validate intended upload, this only checks for inconsistency which can be checked locally
-        validated_media_objects = self.validate_all_media_and_media_objects()
+        self.validate_medias()
+        self.validate_media_objects(all_media_objects)
         validated_attributes = self.validate_all_attributes()
 
         # validate that the intended uploads do not already exists on the server
@@ -240,7 +219,7 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         # check upload status of media objects
         if self.skip_uploaded_media_objects:
-            self.check_uploaded_media_objects(validated_media_objects)
+            self.check_uploaded_media_objects(all_media_objects)
 
         # make sure all needed object categories exists otherwise create them
         self._handle_object_categories()
@@ -248,15 +227,15 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         # upload batches of medias
         log.info(
             f"Starting upload of {len(self._medias)} medias with "
-            f"{len(validated_media_objects)} media_objects and {len(validated_attributes)} "
+            f"{self._media_object_cnt} media_objects and {len(validated_attributes)} "
             f"attributes to HARI. "
-            f"Already uploaded entities will be skipped if configured to do so."
+            f"Already uploaded entities will be skipped if configured."
         )
         self._media_upload_progress = tqdm.tqdm(
             desc="Media Upload", total=len(self._medias)
         )
         self._media_object_upload_progress = tqdm.tqdm(
-            desc="Media Object Upload", total=len(validated_media_objects)
+            desc="Media Object Upload", total=self._media_object_cnt
         )
         self._attribute_upload_progress = tqdm.tqdm(
             desc="Attribute Upload", total=len(validated_attributes)
@@ -285,7 +264,9 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         return hari_uploader.HARIUploadResults(
             medias=hari_uploader._merge_bulk_responses(*media_upload_responses),
-            media_objects=hari_uploader._merge_bulk_responses(*media_object_upload_responses),
+            media_objects=hari_uploader._merge_bulk_responses(
+                *media_object_upload_responses
+            ),
             attributes=hari_uploader._merge_bulk_responses(*attribute_upload_responses),
         )
 
@@ -318,7 +299,9 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
                 medias_need_upload.append(media)
         # upload media batch
         media_upload_response = self.client.create_medias(
-            dataset_id=self.dataset_id, medias=medias_need_upload,  with_media_files_upload=self._with_media_files_upload,
+            dataset_id=self.dataset_id,
+            medias=medias_need_upload,
+            with_media_files_upload=self._with_media_files_upload,
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
@@ -337,7 +320,10 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         )
 
         # upload media objects and attributes of this batch of media in batches
-        media_object_upload_responses, attributes_upload_responses = self._upload_media_objects_and_attributes_for_media_batch(
+        (
+            media_object_upload_responses,
+            attributes_upload_responses,
+        ) = self._upload_media_objects_and_attributes_for_media_batch(
             medias_to_upload=medias_to_upload,
             media_upload_response=media_upload_response,
         )
@@ -347,7 +333,6 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             media_object_upload_responses,
             attributes_upload_responses,
         )
-
 
     def _upload_attribute_batch(
         self, attributes_to_upload: list[hari_uploader.HARIAttribute]
