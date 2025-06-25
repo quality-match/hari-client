@@ -250,7 +250,7 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             f"Starting upload of {len(self._medias)} medias with "
             f"{len(validated_media_objects)} media_objects and {len(validated_attributes)} "
             f"attributes to HARI. "
-            f"Only not already uploaded values will be uploaded."
+            f"Already uploaded entities will be skipped if configured to do so."
         )
         self._media_upload_progress = tqdm.tqdm(
             desc="Media Upload", total=len(self._medias)
@@ -308,20 +308,21 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             2. A list of bulk responses for media objects.
             3. A list of bulk responses for attributes.
         """
+        medias_need_upload = []
+        medias_skipped = []
         for media in medias_to_upload:
-            self._set_bulk_operation_annotatable_id(item=media)
-
-        # ensure only non-uploaded medias are actually uploaded
-        medias_need_upload = [media for media in medias_to_upload if not media.uploaded]
-
+            if media.uploaded:
+                medias_skipped.append(media)
+            else:
+                self._set_bulk_operation_annotatable_id(media)
+                medias_need_upload.append(media)
         # upload media batch
         media_upload_response = self.client.create_medias(
             dataset_id=self.dataset_id, medias=medias_need_upload,  with_media_files_upload=self._with_media_files_upload,
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
-        # need to add filter out ones as manual responses
-        medias_skipped = [media for media in medias_to_upload if media.uploaded]
+        # manually mark medias that were skipped as successful
         media_upload_response.summary.successful += len(medias_skipped)
         media_upload_response.summary.total += len(medias_skipped)
         media_upload_response.results.extend(
@@ -335,32 +336,11 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             ]
         )
 
-        # TODO: what if upload failures occur in the media upload above? -> Just restart should be robust enough
-        # Enable checking for errors and abort here
-        self._update_hari_media_object_media_ids(
+        # upload media objects and attributes of this batch of media in batches
+        media_object_upload_responses, attributes_upload_responses = self._upload_media_objects_and_attributes_for_media_batch(
             medias_to_upload=medias_to_upload,
-            media_upload_bulk_response=media_upload_response,
+            media_upload_response=media_upload_response,
         )
-        self._update_hari_attribute_media_ids(
-            medias_to_upload=medias_to_upload,
-            media_upload_bulk_response=media_upload_response,
-        )
-
-        # upload media_objects of this batch of media in batches
-        all_media_objects: list[hari_uploader.HARIMediaObject] = []
-        all_attributes: list[hari_uploader.HARIAttribute] = []
-        for media in medias_to_upload:
-            all_media_objects.extend(media.media_objects)
-            all_attributes.extend(media.attributes)
-
-        media_object_upload_responses = self._upload_media_objects_in_batches(
-            all_media_objects
-        )
-        for media_object in all_media_objects:
-            all_attributes.extend(media_object.attributes)
-
-        # upload attributes of this batch of media in batches
-        attributes_upload_responses = self._upload_attributes_in_batches(all_attributes)
 
         return (
             media_upload_response,

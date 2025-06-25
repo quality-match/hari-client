@@ -634,7 +634,35 @@ class HARIUploader:
         )
         self._media_upload_progress.update(len(medias_to_upload))
 
-        # TODO: what if upload failures occur in the media upload above?
+        # upload media objects and attributes of this batch of media in batches
+        media_object_upload_responses, attributes_upload_responses = self._upload_media_objects_and_attributes_for_media_batch(
+            medias_to_upload=medias_to_upload,
+            media_upload_response=media_upload_response,
+        )
+
+        return (
+            media_upload_response,
+            media_object_upload_responses,
+            attributes_upload_responses,
+        )
+
+    def _upload_media_objects_and_attributes_for_media_batch(
+            self,
+            medias_to_upload: list[HARIMedia],
+            media_upload_response: models.BulkResponse,
+        ) -> tuple[ list[models.BulkResponse], list[models.BulkResponse]]:
+        """
+        Upload all corresponding media objects and attributes for a batch of medias.
+
+        Args:
+            medias_to_upload: A list of HARIMedia objects that were just uploaded.
+            media_upload_response: The bulk response from the media upload operation.
+
+        Returns:
+            A tuple containing:
+            1. The bulk responses for media objects.
+            2. The bulk responses for attributes.
+        """
         self._update_hari_media_object_media_ids(
             medias_to_upload=medias_to_upload,
             media_upload_bulk_response=media_upload_response,
@@ -661,10 +689,10 @@ class HARIUploader:
         attributes_upload_responses = self._upload_attributes_in_batches(all_attributes)
 
         return (
-            media_upload_response,
             media_object_upload_responses,
             attributes_upload_responses,
         )
+
 
     def _upload_attributes_in_batches(
         self, attributes: list[HARIAttribute]
