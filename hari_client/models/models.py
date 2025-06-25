@@ -84,6 +84,12 @@ class Point3DTuple(typing.NamedTuple):
     z: float
 
 
+class CuboidDimensionsTuple(typing.NamedTuple):
+    width: float
+    length: float
+    height: float
+
+
 class Point3DAggregationMetrics(BaseModel):
     dummy_metrics: str = pydantic.Field(title="Dummy Metrics")
 
@@ -146,13 +152,12 @@ class Point3DXYZ(BaseModel):
 
 
 class CuboidCenterPoint(BaseModel):
-    """A 3D cuboid defined by its center point position, heading as quaternion and its
-    dimensions along each axis."""
+    """A 3D cuboid defined by its center point position, heading as quaternion and its dimensions."""
 
     type: str = "cuboid_center_point"
     position: Point3DTuple = pydantic.Field()
     heading: QuaternionTuple = pydantic.Field()
-    dimensions: Point3DTuple = pydantic.Field()
+    dimensions: CuboidDimensionsTuple = pydantic.Field()
 
 
 class PolyLine2DFlatCoordinates(BaseModel):
