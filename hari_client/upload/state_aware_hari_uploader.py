@@ -376,31 +376,35 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         Returns:
             The BulkResponse result of uploading these media objects.
         """
+        media_objects_need_upload = []
+        media_objects_skipped = []
         for media_object in media_objects_to_upload:
-            self._set_bulk_operation_annotatable_id(item=media_object)
-
-        # filter out already marked as uploaded
-        media_objects_need_upload = [
-            mo for mo in media_objects_to_upload if not mo.uploaded
-        ]
+            self._set_bulk_operation_annotatable_id(media_object)
+            if media_object.uploaded:
+                media_objects_skipped.append(media_object)
+            else:
+                media_objects_need_upload.append(media_object)
 
         response = self.client.create_media_objects(
             dataset_id=self.dataset_id, media_objects=media_objects_need_upload
         )
 
-        # need to add filter out ones as manual responses
-        media_objects_skipped = [mo for mo in media_objects_to_upload if mo.uploaded]
+        # manually mark media objects that were skipped as successful
+        media_objects_skipped = [
+            media_object
+            for media_object in media_objects_to_upload
+            if media_object.uploaded
+        ]
         response.summary.successful += len(media_objects_skipped)
         response.summary.total += len(media_objects_skipped)
-
         response.results.extend(
             [
                 models.AnnotatableCreateResponse(
-                    bulk_operation_annotatable_id=mo.bulk_operation_annotatable_id,
+                    bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
                     status=models.ResponseStatesEnum.SUCCESS,
-                    item_id=mo.id,
+                    item_id=media_object.id,
                 )
-                for mo in media_objects_skipped
+                for media_object in media_objects_skipped
             ]
         )
 
