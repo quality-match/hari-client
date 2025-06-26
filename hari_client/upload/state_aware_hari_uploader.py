@@ -454,6 +454,16 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
         )
         return response
 
+    def _add_object_category_subset(self, object_category: str, subset_id: str) -> None:
+        """
+        Store the subset ID for the specified object category in an internal dictionary.
+
+        Args:
+            object_category: The name or label of the object category.
+            subset_id: The subset identifier corresponding to this object category.
+        """
+        self._object_category_subsets[object_category] = subset_id
+
     def _handle_object_categories(self) -> None:
         """
         Validates consistency of object_categories across media objects,

@@ -1247,10 +1247,7 @@ class BulkMediaObjectCreate(MediaObjectCreate):
 
 
 class AttributeCreate(BaseModel):
-    # This value is mandatory during upload but needs to be synced with existing values in HARI and this is set programmatically in the Uploader
-    id: uuid.UUID | str | None = (
-        None  # value should be UUID but legacy attributes can be str
-    )
+    id: uuid.UUID
     name: str
     annotatable_id: str
     annotatable_type: typing.Literal[
