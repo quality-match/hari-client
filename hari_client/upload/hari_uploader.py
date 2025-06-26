@@ -23,9 +23,6 @@ class HARIAttribute(models.BulkAttributeCreate):
     annotatable_id: str = ""
     annotatable_type: str = ""
 
-    # upload status defines if the object has to be uploaded or is already uploaded and identified by backreference
-    uploaded: bool = False
-
 
 class HARIMediaObject(models.BulkMediaObjectCreate):
     # the attributes field is not part of the lower level MediaObjectCreate model of the hari
@@ -41,8 +38,11 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     # of the hari api, but is needed to store which object category subset the media object should belong to.
     object_category_subset_name: str | None = pydantic.Field(default=None, exclude=True)
 
-    # upload status defines if the object has to be uploaded or is already uploaded and identified by backreference
-    uploaded: bool = False
+    # state aware uploader
+    # id of existing media object used for its attributes
+    id: str | None = pydantic.Field(default=None, exclude=True)
+    # whether the object was already uploaded and identified by back reference
+    uploaded: bool = pydantic.Field(default=None, exclude=True)
 
     # overrides the BulkMediaObjectCreate validator to not raise error if the bulk_operation_annotatable_id is not set;
     # the field is set internally by the HARIUploader
@@ -154,8 +154,11 @@ class HARIMedia(models.BulkMediaCreate):
     # because it's set internally by the HARIUploader
     bulk_operation_annotatable_id: str | None = ""
 
-    # upload status defines if the object has to be uploaded or is already uploaded and identified by backreference
-    uploaded: bool = False
+    # state aware uploader
+    # id of existing media object used for its objects and attributes
+    id: str | None = pydantic.Field(default=None, exclude=True)
+    # whether the media was already uploaded and identified by back reference
+    uploaded: bool = pydantic.Field(default=None, exclude=True)
 
     # overrides the BulkMediaCreate validator to not raise error if the bulk_operation_annotatable_id is not set;
     # the field is set internally by the HARIUploader
