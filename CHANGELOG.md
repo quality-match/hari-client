@@ -1,5 +1,41 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Breaking Changes
+
+- Deleted `name_filter` from get multiple datasets endpoint [PR#91](https://github.com/quality-match/hari-client/pull/91)
+- removed `lidar_sensor_pose` from `PointCloudMetadata` model, because it's not supported in the HARI backend [PR#90](https://github.com/quality-match/hari-client/pull/90)
+- Changed type of `CuboidCenterPoint.dimensions` from `Point3DTuple` to `CuboidDimensionsTuple` [PR#95](https://github.com/quality-match/hari-client/pull/95)
+  - the underlying data type is still a `NamedTuple` with three float attributes
+
+### New Features
+
+- Add pagination, sorting and filtering to the get annotation runs, pipelines, AINT learning data, ML annotation models, AI annotation runs methods [PR#91](https://github.com/quality-match/hari-client/pull/91)
+- Add count annotation runs, pipelines, AINT learning data, ML annotation models, AI annotation runs methods [PR#91](https://github.com/quality-match/hari-client/pull/91)
+- Add `ilike` query operator [PR#91](https://github.com/quality-match/hari-client/pull/91)
+- Add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
+- Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
+  - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
+
+#### Consistency in partially failed uploads
+
+- partially failed bulk uploads of medias and media objects are now handled consistently [PR#80](https://github.com/quality-match/hari-client/pull/80)
+  - for failed media uploads, any media_objects and attributes for these medias will not be tried to be uploaded
+  - for media_objects, any attributes for these media_objects will not be tried to be uploaded
+
+#### Better reporting of failed and skipped uploads
+
+- improved reporting of failed and skipped uploads [PR#80](https://github.com/quality-match/hari-client/pull/80)
+  - failed uploads are now reported in the `HARIUploadResults.failures` field
+
+#### 3D
+
+- added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
+  - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
+  - disclaimer: there's no example data for this script yet, so it won't work out of the box.
+- added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
+
+## [3.5.0] - 24-04-2025
+
 ### New Features
 
 - updated pydantic models [PR#63](https://github.com/quality-match/hari-client/pull/63)

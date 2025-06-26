@@ -453,3 +453,48 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             media_object_upload_bulk_response=response,
         )
         return response
+
+    def _handle_object_categories(self) -> None:
+        """
+        Validates consistency of object_categories across media objects,
+        gets all existing object_category subsets from the server,
+        then creates missing object_category subsets.
+        """
+        # set up object category subsets
+        log.info(f"Initializing object_category subsets.")
+        (
+            media_object_category_subset_names,
+            media_object_object_category_subset_name_errors,
+        ) = self._get_and_validate_media_objects_object_category_subset_names()
+        if media_object_object_category_subset_name_errors:
+            log.error(
+                f"Found {len(media_object_object_category_subset_name_errors)} errors with object_category_subset_name consistency."
+            )
+            raise ExceptionGroup(
+                f"Found {len(media_object_object_category_subset_name_errors)} errors with object_category_subset_name consistency.",
+                media_object_object_category_subset_name_errors,
+            )
+
+        backend_object_category_subsets = self.get_existing_object_category_subsets()
+        # add already existing subsets to the object_category_subsets dict
+        for obj_category_subset in backend_object_category_subsets:
+            self._add_object_category_subset(
+                obj_category_subset.name, str(obj_category_subset.id)
+            )
+
+        # check whether all required object_category subsets already exist
+        object_categories_without_existing_subsets = [
+            subset_name
+            for subset_name in media_object_category_subset_names
+            if subset_name
+            not in [
+                obj_cat_subset.name
+                for obj_cat_subset in backend_object_category_subsets
+            ]
+        ]
+
+        self._create_object_category_subsets(object_categories_without_existing_subsets)
+        log.info(
+            f"All object category subsets of this dataset: {self._object_category_subsets=}"
+        )
+        self._assign_object_category_subsets()

@@ -13,90 +13,92 @@ config = Config()
 
 # 1. Initialize the HARI client
 hari = HARIClient(config=config)
-
-# 2. Create a dataset
-# Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="My first dataset", user_group="CHANGEME")
+# # 2. Create a dataset
+# # Replace "CHANGEME" with your own user group!
+new_dataset = hari.create_dataset(name="My first dataset")
 print("Dataset created with id:", new_dataset.id)
-
+#
 dataset_id = new_dataset.id
+
+attribute_object_1_id = uuid.uuid4()
+attribute_media_1_id = uuid.uuid4()
+medias = []
 
 # 3. Set up your medias and all of their media objects and attributes.
 # In this example we use 3 images with 1 media object each.
 # The first media and media object have 1 attribute each.
-media_1 = hari_uploader.HARIMedia(
-    # note: the file_path won't be saved in HARI, it's only used during uploading
-    file_path="images/image_1.jpg",
-    name="A busy street 1",
-    back_reference="image 1",
-    media_type=models.MediaType.IMAGE,
-)
-media_object_1 = hari_uploader.HARIMediaObject(
-    back_reference="pedestrian_1",
-    reference_data=models.BBox2DCenterPoint(
-        type=models.BBox2DType.BBOX2D_CENTER_POINT,
-        x=1400.0,
-        y=1806.0,
-        width=344.0,
-        height=732.0,
-    ),
-)
-attribute_object_1_id = uuid.uuid4()
-attribute_object_1 = hari_uploader.HARIAttribute(
-    id=attribute_object_1_id,
-    name="is_walking",
-    value=True,
-)
-
-attribute_media_1_id = uuid.uuid4()
-attribute_media_1 = hari_uploader.HARIAttribute(
-    id=attribute_media_1_id,
-    name="weather_condition",
-    value="sunny",
-)
-media_1.add_attribute(attribute_media_1)
-media_object_1.add_attribute(attribute_object_1)
-media_object_1.set_object_category_subset_name("pedestrian")
-media_1.add_media_object(media_object_1)
-
-media_object_2 = hari_uploader.HARIMediaObject(
-    back_reference="motorcycle_wheel_1",
-    reference_data=models.Point2DXY(x=975.0, y=2900.0),
-)
-media_2 = hari_uploader.HARIMedia(
-    file_path="images/image_2.jpg",
-    name="A busy street 2",
-    back_reference="image 2",
-    media_type=models.MediaType.IMAGE,
-)
-media_object_2.set_object_category_subset_name("wheel")
-media_2.add_media_object(media_object_2)
-
-media_3 = hari_uploader.HARIMedia(
-    file_path="images/image_3.jpg",
-    name="A busy street 3",
-    back_reference="image 3",
-    media_type=models.MediaType.IMAGE,
-)
-media_object_3 = hari_uploader.HARIMediaObject(
-    back_reference="road marking",
-    reference_data=models.PolyLine2DFlatCoordinates(
-        coordinates=[1450, 1550, 1450, 1000],
-        closed=False,
-    ),
-)
-media_object_3.set_object_category_subset_name("road_marking")
-media_3.add_media_object(media_object_3)
-
-# 4. Set up the uploader and add the medias to it
+scenes = {"scene1"}
+object_categories = {"truck"}
 uploader = hari_uploader.HARIUploader(
     client=hari,
     dataset_id=dataset_id,
-    object_categories={"pedestrian", "wheel", "road_marking"},
+    scenes=scenes,
+    object_categories=object_categories,
 )
-uploader.add_media(media_1, media_2, media_3)
+point_cloud = hari_uploader.HARIMedia(
+    file_path="images/point_cloud.pcd",
+    name="test_point_cloud",
+    back_reference="point_cloud",
+    frame_idx=0,
+    scene_back_reference="scene1",
+    media_type=models.MediaType.POINT_CLOUD,
+    metadata=models.PointCloudMetadata(
+        sensor_id="lidar_sensor_1",
+    ),
+)
+media_object = hari_uploader.HARIMediaObject(
+    back_reference="cuboid_center_point",
+    reference_data=models.CuboidCenterPoint(
+        type="cuboid_center_point",
+        position=[-10.227567047441426, 19.460821128585394, 0.03743642453830098],
+        dimensions=[2.312, 7.516, 3.093],
+        heading=[
+            0.9543446154177624,
+            0.0016914195330597179,
+            -0.0028850132191384366,
+            -0.29868908721580645,
+        ],
+    ),
+    scene_back_reference="scene1",
+    frame_idx=0,
+)
+media_object.set_object_category_subset_name("truck")
+point_cloud.add_media_object(media_object)
+image = hari_uploader.HARIMedia(
+    file_path="images/acdcf2c4-9585-4c9c-90bb-cfa0883898f4.jpg",
+    name="test_image_1",
+    back_reference="test_image_1",
+    frame_idx=0,
+    scene_back_reference="scene1",
+    metadata=models.ImageMetadata(
+        sensor_id="camera_1",
+        camera_intrinsics=models.CameraIntrinsics(
+            camera_model=models.CameraModelType.PINHOLE,
+            focal_length=(1266.417203046554, 1266.417203046554),
+            principal_point=(816.2670197447984, 491.50706579294757),
+            width_px=1600,
+            height_px=900,
+            distortion_coefficients=None,
+        ),
+        camera_extrinsics=models.Pose3D(
+            position=(-0.012463384576629074, 0.76486688894964, -0.3109103442096659),
+            heading=(
+                0.713640516187247,
+                -0.700501707318727,
+                -0.0036449450274057653,
+                -0.0011340525982261474,
+            ),
+        ),
+        width=1600,
+        height=900,
+    ),
+    media_type=models.MediaType.IMAGE,
+)
 
-# 5. Trigger the upload process
+uploader.add_media(image)
+uploader.add_media(point_cloud)
+
+# 4. Trigger the upload process
 upload_results = uploader.upload()
 
 # Inspect upload results
@@ -108,7 +110,6 @@ print(f"media object upload summary\n  {upload_results.media_objects.summary}")
 
 print(f"attribute upload status: {upload_results.attributes.status.value}")
 print(f"attribute upload summary\n  {upload_results.attributes.summary}")
-
 
 if (
     upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
@@ -135,7 +136,7 @@ if (
     )
     sys.exit(1)
 
-# 6. Create a subset
+# 5. Create a subset
 print("Creating new subset...")
 new_subset_id = hari.create_subset(
     dataset_id=dataset_id,
@@ -144,13 +145,15 @@ new_subset_id = hari.create_subset(
 )
 print(f"Created new subset with id {new_subset_id}")
 
-# 7. Trigger metadata updates
+# 6. Trigger metadata updates
 print("Triggering metadata updates...")
 # create a trace_id to track triggered metadata update jobs
 metadata_rebuild_trace_id = uuid.uuid4()
 print(f"metadata_rebuild jobs trace_id: {metadata_rebuild_trace_id}")
 metadata_rebuild_jobs = hari.trigger_dataset_metadata_rebuild_job(
-    dataset_id=dataset_id, trace_id=metadata_rebuild_trace_id
+    dataset_id=dataset_id,
+    trace_id=metadata_rebuild_trace_id,
+    compute_auto_attributes=True,
 )
 
 # track the status of all metadata rebuild jobs and wait for them to finish
