@@ -127,12 +127,12 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
 
         self._check_uploaded_entities(media_objects, uploaded_media_objects)
 
-    def _check_uploaded_entities(  # naming
+    def _check_uploaded_entities(
         self,
         entities_to_upload: list[hari_uploader.HARIMediaObject]
         | list[hari_uploader.HARIMedia],
-        entities_uploaded: list[hari_uploader.HARIMediaObject]
-        | list[hari_uploader.HARIMedia],
+        entities_uploaded: list[models.MediaResponse]
+        | list[models.MediaObjectResponse],
     ) -> None:
         """
         Mark items in entities_to_upload as already uploaded if their back_references appear
@@ -288,13 +288,19 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
                 medias_skipped.append(media)
             else:
                 medias_need_upload.append(media)
-        # upload media batch
-        media_upload_response = self.client.create_medias(
-            dataset_id=self.dataset_id,
-            medias=medias_need_upload,
-            with_media_files_upload=self._with_media_files_upload,
-        )
-        self._media_upload_progress.update(len(medias_to_upload))
+
+        # upload only needed media for batch
+        if medias_need_upload:
+            media_upload_response = self.client.create_medias(
+                dataset_id=self.dataset_id,
+                medias=medias_need_upload,
+                with_media_files_upload=self._with_media_files_upload,
+            )
+        else:
+            # if no media needs to be uploaded, return an empty response
+            media_upload_response = models.BulkResponse(
+                status=models.ResponseStatesEnum.SUCCESS,
+            )
 
         # manually mark medias that were skipped as successful
         media_upload_response.summary.successful += len(medias_skipped)
@@ -309,6 +315,9 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
                 for media in medias_skipped
             ]
         )
+
+        # update media upload progress for both created and skipped medias
+        self._media_upload_progress.update(len(medias_to_upload))
 
         # upload media objects and attributes of this batch of media in batches
         (
@@ -376,16 +385,17 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             else:
                 media_objects_need_upload.append(media_object)
 
-        response = self.client.create_media_objects(
-            dataset_id=self.dataset_id, media_objects=media_objects_need_upload
-        )
+        if media_objects_need_upload:
+            response = self.client.create_media_objects(
+                dataset_id=self.dataset_id, media_objects=media_objects_need_upload
+            )
+        else:
+            # if no media objects need to be uploaded, return an empty response
+            response = models.BulkResponse(
+                status=models.ResponseStatesEnum.SUCCESS,
+            )
 
         # manually mark media objects that were skipped as successful
-        media_objects_skipped = [
-            media_object
-            for media_object in media_objects_to_upload
-            if media_object.uploaded
-        ]
         response.summary.successful += len(media_objects_skipped)
         response.summary.total += len(media_objects_skipped)
         response.results.extend(
