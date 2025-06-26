@@ -1025,6 +1025,7 @@ class ResponseStatesEnum(str, enum.Enum):
     SERVER_ERROR = "server_error"
     BAD_DATA = "bad_data"
     CONFLICT = "conflict"
+    ALREADY_EXISTS = "already_exists"
 
 
 class BaseBulkItemResponse(BaseModel, arbitrary_types_allowed=True):

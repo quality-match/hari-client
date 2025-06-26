@@ -362,7 +362,46 @@ class StateAwareHARIUploader(hari_uploader.HARIUploader):
             response = _parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )
+
+        self._mark_already_uploaded_attributes_as_successful(response)
         return response
+
+    def _mark_already_uploaded_attributes_as_successful(
+        self, response: models.BulkResponse
+    ) -> None:
+        """
+        Marks attributes that were already uploaded as successful in the BulkResponse
+        and reevaluates the overall response.
+
+        Args:
+            response: The BulkResponse containing the results of the attribute upload.
+        """
+        for result in response.results:
+            if result.status == models.ResponseStatesEnum.CONFLICT:
+                result.status = models.ResponseStatesEnum.SUCCESS
+                result.errors = []
+
+        # reevaluate the overall status
+        unique_statuses = {result.status for result in response.results}
+        if unique_statuses == {models.ResponseStatesEnum.SUCCESS}:
+            response.status = models.BulkOperationStatusEnum.SUCCESS
+        elif models.ResponseStatesEnum.SUCCESS in unique_statuses:
+            response.status = models.BulkOperationStatusEnum.PARTIAL_SUCCESS
+        else:
+            response.status = models.BulkOperationStatusEnum.FAILURE
+
+        # recalculate summary
+        total = len(response.results)
+        successful = sum(
+            1 for r in response.results if r.status == models.ResponseStatesEnum.SUCCESS
+        )
+        failed = total - successful
+
+        response.summary = models.BulkUploadSuccessSummary(
+            total=total,
+            successful=successful,
+            failed=failed,
+        )
 
     def _upload_media_object_batch(
         self, media_objects_to_upload: list[hari_uploader.HARIMediaObject]
