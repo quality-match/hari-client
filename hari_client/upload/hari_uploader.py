@@ -541,34 +541,12 @@ class HARIUploader:
         existing_attr_metadata = self.client.get_attribute_metadata(
             dataset_id=self.dataset_id
         )
-        attribute_name_to_ids: dict[str, str | uuid.UUID] = {
-            attr.name: attr.id for attr in existing_attr_metadata
+        attribute_name_to_ids: dict[tuple[str, str], str | uuid.UUID] = {
+            (attr.name, attr.annotatable_type): attr.id
+            for attr in existing_attr_metadata
         }
 
-        all_attributes = []
-        for media in self._medias:
-            all_attributes.extend(media.attributes)
-            self._attribute_cnt += len(media.attributes)
-
-            for attr in media.attributes:
-                # assign an existing id if attribute with the same name exists, otherwise create a new one
-                if attr.name not in attribute_name_to_ids:
-                    attribute_name_to_ids[attr.name] = attr.id
-                else:
-                    log.info(
-                        f"reusing existing attribute id for attribute name {attr.name}"
-                    )
-                    attr.id = attribute_name_to_ids[attr.name]
-
-            for media_object in media.media_objects:
-                all_attributes.extend(media_object.attributes)
-                self._attribute_cnt += len(media_object.attributes)
-
-                for attr in media_object.attributes:
-                    # assign an existing id if attribute with the same name exists, otherwise create a new one
-                    if attr.name not in attribute_name_to_ids:
-                        attribute_name_to_ids[attr.name] = uuid.uuid4()
-                    attr.id = attribute_name_to_ids[attr.name]
+        all_attributes = self.reuse_existing_attribute_ids(attribute_name_to_ids)
 
         # Raises an error if any requirements for attribute consistency aren't met.
         validation.validate_attributes(all_attributes)
@@ -579,7 +557,53 @@ class HARIUploader:
                 intended_attributes_number=len(attribute_name_to_ids),
             )
 
-        return all_attributes
+    def reuse_existing_attribute_ids(
+        self, attribute_name_to_ids: dict[tuple[str, str], str | uuid.UUID]
+    ) -> None:
+        """
+        Reuses existing attribute ids for attributes that have the same name and annotatable type.
+        Args:
+            attribute_name_to_ids: A dictionary mapping attribute names and annotatable types to their ids.
+
+        Returns:
+            attributes with reused ids.
+        """
+
+        attributes = []
+
+        for media in self._medias:
+            attributes.extend(media.attributes)
+            self._attribute_cnt += len(media.attributes)
+
+            for attr in media.attributes:
+                # assign an existing id if attribute with the same name exists, otherwise create a new one
+                if (attr.name, attr.annotatable_type) not in attribute_name_to_ids:
+                    attribute_name_to_ids[(attr.name, attr.annotatable_type)] = attr.id
+                else:
+                    log.info(
+                        f"reusing existing attribute id for attribute name {attr.name}"
+                    )
+                    attr.id = attribute_name_to_ids[(attr.name, attr.annotatable_type)]
+
+            for media_object in media.media_objects:
+                attributes.extend(media_object.attributes)
+                self._attribute_cnt += len(media_object.attributes)
+
+                for attr in media_object.attributes:
+                    # assign an existing id if attribute with the same name exists, otherwise create a new one
+                    if (attr.name, attr.annotatable_type) not in attribute_name_to_ids:
+                        attribute_name_to_ids[
+                            (attr.name, attr.annotatable_type)
+                        ] = uuid.uuid4()
+                    else:
+                        log.info(
+                            f"reusing existing attribute id for attribute name {attr.name}"
+                        )
+                        attr.id = attribute_name_to_ids[
+                            (attr.name, attr.annotatable_type)
+                        ]
+
+        return attributes
 
     def _determine_media_files_upload_behavior(self) -> None:
         """Checks whether media file_path or file_key are set according to whether the dataset uses an external media source or not.

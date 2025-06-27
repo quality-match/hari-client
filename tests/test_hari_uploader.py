@@ -1348,6 +1348,89 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
     )  # (1000 existing + 2 new) - 1 new that collides with existing
 
 
+def test_hari_uploader_existing_attribute_ids_are_reused(
+    create_configurable_mock_uploader_successful_single_batch,
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        media_spy,
+        media_object_spy,
+        attribute_spy,
+        subset_create_spy,
+    ) = create_configurable_mock_uploader_successful_single_batch(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=1,
+        media_objects_cnt=1,
+        attributes_cnt=2,
+    )
+
+    existing_media_attr_id = "media_attribute_id"
+    existing_media_object_attr_id = "media_object_attribute_id"
+
+    same_attribute_name = "attribute_name"
+
+    mock_attribute_metadata = [
+        models.AttributeMetadataResponse(
+            id=existing_media_attr_id,
+            name=same_attribute_name,
+            annotatable_type=models.DataBaseObjectType.MEDIA,
+        ),
+        models.AttributeMetadataResponse(
+            id=existing_media_object_attr_id,
+            name=same_attribute_name,
+            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
+        ),
+    ]
+
+    # rewrite the get_attribute_metadata return value
+    uploader.client.get_attribute_metadata = (
+        lambda *args, **kwargs: mock_attribute_metadata
+    )
+
+    media = hari_uploader.HARIMedia(
+        name="my image",
+        media_type=models.MediaType.IMAGE,
+        back_reference="img",
+        file_path="images/image.jpg",
+    )
+
+    media_object = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference=f"img_obj",
+        reference_data=models.PolyLine2DFlatCoordinates(
+            coordinates=[1450, 1550, 1450, 1000],
+            closed=False,
+        ),
+    )
+    media.add_media_object(media_object)
+    media.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.UUID(int=0),
+            name=same_attribute_name,
+            value=f"value",
+        )
+    )
+    media_object.add_attribute(
+        hari_uploader.HARIAttribute(
+            id=uuid.UUID(int=1),
+            name=same_attribute_name,
+            value=f"value",
+        )
+    )
+
+    uploader.add_media(media)
+    uploader.upload()
+
+    # assert that the existing attribute ids were reused by name + annotatable type
+    assert uploader._medias[0].attributes[0].id == existing_media_attr_id
+    assert (
+        uploader._medias[0].media_objects[0].attributes[0].id
+        == existing_media_object_attr_id
+    )
+
+
 @pytest.mark.parametrize(
     "file_key, is_valid",
     [
