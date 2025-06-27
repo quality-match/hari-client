@@ -1,10 +1,12 @@
 import collections
 import uuid
+from unittest import mock
 
 import pytest
 
 from hari_client import hari_uploader
 from hari_client import models
+from hari_client.client import errors
 
 
 def test_add_media(mock_uploader_for_object_category_validation):
@@ -1950,3 +1952,105 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         len(results.failures.failed_media_object_attributes)
         == uploader_result["num_failed_media_object_attributes"]
     )
+
+
+@pytest.mark.parametrize(
+    "entity_name,return_value_bulk_item_result",
+    [
+        (
+            "medias",
+            {
+                "item_id": str(uuid.UUID(int=0)),
+                "status": "conflict",
+                "bulk_operation_annotatable_id": "bulk_media_id_0",  # comes from the fixture
+                "errors": ["Conflict"],
+            },
+        ),
+        (
+            "media_objects",
+            {
+                "item_id": str(uuid.UUID(int=0)),
+                "status": "conflict",
+                "bulk_operation_annotatable_id": "bulk_media_id_0",  # comes from the fixture
+                "errors": ["Conflict"],
+            },
+        ),
+        (
+            "attributes",
+            {
+                "item_id": str(uuid.UUID(int=0)),
+                "status": "conflict",
+                "annotatable_id": str(uuid.UUID(int=1)),
+                "errors": ["Conflict"],
+            },
+        ),
+    ],
+)
+def test_hari_uploader_bulk_failure_is_parsed(
+    entity_name,
+    return_value_bulk_item_result,
+    create_configurable_mock_uploader_successful_single_batch,
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        media_spy,
+        media_object_spy,
+        attribute_spy,
+        subset_create_spy,
+    ) = create_configurable_mock_uploader_successful_single_batch(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=1,
+        media_objects_cnt=1,
+        attributes_cnt=1,
+    )
+
+    mock_response = mock.Mock()
+    mock_response.status_code = 409
+    mock_response.json.return_value = {
+        "status": "failure",
+        "summary": {"total": 1, "successful": 0, "failed": 1},
+        "results": [return_value_bulk_item_result],
+    }
+
+    with mock.patch.object(
+        uploader.client,
+        f"create_{entity_name}",
+        side_effect=errors.APIError(mock_response),
+    ):
+        media = hari_uploader.HARIMedia(
+            name="my image",
+            media_type=models.MediaType.IMAGE,
+            back_reference="img",
+            file_path="images/image.jpg",
+        )
+        media.add_media_object(
+            hari_uploader.HARIMediaObject(
+                source=models.DataSource.REFERENCE,
+                back_reference="img_obj",
+                reference_data=models.PolyLine2DFlatCoordinates(
+                    coordinates=[1450, 1550, 1450, 1000],
+                    closed=False,
+                ),
+            )
+        )
+        media.add_attribute(
+            hari_uploader.HARIAttribute(
+                id=uuid.UUID(int=0),
+                name="attr",
+                value="value",
+            )
+        )
+        uploader.add_media(media)
+
+        # Act + Assert
+        results = uploader.upload()
+
+        match entity_name:
+            case "medias":
+                assert results.medias.results[0].status == "conflict"
+            case "media_objects":
+                assert results.media_objects.results[0].status == "conflict"
+            case "attributes":
+                assert results.attributes.results[0].status == "conflict"

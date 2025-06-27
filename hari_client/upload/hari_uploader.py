@@ -9,8 +9,8 @@ from hari_client import HARIClient
 from hari_client import HARIUploaderConfig
 from hari_client import models
 from hari_client import validation
+from hari_client.client import client
 from hari_client.client import errors
-from hari_client.client.client import _parse_response_model
 from hari_client.upload import property_validator
 from hari_client.utils import logger
 
@@ -729,8 +729,6 @@ class HARIUploader:
         # Handle scene and object category setup and validation
         self._handle_scene_and_category_data()
 
-        # double check _handle_object_categories()
-
         if self.skip_uploaded_medias:
             self.mark_already_uploaded_medias(self._medias)
 
@@ -773,11 +771,17 @@ class HARIUploader:
 
         # upload only needed media for batch
         if medias_need_upload:
-            media_upload_response = self.client.create_medias(
-                dataset_id=self.dataset_id,
-                medias=medias_need_upload,
-                with_media_files_upload=self._with_media_files_upload,
-            )
+            # prevents failing if bulk response status is failure
+            try:
+                media_upload_response = self.client.create_medias(
+                    dataset_id=self.dataset_id,
+                    medias=medias_need_upload,
+                    with_media_files_upload=self._with_media_files_upload,
+                )
+            except errors.APIError as e:
+                media_upload_response = client._parse_response_model(
+                    response_data=e.message, response_model=models.BulkResponse
+                )
         else:
             # if no media needs to be uploaded, return an empty response
             media_upload_response = models.BulkResponse(
@@ -877,18 +881,13 @@ class HARIUploader:
         Returns:
             The BulkResponse result of uploading these attributes.
         """
+        # prevents failing if bulk response status is failure
         try:
             response = self.client.create_attributes(
                 dataset_id=self.dataset_id, attributes=attributes_to_upload
             )
         except errors.APIError as e:
-            # TODO try to parse as Bulk response, might only be a conflict
-            # Motivation we added manual error messages for all duplicated
-            # We realigned and the default behavior should that they are successful, this is also true for attributes
-            # So here the error needs to be catched and shown as success
-            # TODO Error in implementation: This could actually be a lot of errors e.g. if cant_solve is specified as possible value
-            # In this case this parsing returns an empty array while it should show the actual errors.
-            response = _parse_response_model(
+            response = client._parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )
         self._mark_already_uploaded_attributes_as_successful(response)
@@ -904,9 +903,7 @@ class HARIUploader:
             response: The BulkResponse containing the results of the attribute upload.
         """
         for result in response.results:
-            if (
-                result.status == models.ResponseStatesEnum.CONFLICT
-            ):  # replace with ALREADY_EXISTS
+            if result.status == models.ResponseStatesEnum.ALREADY_EXISTS:
                 result.status = models.ResponseStatesEnum.SUCCESS
                 result.errors = []
 
@@ -954,9 +951,15 @@ class HARIUploader:
                 media_objects_need_upload.append(media_object)
 
         if media_objects_need_upload:
-            response = self.client.create_media_objects(
-                dataset_id=self.dataset_id, media_objects=media_objects_need_upload
-            )
+            # prevents failing if bulk response status is failure
+            try:
+                response = self.client.create_media_objects(
+                    dataset_id=self.dataset_id, media_objects=media_objects_need_upload
+                )
+            except errors.APIError as e:
+                response = client._parse_response_model(
+                    response_data=e.message, response_model=models.BulkResponse
+                )
         else:
             # if no media objects need to be uploaded, return an empty response
             response = models.BulkResponse(
