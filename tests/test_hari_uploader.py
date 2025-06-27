@@ -1253,7 +1253,7 @@ def test_hari_uploader_unique_attributes_number_limit_error(
             attribute_media_id = uuid.uuid4()
             attribute_media = hari_uploader.HARIAttribute(
                 id=attribute_media_id,
-                name="area",
+                name=f"media_{i}_{j}",
                 value=6912,
             )
             media.add_attribute(attribute_media)
@@ -1268,7 +1268,7 @@ def test_hari_uploader_unique_attributes_number_limit_error(
             attribute_object_id = uuid.uuid4()
             attribute_object = hari_uploader.HARIAttribute(
                 id=attribute_object_id,
-                name="Is this a human being?",
+                name=f"media_object{i}_{k}",
                 value=True,
             )
             media_object.add_attribute(attribute_object)
@@ -1280,7 +1280,7 @@ def test_hari_uploader_unique_attributes_number_limit_error(
     with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
         uploader.upload()
     assert e.value.existing_attributes_number == 0
-    assert e.value.new_attributes_number == expected_attr_cnt
+    assert e.value.intended_attributes_number == 1500
 
 
 def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attributes(
@@ -1303,12 +1303,12 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
 
     existing_attrs_number = 999
     mock_attribute_metadata = [
-        models.AttributeMetadataResponse(id=str(i), name=f"attr_{i}")
+        models.AttributeMetadataResponse(id=str(uuid.UUID(int=i)), name=f"attr_{i}")
         for i in range(existing_attrs_number)
     ]
     # create a collision with new attribute
     mock_attribute_metadata.append(
-        models.AttributeMetadataResponse(id=str(uuid.UUID(int=0)), name=f"attr_0")
+        models.AttributeMetadataResponse(id=str(uuid.UUID(int=2000)), name=f"attr_0")
     )
     # rewrite the get_attribute_metadata return value
     uploader.client.get_attribute_metadata = (
@@ -1331,8 +1331,8 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
         media.add_media_object(media_object)
         media_object.add_attribute(
             hari_uploader.HARIAttribute(
-                id=uuid.UUID(int=k),
-                name=f"attr_media_object",
+                id=uuid.UUID(int=k + 2000),
+                name=f"attr_{k+2000}",
                 value=f"value_{k}",
             )
         )
@@ -1342,7 +1342,6 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
     # Act + Assert
     with pytest.raises(hari_uploader.HARIUniqueAttributesLimitExceeded) as e:
         uploader.upload()
-    assert e.value.new_attributes_number == new_attrs_number
     assert e.value.existing_attributes_number == len(mock_attribute_metadata)
     assert (
         e.value.intended_attributes_number == 1001

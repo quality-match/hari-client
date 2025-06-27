@@ -119,7 +119,6 @@ class HARIMediaValidationError(Exception):
 
 
 class HARIUniqueAttributesLimitExceeded(Exception):
-    new_attributes_number: int
     existing_attributes_number: int
     intended_attributes_number: int
 
@@ -127,25 +126,25 @@ class HARIUniqueAttributesLimitExceeded(Exception):
 
     def __init__(
         self,
-        new_attributes_number: int,
         existing_attributes_number: int,
         intended_attributes_number: int,
     ):
-        self.new_attributes_number = new_attributes_number
         self.existing_attributes_number = existing_attributes_number
         self.intended_attributes_number = intended_attributes_number
 
-        message = f"You are trying to upload too many attributes with {new_attributes_number} different ids for one dataset"
+        message = (
+            f"You are trying to upload too many different attributes for one dataset"
+            f" when the limit for different attribute ids per dataset is {MAX_ATTR_COUNT}. "
+        )
 
         if existing_attributes_number > 0:
             message += (
-                f", and there are already {existing_attributes_number} different attribute ids uploaded. "
-                f"The intended number of all attribute ids per dataset would be {intended_attributes_number},"
+                f"There are already {existing_attributes_number} different attribute ids uploaded. "
+                f"The intended number of all attribute ids per dataset would be {intended_attributes_number}"
             )
 
         message += (
-            f" when the limit is {MAX_ATTR_COUNT}. "
-            "Please make sure to reuse attribute ids you've already generated "
+            " Please make sure to reuse attribute ids you've already generated "
             "for attributes that have the same name and annotatable type. "
             "See how attributes work in HARI here: "
             "https://docs.quality-match.com/hari_client/faq/#how-do-attributes-work-in-hari."
@@ -302,16 +301,7 @@ class HARIUploader:
         Args:
             *args: Multiple HARIMedia objects
         """
-        for media in args:
-            self._medias.append(media)
-            for attr in media.attributes:
-                self._unique_attribute_ids.add(
-                    str(attr.id)
-                )  # todo we shoul do it in another place
-
-            for media_object in media.media_objects:
-                for attr in media_object.attributes:
-                    self._unique_attribute_ids.add(str(attr.id))
+        self._medias.extend(args)
 
     def _get_existing_scenes(self) -> list[models.Scene]:
         """Retrieves all existing scenes from the server."""
@@ -585,27 +575,11 @@ class HARIUploader:
 
         if len(attribute_name_to_ids) > MAX_ATTR_COUNT:
             raise HARIUniqueAttributesLimitExceeded(
-                new_attributes_number=len(attribute_name_to_ids)
-                - len(existing_attr_metadata),
                 existing_attributes_number=len(existing_attr_metadata),
                 intended_attributes_number=len(attribute_name_to_ids),
             )
 
         return all_attributes
-
-    def validate_unique_attributes_limit(self) -> None:
-        existing_attr_metadata = self.client.get_attribute_metadata(
-            dataset_id=self.dataset_id
-        )
-        existing_attribute_ids = {attr.id for attr in existing_attr_metadata}
-        all_attribute_ids = existing_attribute_ids.union(self._unique_attribute_ids)
-
-        if len(all_attribute_ids) > MAX_ATTR_COUNT:
-            raise HARIUniqueAttributesLimitExceeded(
-                new_attributes_number=len(self._unique_attribute_ids),
-                existing_attributes_number=len(existing_attr_metadata),
-                intended_attributes_number=len(all_attribute_ids),
-            )
 
     def _determine_media_files_upload_behavior(self) -> None:
         """Checks whether media file_path or file_key are set according to whether the dataset uses an external media source or not.
