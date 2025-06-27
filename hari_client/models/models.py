@@ -1211,6 +1211,7 @@ class MediaObjectCreate(BaseModel):
     media_id: str
     source: DataSource = DataSource.REFERENCE
     back_reference: str
+
     archived: bool = False
     scene_id: str | None = None
     realWorldObject_id: str | None = None

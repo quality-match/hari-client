@@ -273,7 +273,6 @@ class HARIUploader:
 
         self._config: HARIUploaderConfig = self.client.config.hari_uploader
         self._medias: list[HARIMedia] = []
-        # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         # Initialize property mappings
         self._object_category_subsets: dict[str, str] = {}
         self._scenes: dict[str, str] = {}
@@ -595,7 +594,7 @@ class HARIUploader:
                     if (attr.name, attr.annotatable_type) not in attribute_name_to_ids:
                         attribute_name_to_ids[
                             (attr.name, attr.annotatable_type)
-                        ] = uuid.uuid4()
+                        ] = attr.id
                     else:
                         log.info(
                             f"reusing existing attribute id for attribute name {attr.name}"

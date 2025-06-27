@@ -2,7 +2,7 @@ import time
 import uuid
 from typing import Tuple
 
-import hari_client.upload.hari_uploader as hari_uploader
+from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.upload.hari_uploader import HARIMedia
@@ -15,7 +15,7 @@ def trigger_and_display_metadata_update(
     hari: HARIClient, dataset_id: uuid.UUID, subset_id: uuid.UUID | None = None
 ):
     """
-    Trigger and wait for the metadata update jobs to finish, then log their statuses.
+    Trigger and wait for the metadata update jobs to finish, then print their statuses.
 
     Args:
         hari: An instance of HARIClient to interact with the HARI API.
@@ -158,9 +158,7 @@ def check_and_upload_dataset(
         client=hari, dataset_id=dataset_id, object_categories=object_categories
     )
 
-    for media in medias:
-        uploader.add_media(media)
-
+    uploader.add_media(*medias)
     upload_results = uploader.upload()
 
     # Inspect upload results
