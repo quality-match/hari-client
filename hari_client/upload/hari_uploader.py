@@ -273,8 +273,6 @@ class HARIUploader:
 
         self._config: HARIUploaderConfig = self.client.config.hari_uploader
         self._medias: list[HARIMedia] = []
-        self._media_back_references: set[str] = set()  # may be not necessary
-        self._media_object_back_references: set[str] = set()  # may be not necessary
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         # Initialize property mappings
         self._object_category_subsets: dict[str, str] = {}
@@ -499,21 +497,23 @@ class HARIUploader:
         return dataset and dataset.external_media_source is not None
 
     def validate_medias(self) -> None:
+        media_back_references = set()
         for media in self._medias:
             # validate back reference uniqueness
-            if media.back_reference in self._media_back_references:
+            if media.back_reference in media_back_references:
                 log.warning(
                     f"Found duplicate media back_reference: {media.back_reference}. If "
                     f"you want to be able to match HARI objects 1:1 to your own, "
                     f"consider using unique back_references."
                 )
             else:
-                self._media_back_references.add(media.back_reference)
+                media_back_references.add(media.back_reference)
 
     def validate_media_objects(self, media_objects: list[HARIMediaObject]) -> None:
+        media_object_back_references = set()
         for media_object in media_objects:
-            # validate back reference uniquenesspy
-            if media_object.back_reference in self._media_object_back_references:
+            # validate back reference uniqueness
+            if media_object.back_reference in media_object_back_references:
                 log.warning(
                     f"Found duplicate media_object back_reference: "
                     f"{media_object.back_reference}. If you want to be able to match HARI "
@@ -521,7 +521,7 @@ class HARIUploader:
                     f"back_references."
                 )
             else:
-                self._media_object_back_references.add(media_object.back_reference)
+                media_object_back_references.add(media_object.back_reference)
 
     def validate_all_attributes(self) -> int:
         """
