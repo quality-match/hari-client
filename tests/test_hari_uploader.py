@@ -547,7 +547,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             media.add_attribute(
                 hari_uploader.HARIAttribute(
                     id=attribute_media_id,
-                    name=f"attr_{i}_{k}",
+                    name=f"attr_media",
                     value=f"value_{i}_{k}",
                 )
             )
@@ -555,7 +555,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
                 media_object.add_attribute(
                     hari_uploader.HARIAttribute(
                         id=attribute_media_object_id,
-                        name=f"attr_{i}_{k}_{l}",
+                        name=f"attr_media_object",
                         value=f"value_{i}_{k}_{l}",
                     )
                 )
@@ -1303,12 +1303,12 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
 
     existing_attrs_number = 999
     mock_attribute_metadata = [
-        models.AttributeMetadataResponse(id=str(i))
+        models.AttributeMetadataResponse(id=str(i), name=f"attr_{i}")
         for i in range(existing_attrs_number)
     ]
     # create a collision with new attribute
     mock_attribute_metadata.append(
-        models.AttributeMetadataResponse(id=str(uuid.UUID(int=0)))
+        models.AttributeMetadataResponse(id=str(uuid.UUID(int=0)), name=f"attr_0")
     )
     # rewrite the get_attribute_metadata return value
     uploader.client.get_attribute_metadata = (
@@ -1332,7 +1332,7 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
         media_object.add_attribute(
             hari_uploader.HARIAttribute(
                 id=uuid.UUID(int=k),
-                name=f"attr_{k}",
+                name=f"attr_media_object",
                 value=f"value_{k}",
             )
         )

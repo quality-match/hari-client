@@ -9,6 +9,8 @@ from hari_client import HARIClient
 from hari_client import HARIUploaderConfig
 from hari_client import models
 from hari_client import validation
+from hari_client.client import errors
+from hari_client.client.client import _parse_response_model
 from hari_client.upload import property_validator
 from hari_client.utils import logger
 
@@ -542,20 +544,54 @@ class HARIUploader:
         Raises:
             HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids exceeds
             the limit of MAX_ATTR_COUNT per dataset.
-            Any exception coming from validate_attributes.
+            Any validation errors raised by the validate_attributes function.
         """
-        self.validate_unique_attributes_limit()
+
+        # Get existing attributes
+        existing_attr_metadata = self.client.get_attribute_metadata(
+            dataset_id=self.dataset_id
+        )
+        attribute_name_to_ids: dict[str, str | uuid.UUID] = {
+            attr.name: attr.id for attr in existing_attr_metadata
+        }
 
         all_attributes = []
         for media in self._medias:
             all_attributes.extend(media.attributes)
             self._attribute_cnt += len(media.attributes)
 
+            for attr in media.attributes:
+                # assign an existing id if attribute with the same name exists, otherwise create a new one
+                if attr.name not in attribute_name_to_ids:
+                    attribute_name_to_ids[attr.name] = attr.id
+                else:
+                    log.info(
+                        f"reusing existing attribute id for attribute name {attr.name}"
+                    )
+                    attr.id = attribute_name_to_ids[attr.name]
+
             for media_object in media.media_objects:
                 all_attributes.extend(media_object.attributes)
                 self._attribute_cnt += len(media_object.attributes)
 
+                for attr in media_object.attributes:
+                    # assign an existing id if attribute with the same name exists, otherwise create a new one
+                    if attr.name not in attribute_name_to_ids:
+                        attribute_name_to_ids[attr.name] = uuid.uuid4()
+                    attr.id = attribute_name_to_ids[attr.name]
+
+        # Raises an error if any requirements for attribute consistency aren't met.
         validation.validate_attributes(all_attributes)
+
+        if len(attribute_name_to_ids) > MAX_ATTR_COUNT:
+            raise HARIUniqueAttributesLimitExceeded(
+                new_attributes_number=len(attribute_name_to_ids)
+                - len(existing_attr_metadata),
+                existing_attributes_number=len(existing_attr_metadata),
+                intended_attributes_number=len(attribute_name_to_ids),
+            )
+
+        return all_attributes
 
     def validate_unique_attributes_limit(self) -> None:
         existing_attr_metadata = self.client.get_attribute_metadata(
@@ -694,6 +730,8 @@ class HARIUploader:
 
         # Handle scene and object category setup and validation
         self._handle_scene_and_category_data()
+
+        # double check _handle_object_categories()
 
         if self.skip_uploaded_medias:
             self.mark_already_uploaded_medias(self._medias)
@@ -841,10 +879,60 @@ class HARIUploader:
         Returns:
             The BulkResponse result of uploading these attributes.
         """
-        response = self.client.create_attributes(
-            dataset_id=self.dataset_id, attributes=attributes_to_upload
-        )
+        try:
+            response = self.client.create_attributes(
+                dataset_id=self.dataset_id, attributes=attributes_to_upload
+            )
+        except errors.APIError as e:
+            # TODO try to parse as Bulk response, might only be a conflict
+            # Motivation we added manual error messages for all duplicated
+            # We realigned and the default behavior should that they are successful, this is also true for attributes
+            # So here the error needs to be catched and shown as success
+            # TODO Error in implementation: This could actually be a lot of errors e.g. if cant_solve is specified as possible value
+            # In this case this parsing returns an empty array while it should show the actual errors.
+            response = _parse_response_model(
+                response_data=e.message, response_model=models.BulkResponse
+            )
+        self._mark_already_uploaded_attributes_as_successful(response)
         return response
+
+    def _mark_already_uploaded_attributes_as_successful(
+        self, response: models.BulkResponse
+    ) -> None:
+        """
+        Marks attributes that were already uploaded as successful in the BulkResponse
+        and reevaluates the overall response.
+        Args:
+            response: The BulkResponse containing the results of the attribute upload.
+        """
+        for result in response.results:
+            if (
+                result.status == models.ResponseStatesEnum.CONFLICT
+            ):  # replace with ALREADY_EXISTS
+                result.status = models.ResponseStatesEnum.SUCCESS
+                result.errors = []
+
+        # reevaluate the overall status
+        unique_statuses = {result.status for result in response.results}
+        if unique_statuses == {models.ResponseStatesEnum.SUCCESS}:
+            response.status = models.BulkOperationStatusEnum.SUCCESS
+        elif models.ResponseStatesEnum.SUCCESS in unique_statuses:
+            response.status = models.BulkOperationStatusEnum.PARTIAL_SUCCESS
+        else:
+            response.status = models.BulkOperationStatusEnum.FAILURE
+
+        # recalculate summary
+        total = len(response.results)
+        successful = sum(
+            1 for r in response.results if r.status == models.ResponseStatesEnum.SUCCESS
+        )
+        failed = total - successful
+
+        response.summary = models.BulkUploadSuccessSummary(
+            total=total,
+            successful=successful,
+            failed=failed,
+        )
 
     def _upload_media_object_batch(
         self, media_objects_to_upload: list[HARIMediaObject]

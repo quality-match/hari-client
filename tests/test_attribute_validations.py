@@ -348,18 +348,6 @@ def test_attribute_validation_inconsistent_list_element_value_types(
             [hari_uploader.HARIAttribute(id=_some_uuids[0], name="a", value=42)],
             [
                 hari_uploader.HARIAttribute(
-                    id=_some_uuids[1], name="b", value="banana"
-                ),
-                hari_uploader.HARIAttribute(
-                    id=_some_uuids[2], name="b", value="hello_world"
-                ),
-            ],
-            errors.AttributeValidationIdNotReusedError,
-        ),
-        (
-            [hari_uploader.HARIAttribute(id=_some_uuids[0], name="a", value=42)],
-            [
-                hari_uploader.HARIAttribute(
                     id=_some_uuids[1], name="b", value=[1, 2, 42, 37]
                 ),
                 hari_uploader.HARIAttribute(

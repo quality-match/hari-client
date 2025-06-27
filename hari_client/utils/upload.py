@@ -2,7 +2,7 @@ import time
 import uuid
 from typing import Tuple
 
-import hari_client.upload.state_aware_hari_uploader as hari_uploader
+import hari_client.upload.hari_uploader as hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.upload.hari_uploader import HARIMedia
@@ -15,7 +15,7 @@ def trigger_and_display_metadata_update(
     hari: HARIClient, dataset_id: uuid.UUID, subset_id: uuid.UUID | None = None
 ):
     """
-    Trigger and wait for the metadata update jobs to finish, then print their statuses.
+    Trigger and wait for the metadata update jobs to finish, then log their statuses.
 
     Args:
         hari: An instance of HARIClient to interact with the HARI API.
@@ -154,7 +154,7 @@ def check_and_upload_dataset(
     """
     log.info("Prepare Upload to HARI...")
 
-    uploader = hari_uploader.StateAwareHARIUploader(
+    uploader = hari_uploader.HARIUploader(
         client=hari, dataset_id=dataset_id, object_categories=object_categories
     )
 
@@ -164,24 +164,24 @@ def check_and_upload_dataset(
     upload_results = uploader.upload()
 
     # Inspect upload results
-    print(f"media upload status: {upload_results.medias.status.value}")
-    print(f"media upload summary\n  {upload_results.medias.summary}")
+    log.info(f"media upload status: {upload_results.medias.status.value}")
+    log.info(f"media upload summary\n  {upload_results.medias.summary}")
 
-    print(f"media object upload status: {upload_results.media_objects.status.value}")
-    print(f"media object upload summary\n  {upload_results.media_objects.summary}")
+    log.info(f"media object upload status: {upload_results.media_objects.status.value}")
+    log.info(f"media object upload summary\n  {upload_results.media_objects.summary}")
 
-    print(f"attribute upload status: {upload_results.attributes.status.value}")
-    print(f"attribute upload summary\n  {upload_results.attributes.summary}")
+    log.info(f"attribute upload status: {upload_results.attributes.status.value}")
+    log.info(f"attribute upload summary\n  {upload_results.attributes.summary}")
 
     if (
-        upload_results.medias.summary.failed > 0
-        or upload_results.media_objects.summary.failed > 0
-        or upload_results.attributes.summary.failed > 0
+        upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
+        or upload_results.media_objects.status != models.BulkOperationStatusEnum.SUCCESS
+        or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
     ):
-        print("The data upload wasn't fully successful. See the details below.")
-        print(f"media upload details: {upload_results.medias.results}")
-        print(f"media objects upload details: {upload_results.media_objects.results}")
-        print(f"attributes upload details: {upload_results.attributes.results}")
+        log.info(
+            "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
+        )
+        log.info(f"media upload details: {upload_results.medias.results}")
 
     new_subset_id, exists = get_or_create_subset_for_all(
         hari, dataset_id, new_subset_name, subset_type
