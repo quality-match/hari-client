@@ -132,6 +132,10 @@ def mock_uploader_for_batching(test_client, mocker):
     mocker.patch.object(client, "create_attributes", return_value=models.BulkResponse())
     mocker.patch.object(client, "get_attribute_metadata", return_value=[])
 
+    # for state aware uploader fetching existing medias and media objects
+    mocker.patch.object(test_client, "get_medias_paginated", return_value=[])
+    mocker.patch.object(test_client, "get_media_objects_paginated", return_value=[])
+
     pedestrian_subset_id = str(uuid.uuid4())
     wheel_subset_id = str(uuid.uuid4())
     object_categories = {"pedestrian", "wheel"}
@@ -163,8 +167,6 @@ def mock_uploader_for_batching(test_client, mocker):
     uploader = hari_uploader.HARIUploader(
         client=client,
         dataset_id=uuid.UUID(int=0),
-        skip_uploaded_medias=False,
-        skip_uploaded_media_objects=False,
     )
 
     # there are multiple batches of medias and media objects, but the bulk_ids for the medias are expected to be continuous
@@ -224,6 +226,11 @@ def mock_uploader_for_bulk_operation_annotatable_id_setter(test_client, mocker):
         client, "create_media_objects", return_value=models.BulkResponse()
     )
     mocker.patch.object(client, "get_attribute_metadata", return_value=[])
+
+    # for state aware uploader fetching existing medias and media objects
+    mocker.patch.object(client, "get_medias_paginated", return_value=[])
+    mocker.patch.object(client, "get_media_objects_paginated", return_value=[])
+
     pedestrian_subset_id = str(uuid.uuid4())
     wheel_subset_id = str(uuid.uuid4())
     mocker.patch.object(
@@ -252,8 +259,6 @@ def mock_uploader_for_bulk_operation_annotatable_id_setter(test_client, mocker):
     uploader = hari_uploader.HARIUploader(
         client=client,
         dataset_id=uuid.UUID(int=0),
-        skip_uploaded_medias=False,
-        skip_uploaded_media_objects=False,
     )
 
     def id_setter_mock(
@@ -287,7 +292,9 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
      - create_attributes
      - create_subset
      - get_subsets_for_dataset
-    - get_attribute_metadata (mocked to return an empty list)
+     - get_attribute_metadata (mocked to return an empty list)
+     - get_medias_paginated (mocked to return an empty list)
+     - get_media_objects_paginated (mocked to return an empty list)
 
     mocked HARIUploader methods:
      - _set_bulk_operation_annotatable_id
@@ -355,6 +362,9 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
             ),
         )
         mocker.patch.object(test_client, "get_attribute_metadata", return_value=[])
+        # for state aware uploader fetching existing medias and media objects
+        mocker.patch.object(test_client, "get_medias_paginated", return_value=[])
+        mocker.patch.object(test_client, "get_media_objects_paginated", return_value=[])
 
         if create_subset_side_effect is not None:
             mocker.patch.object(
@@ -375,8 +385,6 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
             client=test_client,
             dataset_id=dataset_id,
             object_categories=object_categories,
-            skip_uploaded_medias=False,
-            skip_uploaded_media_objects=False,
         )
 
         global running_media_bulk_id
@@ -418,6 +426,135 @@ def create_configurable_mock_uploader_successful_single_batch(mocker, test_clien
             media_object_spy,
             attribute_spy,
             subset_create_spy,
+        )
+
+    return _create_uploader
+
+
+@pytest.fixture()
+def create_configurable_mock_uploader_successful_single_batch_state_aware(
+    mocker, test_client
+):
+    """Creates a configurable mock state aware uploader for a successful upload of a single batch of medias, media objects and attributes.
+        The number of medias, media objects and attributes can be configured, as well as the object categories and their corresponding
+        subset_ids which are mocked to be created successfully.
+        The first call to get_subsets_for_dataset will return an empty list, the second call will return the specified subsets.
+        More complex behavior will have to be mocked in the test itself.
+
+     mocked HARIClient methods:
+     - create_medias
+     - create_media_objects
+     - create_attributes
+     - create_subset
+     - get_subsets_for_dataset
+     - get_attribute_metadata (mocked to return an empty list)
+     - get_medias_paginated (mocked to return an empty list by default)
+     - get_media_objects_paginated (mocked to return an empty list by default)
+
+    mocked HARIUploader methods:
+     - _set_bulk_operation_annotatable_id
+     - _load_dataset
+     - _update_hari_attribute_media_ids (mocked to return an empty list)
+     - _update_hari_media_object_media_ids (mocked to return an empty list)
+     - _update_hari_attribute_media_object_ids (mocked to return an empty list)
+
+    HARIUploader method spies:
+    - create_medias_spy
+    - create_media_objects_spy
+    - create_attributes_spy
+    """
+
+    def _create_uploader(
+        dataset_id: uuid.UUID,
+        medias_cnt: int,
+        media_objects_cnt: int,
+        attributes_cnt: int,
+        object_categories: set[str] | None = None,
+        mock_attribute_response: models.BulkResponse | None = None,
+    ) -> tuple[
+        hari_uploader.HARIUploader,
+        HARIClient,
+        typing.Any,
+        typing.Any,
+        typing.Any,
+        typing.Any,
+    ]:
+        mocker.patch.object(
+            test_client,
+            "create_medias",
+            return_value=models.BulkResponse(
+                results=[
+                    models.AnnotatableCreateResponse(
+                        status=models.ResponseStatesEnum.SUCCESS,
+                        bulk_operation_annotatable_id=f"bulk_media_id_{i}",
+                    )
+                    for i in range(medias_cnt)
+                ]
+            ),
+        )
+        mocker.patch.object(
+            test_client,
+            "create_media_objects",
+            return_value=models.BulkResponse(
+                results=[
+                    models.AnnotatableCreateResponse(
+                        status=models.ResponseStatesEnum.SUCCESS,
+                        bulk_operation_annotatable_id=f"bulk_media_object_id_{i}",
+                    )
+                    for i in range(media_objects_cnt)
+                ]
+            ),
+        )
+        create_attributes_mock = mocker.patch.object(
+            test_client,
+            "create_attributes",
+            return_value=models.BulkResponse(
+                results=[
+                    models.AttributeCreateResponse(
+                        status=models.ResponseStatesEnum.SUCCESS,
+                        annotatable_id=f"bulk_attribute_id_{i}",
+                    )
+                    for i in range(attributes_cnt)
+                ]
+            ),
+        )
+        mocker.patch.object(test_client, "get_attribute_metadata", return_value=[])
+
+        mocker.patch.object(test_client, "get_subsets_for_dataset", return_value=[])
+
+        mocker.patch.object(test_client, "get_scenes", return_value=[])
+
+        uploader = hari_uploader.HARIUploader(
+            client=test_client,
+            dataset_id=dataset_id,
+            object_categories=object_categories,
+        )
+        mocker.patch.object(uploader, "_load_dataset", return_value=None)
+
+        # state aware specific
+        mocker.patch.object(test_client, "get_medias_paginated", return_value=[])
+        mocker.patch.object(test_client, "get_media_objects_paginated", return_value=[])
+        mocker.patch.object(
+            uploader, "_update_hari_media_object_media_ids", return_value=[]
+        )
+        mocker.patch.object(
+            uploader, "_update_hari_attribute_media_ids", return_value=[]
+        )
+        mocker.patch.object(
+            uploader, "_update_hari_attribute_media_object_ids", return_value=[]
+        )
+
+        create_medias_spy = mocker.spy(test_client, "create_medias")
+        create_media_objects_spy = mocker.spy(test_client, "create_media_objects")
+        create_attributes_spy = mocker.spy(test_client, "create_attributes")
+
+        return (
+            uploader,
+            test_client,
+            create_medias_spy,
+            create_media_objects_spy,
+            create_attributes_spy,
+            create_attributes_mock,
         )
 
     return _create_uploader

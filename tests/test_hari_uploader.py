@@ -2054,3 +2054,183 @@ def test_hari_uploader_bulk_failure_is_parsed(
                 assert results.media_objects.results[0].status == "conflict"
             case "attributes":
                 assert results.attributes.results[0].status == "conflict"
+
+
+def test_hari_uploader_skips_uploaded_entities(
+    create_configurable_mock_uploader_successful_single_batch_state_aware,
+):
+    # Arrange
+    (
+        uploader,
+        client,
+        create_medias_spy,
+        create_media_objects_spy,
+        create_attributes_spy,
+        create_attributes_mock,
+    ) = create_configurable_mock_uploader_successful_single_batch_state_aware(
+        dataset_id=uuid.UUID(int=0),
+        medias_cnt=1,  # only 1 is really uploaded
+        media_objects_cnt=1,  # only 1 is really uploaded
+        attributes_cnt=0,  # overwritten in the test
+    )
+
+    # mock existing medias
+    mock_existing_medias = [
+        models.MediaResponse(
+            id=str(uuid.UUID(int=i)), name=f"media_{i}", back_reference=f"media_ref_{i}"
+        )
+        for i in range(2)
+    ]
+    uploader.client.get_medias_paginated = lambda *args, **kwargs: mock_existing_medias
+
+    # mock existing media objects
+    mock_existing_media_objects = [
+        models.MediaObjectResponse(
+            id=str(uuid.UUID(int=i)),
+            back_reference=f"media_obj_{i}",
+        )
+        for i in range(2)
+    ]
+    uploader.client.get_media_objects_paginated = (
+        lambda *args, **kwargs: mock_existing_media_objects
+    )
+
+    # to be uploaded
+    already_uploaded_media = hari_uploader.HARIMedia(
+        name="media_1",
+        media_type=models.MediaType.IMAGE,
+        back_reference="media_ref_1",
+        file_path="images/image_1.jpg",
+    )
+    new_media = hari_uploader.HARIMedia(
+        name="media_2",
+        media_type=models.MediaType.IMAGE,
+        back_reference="media_ref_2",
+        file_path="images/image_2.jpg",
+    )
+    already_uploaded_media_object = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference="media_obj_0",
+        reference_data=models.PolyLine2DFlatCoordinates(
+            coordinates=[1450, 1550, 1450, 1000],
+            closed=False,
+        ),
+    )
+    new_media_object = hari_uploader.HARIMediaObject(
+        source=models.DataSource.REFERENCE,
+        back_reference="media_obj_2",
+        reference_data=models.PolyLine2DFlatCoordinates(
+            coordinates=[1450, 1550, 1450, 1000],
+            closed=False,
+        ),
+    )
+    already_uploaded_media.add_media_object(new_media_object)
+    new_media.add_media_object(already_uploaded_media_object)
+
+    media_attr_id = uuid.UUID(int=0)
+    media_object_attr_id = uuid.UUID(int=2)
+
+    already_uploaded_media_attribute = hari_uploader.HARIAttribute(
+        id=media_attr_id,
+        name="media_attr_1",
+        value="str",
+    )
+    new_media_attribute = hari_uploader.HARIAttribute(
+        id=uuid.UUID(int=1),
+        name="media_attr_1",
+        value="str",
+    )
+    already_uploaded_media.add_attribute(already_uploaded_media_attribute)
+    new_media.add_attribute(new_media_attribute)
+    already_uploaded_media_object_attribute = hari_uploader.HARIAttribute(
+        id=media_object_attr_id,
+        name="media_attr_1",
+        value="str",
+    )
+    new_media_object_attribute = hari_uploader.HARIAttribute(
+        id=uuid.UUID(int=3),
+        name="media_attr_1",
+        value="str",
+    )
+    already_uploaded_media_object.add_attribute(already_uploaded_media_object_attribute)
+    new_media_object.add_attribute(new_media_object_attribute)
+
+    # mock attribute response (already existing and success)
+    mock_create_attribute_response = models.BulkResponse(
+        status=models.BulkOperationStatusEnum.PARTIAL_SUCCESS,
+        summary=models.BulkUploadSuccessSummary(
+            total=4,
+            successful=2,
+            failed=2,
+        ),
+        results=[
+            # already exist
+            models.AttributeCreateResponse(
+                item_id=str(media_attr_id),
+                status=models.ResponseStatesEnum.ALREADY_EXISTS,
+                annotatable_id="some_media_id",
+                errors=["already exists"],
+            ),
+            models.AttributeCreateResponse(
+                item_id=str(media_object_attr_id),
+                status=models.ResponseStatesEnum.ALREADY_EXISTS,
+                annotatable_id="some_media_object_id",
+                errors=["already exists"],
+            ),
+            # new
+            models.AttributeCreateResponse(
+                item_id=str(media_attr_id),
+                status=models.ResponseStatesEnum.SUCCESS,
+                annotatable_id="some_media_id",
+            ),
+            models.AttributeCreateResponse(
+                item_id=str(media_object_attr_id),
+                status=models.ResponseStatesEnum.SUCCESS,
+                annotatable_id="some_media_object_id",
+            ),
+        ],
+    )
+    # overwrite the create_attributes mock to return the mock response
+    create_attributes_mock.return_value = mock_create_attribute_response
+
+    # Act
+    uploader.add_media(already_uploaded_media, new_media)
+    results = uploader.upload()
+
+    # Assert
+    assert create_medias_spy.call_count == 1
+    media_calls = create_medias_spy.call_args_list
+    assert len(media_calls[0].kwargs["medias"]) == 1  # we create only new media objects
+    assert len(uploader._medias) == 2
+    assert len(results.medias.results) == 2
+    for res in results.medias.results:
+        assert res.status == models.ResponseStatesEnum.SUCCESS
+
+    assert create_media_objects_spy.call_count == 1
+    media_object_calls = create_media_objects_spy.call_args_list
+    assert (
+        len(media_object_calls[0].kwargs["media_objects"]) == 1
+    )  # we create only new media objects
+    assert sum(len(media.media_objects) for media in uploader._medias) == 2
+    assert len(results.media_objects.results) == 2
+    for res in results.media_objects.results:
+        assert res.status == models.ResponseStatesEnum.SUCCESS
+
+    assert create_attributes_spy.call_count == 1
+    attribute_calls = create_attributes_spy.call_args_list
+    assert (
+        len(attribute_calls[0].kwargs["attributes"]) == 4
+    )  # we create all attributes anyway
+    assert (
+        sum(
+            len(media.attributes)
+            + sum(len(obj.attributes) for obj in media.media_objects)
+            for media in uploader._medias
+        )
+        == 4
+    )
+    assert len(results.attributes.results) == 4
+    assert results.attributes.status == models.ResponseStatesEnum.SUCCESS
+    assert results.attributes.summary.successful == 4
+    for res in results.media_objects.results:
+        assert res.status == models.ResponseStatesEnum.SUCCESS
