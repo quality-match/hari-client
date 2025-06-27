@@ -122,87 +122,6 @@ def test_attribute_validation_inconsistent_value_type(attributes):
 
 
 @pytest.mark.parametrize(
-    "attributes",
-    [
-        [
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_0",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=5,
-            ),
-            models.AttributeCreate(
-                id=_some_uuids[1],
-                name="a",
-                annotatable_id="media_1",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=7,
-            ),
-        ],
-        [
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_0",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=None,
-            ),
-            models.AttributeCreate(
-                id=_some_uuids[1],
-                name="a",
-                annotatable_id="media_0",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=5,
-            ),
-        ],
-        [
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_0",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=5,
-            ),
-            models.AttributeCreate(
-                id=_some_uuids[1],
-                name="a",
-                annotatable_id="media_1",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=None,
-            ),
-        ],
-        [
-            models.AttributeCreate(
-                id=_some_uuids[0],
-                name="a",
-                annotatable_id="media_0",
-                annotatable_type=models.DataBaseObjectType.MEDIA,
-                value=True,
-            ),
-            models.AttributeCreate(
-                id=_some_uuids[1],
-                name="a",
-                annotatable_id="media_object_1",
-                annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
-                value=42,
-            ),
-            models.AttributeCreate(
-                id=_some_uuids[2],
-                name="a",
-                annotatable_id="media_object_2",
-                annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
-                value=37,
-            ),
-        ],
-    ],
-)
-def test_attribute_validation_id_not_reused(attributes):
-    with pytest.raises(errors.AttributeValidationIdNotReusedError):
-        validation.validate_attributes(attributes)
-
-
-@pytest.mark.parametrize(
     "attributes, expected_exception",
     [
         (
@@ -343,18 +262,6 @@ def test_attribute_validation_inconsistent_list_element_value_types(
                 hari_uploader.HARIAttribute(id=_some_uuids[1], name="b", value=47),
             ],
             errors.AttributeValidationInconsistentValueTypeError,
-        ),
-        (
-            [hari_uploader.HARIAttribute(id=_some_uuids[0], name="a", value=42)],
-            [
-                hari_uploader.HARIAttribute(
-                    id=_some_uuids[1], name="b", value="banana"
-                ),
-                hari_uploader.HARIAttribute(
-                    id=_some_uuids[2], name="b", value="hello_world"
-                ),
-            ],
-            errors.AttributeValidationIdNotReusedError,
         ),
         (
             [hari_uploader.HARIAttribute(id=_some_uuids[0], name="a", value=42)],

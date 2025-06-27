@@ -66,7 +66,6 @@ class AttributeConsistencyValidator:
     def validate_attributes(self) -> None:
         """Validates that attributes in a list have consistent value types and ids."""
         for attribute in self.attributes:
-            self._check_attribute_id_usage(attribute)
             value_type = self._check_value_type(attribute)
             self._check_list_elements_value_types(attribute, value_type)
 
@@ -136,20 +135,6 @@ class AttributeConsistencyValidator:
             self.name_list_element_value_type_map[
                 attribute.name
             ] = attribute_list_element_value_type
-
-    def _check_attribute_id_usage(self, attribute: models.AttributeCreate) -> None:
-        if attribute.name in self.name_id_map:
-            if self.name_id_map[attribute.name] != str(attribute.id):
-                raise errors.AttributeValidationIdNotReusedError(
-                    attribute_name=attribute.name,
-                    annotatable_type=attribute.annotatable_type,
-                    found_ids=[
-                        self.name_id_map[attribute.name],
-                        str(attribute.id),
-                    ],
-                )
-        else:
-            self.name_id_map[attribute.name] = str(attribute.id)
 
 
 def _get_value_type_for_comparison(value: typing.Any) -> str:
