@@ -245,6 +245,8 @@ class HARIUploader:
         dataset_id: uuid.UUID,
         object_categories: set[str] | None = None,
         scenes: set[str] | None = None,
+        skip_uploaded_medias=True,
+        skip_uploaded_media_objects=True,
     ) -> None:
         """Initializes the HARIUploader.
 
@@ -256,21 +258,24 @@ class HARIUploader:
                 HARIUploader will create a HARI subset for each object_category and add the corresponding medias and media_objects to it.
             scenes: A set of scenes present in the media_objects.
                 If media_objects have a scene_back_reference assigned, it has to be from this set.
+            skip_uploaded_media_objects: Whether to skip media objects that have already been uploaded by comparing their back references.
+                It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
+            skip_uploaded_medias: Whether to skip medias that have already been uploaded by comparing their back references.
+                It is recommended to use this check but for large datasets it might be inefficient if this is handled before the upload.
         """
         self.client: HARIClient = client
         self.dataset_id: uuid.UUID = dataset_id
         self.object_categories = object_categories or set()
         self.scenes = scenes or set()
+        self.skip_uploaded_medias = skip_uploaded_medias
+        self.skip_uploaded_media_objects = skip_uploaded_media_objects
+
         self._config: HARIUploaderConfig = self.client.config.hari_uploader
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()  # may be not necessary
         self._media_object_back_references: set[str] = set()  # may be not necessary
-        self._media_object_cnt: int = (
-            0  # useless if we don't increase counter on add media anymore
-        )
-        self._attribute_cnt: int = (
-            0  # useless if we don't increase counter on add media anymore
-        )
+        self._media_object_cnt: int = 0  # useless if we don't increase counter on add media anymore, we only have it available on upload
+        self._attribute_cnt: int = 0  # useless if we don't increase counter on add media anymore, we only have it available on upload
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         # Initialize property mappings
         self._object_category_subsets: dict[str, str] = {}
@@ -534,12 +539,10 @@ class HARIUploader:
         Validate all attributes for both media and media objects, ensuring they meet the
         dataset's requirements and do not exceed the allowed unique attribute limit.
 
-        Returns:
-            A list of all validated attributes from the media and media objects.
-
         Raises:
             HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids exceeds
             the limit of MAX_ATTR_COUNT per dataset.
+            Any exception coming from validate_attributes.
         """
         self.validate_unique_attributes_limit()
 
@@ -591,6 +594,62 @@ class HARIUploader:
                 )
             self._with_media_files_upload = True
 
+    def mark_already_uploaded_medias(self, medias: list[HARIMedia]) -> None:
+        """
+        Checks medias that already exist on the server by comparing back_references and mark them as uploaded.
+
+        Args:
+            medias: The list of medias intended for upload.
+        """
+        uploaded_medias = self.client.get_medias_paginated(self.dataset_id)
+
+        self._mark_already_uploaded_entities(medias, uploaded_medias)
+
+    def mark_already_uploaded_media_objects(
+        self, media_objects: list[HARIMediaObject]
+    ) -> None:
+        """
+        Check media objects that already exist on the server by comparing back_references and mark them as uploaded.
+
+        Args:
+            media_objects: The list of media objects intended for upload.
+        """
+        uploaded_media_objects = self.client.get_media_objects_paginated(
+            self.dataset_id
+        )
+
+        self._mark_already_uploaded_entities(media_objects, uploaded_media_objects)
+
+    def _mark_already_uploaded_entities(
+        self,
+        entities_to_upload: list[HARIMediaObject] | list[HARIMedia],
+        entities_uploaded: list[models.MediaResponse]
+        | list[models.MediaObjectResponse],
+    ) -> None:
+        """
+        Marks items in entities_to_upload as already uploaded if their back_references appear
+        among the entities_uploaded. Prints warnings if multiple references are found.
+
+        Args:
+            entities_to_upload: The list of media or media objects to be uploaded.
+            entities_uploaded: The media or media objects already present in the dataset.
+        """
+        # build look up table for back references
+        # add warning if multiple of the same back reference are given, value will be overwritten
+        uploaded_back_references = {}
+        for entity in entities_uploaded:
+            if entity.back_reference in uploaded_back_references:
+                log.warning(
+                    f"Multiple of the same back reference '{entity.back_reference}' encountered on the server; "
+                    f"using the last found id."
+                )
+            uploaded_back_references[entity.back_reference] = entity.id
+
+        for entity in entities_to_upload:
+            # ensure uploaded marked are always having an id
+            entity.uploaded = entity.back_reference in uploaded_back_references
+            entity.id = uploaded_back_references.get(entity.back_reference)
+
     def upload(
         self,
     ) -> HARIUploadResults | None:
@@ -598,16 +657,18 @@ class HARIUploader:
         Uploads all HARIMedia items along with their media objects and attributes to HARI.
 
         This method:
-          1. Ensures all object categories subsets are either reused or created if not yet exist.
-          2. Batches the actual uploading of medias, media objects, and attributes. The items are uploaded as media batches, if medias are uploaded, the corresponding media objects and attributes for this media batch are uploaded.
+          1. Validates media, media_objects and attributes to be consistent and do not include duplicates.
+          2. (Optionally) skips already uploaded medias and media objects by comparing their back references, if specified.
+          3.Ensures all object categories subsets are either reused or created if not yet exist.
+          4. Batches the actual uploading of medias, media objects, and attributes. The items are uploaded as media batches,
+            if medias are uploaded, the corresponding media objects and attributes for this media batch are uploaded.
 
         Returns:
-            HARIUploadResults | None: All upload results and summaries for the
-            upload of medias media_objects and attributes, or None if nothing was uploaded
+            All upload results and summaries for the upload of medias media_objects and attributes, or None if nothing was uploaded.
 
         Raises:
-          HARIUniqueAttributesLimitExceeded: If the total number of unique attributes in the
-          dataset would exceed the configured limit (MAX_ATTR_COUNT) per dataset.
+          - Any critical validation error that prevents the upload.
+          - Any error that occurs during the upload process.
         """
 
         # sync important information with the BE
@@ -634,6 +695,12 @@ class HARIUploader:
         # Handle scene and object category setup and validation
         self._handle_scene_and_category_data()
 
+        if self.skip_uploaded_medias:
+            self.mark_already_uploaded_medias(self._medias)
+
+        if self.skip_uploaded_media_objects:
+            self.mark_already_uploaded_media_objects(all_media_objects)
+
         (
             media_upload_responses,
             media_object_upload_responses,
@@ -659,14 +726,40 @@ class HARIUploader:
         Returns:
             the bulk response for medias.
         """
+        medias_need_upload = []
+        medias_skipped = []
         for media in medias_to_upload:
             self._set_bulk_operation_annotatable_id(item=media)
+            if media.uploaded:
+                medias_skipped.append(media)
+            else:
+                medias_need_upload.append(media)
 
-        # upload media batch
-        media_upload_response = self.client.create_medias(
-            dataset_id=self.dataset_id,
-            medias=medias_to_upload,
-            with_media_files_upload=self._with_media_files_upload,
+        # upload only needed media for batch
+        if medias_need_upload:
+            media_upload_response = self.client.create_medias(
+                dataset_id=self.dataset_id,
+                medias=medias_need_upload,
+                with_media_files_upload=self._with_media_files_upload,
+            )
+        else:
+            # if no media needs to be uploaded, return an empty response
+            media_upload_response = models.BulkResponse(
+                status=models.ResponseStatesEnum.SUCCESS,
+            )
+
+        # manually mark medias that were skipped as successful
+        media_upload_response.summary.successful += len(medias_skipped)
+        media_upload_response.summary.total += len(medias_skipped)
+        media_upload_response.results.extend(
+            [
+                models.AnnotatableCreateResponse(
+                    bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
+                    status=models.ResponseStatesEnum.SUCCESS,
+                    item_id=media.id,
+                )
+                for media in medias_skipped
+            ]
         )
         self._update_hari_media_object_media_ids(
             medias_to_upload=medias_to_upload,
@@ -765,10 +858,37 @@ class HARIUploader:
         Returns:
             The BulkResponse result of uploading these media objects.
         """
+        media_objects_need_upload = []
+        media_objects_skipped = []
         for media_object in media_objects_to_upload:
             self._set_bulk_operation_annotatable_id(item=media_object)
-        response = self.client.create_media_objects(
-            dataset_id=self.dataset_id, media_objects=media_objects_to_upload
+            if media_object.uploaded:
+                media_objects_skipped.append(media_object)
+            else:
+                media_objects_need_upload.append(media_object)
+
+        if media_objects_need_upload:
+            response = self.client.create_media_objects(
+                dataset_id=self.dataset_id, media_objects=media_objects_need_upload
+            )
+        else:
+            # if no media objects need to be uploaded, return an empty response
+            response = models.BulkResponse(
+                status=models.ResponseStatesEnum.SUCCESS,
+            )
+
+        # manually mark media objects that were skipped as successful
+        response.summary.successful += len(media_objects_skipped)
+        response.summary.total += len(media_objects_skipped)
+        response.results.extend(
+            [
+                models.AnnotatableCreateResponse(
+                    bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
+                    status=models.ResponseStatesEnum.SUCCESS,
+                    item_id=media_object.id,
+                )
+                for media_object in media_objects_skipped
+            ]
         )
 
         return response
