@@ -1850,3 +1850,161 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         len(results.failures.failed_media_object_attributes)
         == uploader_result["num_failed_media_object_attributes"]
     )
+
+
+def test_validate_media_object_compatible_with_media_with_none_media_object_type():
+    """Test behavior when media_object_type is None."""
+    media = models.MediaCreate(
+        name="test_image", media_type=models.MediaType.IMAGE, back_reference="img_ref"
+    )
+
+    media_object = models.MediaObjectCreate(
+        media_id="test_media_id", back_reference="obj_ref", media_object_type=None
+    )
+
+    with pytest.raises(ValueError) as exc_info:
+        hari_uploader.HARIUploader._validate_media_object_compatible_with_media(
+            media, media_object
+        )
+
+    expected_msg = (
+        f"Images can only contain 2D geometries: "
+        f"None is not compatible with media type {models.MediaType.IMAGE}."
+    )
+    assert str(exc_info.value) == expected_msg
+
+
+@pytest.mark.parametrize(
+    "media_type,valid_object_geometries,invalid_object_geometries,expected_error_msg",
+    [
+        (
+            models.MediaType.IMAGE,
+            [
+                models.PolyLine2DFlatCoordinates(coordinates=[1.0, 2.0, 3.0, 4.0]),
+                models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.BoundingBox2DAggregation(
+                    type="bbox2d_center_point_aggregation",
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.Point2DXY(x=1.0, y=2.0),
+                models.Point2DAggregation(type="point2d_xy_aggregation", x=1.0, y=2.0),
+                models.SegmentRLECompressed(size=[100, 100], counts="1a2b3c4d"),
+            ],
+            [
+                models.Point3DXYZ(type="point3d_xyz", x=1.0, y=2.0, z=3.0),
+                models.Point3DAggregation(
+                    type="point3d_xyz_aggregation", x=1.0, y=2.0, z=3.0
+                ),
+                models.CuboidCenterPoint(
+                    position=(1.0, 2.0, 3.0),
+                    heading=(0.0, 0.0, 0.0, 1.0),
+                    dimensions=(1.0, 1.0, 1.0),
+                ),
+            ],
+            "Images can only contain 2D geometries",
+        ),
+        (
+            models.MediaType.POINT_CLOUD,
+            [
+                models.Point3DXYZ(type="point3d_xyz", x=1.0, y=2.0, z=3.0),
+                models.Point3DAggregation(
+                    type="point3d_xyz_aggregation", x=1.0, y=2.0, z=3.0
+                ),
+                models.CuboidCenterPoint(
+                    position=(1.0, 2.0, 3.0),
+                    heading=(0.0, 0.0, 0.0, 1.0),
+                    dimensions=(1.0, 1.0, 1.0),
+                ),
+            ],
+            [
+                models.PolyLine2DFlatCoordinates(coordinates=[1.0, 2.0, 3.0, 4.0]),
+                models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.BoundingBox2DAggregation(
+                    type="bbox2d_center_point_aggregation",
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.Point2DXY(x=1.0, y=2.0),
+                models.Point2DAggregation(type="point2d_xy_aggregation", x=1.0, y=2.0),
+                models.SegmentRLECompressed(size=[100, 100], counts="1a2b3c4d"),
+            ],
+            "Point clouds can only contain 3D geometries",
+        ),
+        (
+            models.MediaType.VIDEO,
+            [],  # No valid geometries for video
+            [
+                # All geometry types should be invalid for video
+                models.PolyLine2DFlatCoordinates(coordinates=[1.0, 2.0, 3.0, 4.0]),
+                models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.Point2DXY(x=1.0, y=2.0),
+                models.Point3DXYZ(type="point3d_xyz", x=1.0, y=2.0, z=3.0),
+                models.CuboidCenterPoint(
+                    position=(1.0, 2.0, 3.0),
+                    heading=(0.0, 0.0, 0.0, 1.0),
+                    dimensions=(1.0, 1.0, 1.0),
+                ),
+                models.SegmentRLECompressed(size=[100, 100], counts="1a2b3c4d"),
+            ],
+            "Videos can not contian media objects.",
+        ),
+    ],
+)
+def test_validate_media_object_compatible_with_media_parametrized(
+    media_type, valid_object_geometries, invalid_object_geometries, expected_error_msg
+):
+    """Parametrized test for media object compatibility validation."""
+    media = models.MediaCreate(
+        name="test_media", media_type=media_type, back_reference="media_ref"
+    )
+
+    # Test valid types - should not raise
+    for geometry in valid_object_geometries:
+        media_object = models.MediaObjectCreate(
+            media_id="test_media_id",
+            back_reference="obj_ref",
+            media_object_type=geometry.type,
+        )
+
+        hari_uploader.HARIUploader._validate_media_object_compatible_with_media(
+            media, media_object
+        )
+
+    # Test invalid types - should raise ValueError
+    for geometry in invalid_object_geometries:
+        media_object = models.MediaObjectCreate(
+            media_id="test_media_id",
+            back_reference="obj_ref",
+            media_object_type=geometry.type,
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            hari_uploader.HARIUploader._validate_media_object_compatible_with_media(
+                media, media_object
+            )
+
+        # Check that the error message contains the expected text
+        assert expected_error_msg in str(exc_info.value)
