@@ -575,9 +575,18 @@ class HARIUploader:
                         f" type {media.media_type}."
                     )
 
+    @staticmethod
+    def _validate_geometry_is_provided(media_object: models.MediaObjectCreate) -> None:
+        """Validates that at least one geometry is provided."""
+        if not media_object.geometry:
+            raise ValueError(
+                f"Media object {media_object.back_reference} has no geometry."
+            )
+
     def validate_medias(self) -> None:
         for media in self._medias:
             for media_object in media.media_objects:
+                self._validate_geometry_is_provided(media_object)
                 self._validate_media_object_compatible_with_media(media, media_object)
 
     def validate_all_attributes(self) -> None:
