@@ -1394,12 +1394,12 @@ class HARIUploader:
         )
 
     def upload_data_in_batches(
-        self, attr_count: int, media_object_count: int
+        self, attribute_cnt: int, media_object_cnt: int
     ) -> tuple[list[models.BulkResponse], ...]:
         """Uploads all medias and their media_objects and attributes in batches.
         Args:
-            attr_count: The total number of attributes to upload, used for progress tracking.
-            media_object_count: The total number of media objects to upload, used for progress tracking.
+            attribute_cnt: The total number of attributes to upload, used for progress tracking.
+            media_object_cnt: The total number of media objects to upload, used for progress tracking.
         """
         # upload batches of medias
         log.info(

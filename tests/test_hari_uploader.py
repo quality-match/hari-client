@@ -579,13 +579,20 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             assert len(media_object_calls[i].kwargs["media_objects_to_upload"]) == 150
         else:
             assert len(media_object_calls[i].kwargs["media_objects_to_upload"]) == 50
-    assert uploader._media_object_cnt == 2200
+    assert sum(len(media.media_objects) for media in uploader._medias) == 2200
 
     assert attribute_spy.call_count == 66
     attribute_calls = attribute_spy.call_args_list
     for i in range(66):
         assert len(attribute_calls[i].kwargs["attributes_to_upload"]) == 100
-    assert uploader._attribute_cnt == 6600
+    assert (
+        sum(
+            len(media.attributes)
+            + sum(len(obj.attributes) for obj in media.media_objects)
+            for media in uploader._medias
+        )
+        == 6600
+    )
 
 
 def test_hari_uploader_creates_single_batch_correctly(
@@ -653,12 +660,19 @@ def test_hari_uploader_creates_single_batch_correctly(
     assert media_object_spy.call_count == 1
     media_object_calls = media_object_spy.call_args_list
     assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 10
-    assert uploader._media_object_cnt == 10
+    assert sum(len(media.media_objects) for media in uploader._medias) == 10
 
     assert attribute_spy.call_count == 1
     attribute_calls = attribute_spy.call_args_list
     assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 30
-    assert uploader._attribute_cnt == 30
+    assert (
+        sum(
+            len(media.attributes)
+            + sum(len(obj.attributes) for obj in media.media_objects)
+            for media in uploader._medias
+        )
+        == 30
+    )
 
 
 def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_files(
@@ -731,12 +745,19 @@ def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_fi
     assert media_object_spy.call_count == 1
     media_object_calls = media_object_spy.call_args_list
     assert len(media_object_calls[0].kwargs["media_objects_to_upload"]) == 10
-    assert uploader._media_object_cnt == 10
+    assert sum(len(media.media_objects) for media in uploader._medias) == 10
 
     assert attribute_spy.call_count == 1
     attribute_calls = attribute_spy.call_args_list
     assert len(attribute_calls[0].kwargs["attributes_to_upload"]) == 30
-    assert uploader._attribute_cnt == 30
+    assert (
+        sum(
+            len(media.attributes)
+            + sum(len(obj.attributes) for obj in media.media_objects)
+            for media in uploader._medias
+        )
+        == 30
+    )
 
     # check client method spies
     assert client_create_medias_spy.call_count == 1
