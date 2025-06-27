@@ -2057,9 +2057,7 @@ class HARIClient:
             )
 
         # 1. parse attributes to dicts before upload
-        attribute_dicts = [
-            attribute.model_dump() for attribute in attributes
-        ]  # uploaded is an internal variable for bookkeeping
+        attribute_dicts = [attribute.model_dump() for attribute in attributes]
 
         # 2. send attributes to HARI
         return self._request(
