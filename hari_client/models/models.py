@@ -433,8 +433,8 @@ class CameraIntrinsics(BaseModel):
 
 
 class MediaMetadata(BaseModel):
-    sensor_id: str | None = pydantic.Field(title="Sensor Id")
-    timestamp: float | None = pydantic.Field(title="Timestamp")
+    sensor_id: str | None = pydantic.Field(default=None, title="Sensor Id")
+    timestamp: float | None = pydantic.Field(default=None, title="Timestamp")
 
 
 class PointCloudMetadata(MediaMetadata):
