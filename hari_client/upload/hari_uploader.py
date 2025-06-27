@@ -275,13 +275,10 @@ class HARIUploader:
         self._medias: list[HARIMedia] = []
         self._media_back_references: set[str] = set()  # may be not necessary
         self._media_object_back_references: set[str] = set()  # may be not necessary
-        self._media_object_cnt: int = 0  # useless if we don't increase counter on add media anymore, we only have it available on upload
-        self._attribute_cnt: int = 0  # useless if we don't increase counter on add media anymore, we only have it available on upload
         # TODO: this should be a dict[str, uuid.UUID] as soon as the api models are updated
         # Initialize property mappings
         self._object_category_subsets: dict[str, str] = {}
         self._scenes: dict[str, str] = {}
-        self._unique_attribute_ids: set[str] = set()
         self._with_media_files_upload: bool = True
         self.failures: HARIUploadFailures = HARIUploadFailures()
 
@@ -526,10 +523,14 @@ class HARIUploader:
             else:
                 self._media_object_back_references.add(media_object.back_reference)
 
-    def validate_all_attributes(self) -> None:
+    def validate_all_attributes(self) -> int:
         """
-        Validate all attributes for both media and media objects, ensuring they meet the
+        Validates all attributes for both media and media objects, ensuring they meet the
         dataset's requirements and do not exceed the allowed unique attribute limit.
+        Reuses existing attribute ids and new attributes ids if they have the same name and annotatable type,
+
+        Returns:
+            Number of all attributes.
 
         Raises:
             HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids exceeds
@@ -557,6 +558,8 @@ class HARIUploader:
                 intended_attributes_number=len(attribute_name_to_ids),
             )
 
+        return len(all_attributes)
+
     def reuse_existing_attribute_ids(
         self, attribute_name_to_ids: dict[tuple[str, str], str | uuid.UUID]
     ) -> None:
@@ -573,7 +576,6 @@ class HARIUploader:
 
         for media in self._medias:
             attributes.extend(media.attributes)
-            self._attribute_cnt += len(media.attributes)
 
             for attr in media.attributes:
                 # assign an existing id if attribute with the same name exists, otherwise create a new one
@@ -587,7 +589,6 @@ class HARIUploader:
 
             for media_object in media.media_objects:
                 attributes.extend(media_object.attributes)
-                self._attribute_cnt += len(media_object.attributes)
 
                 for attr in media_object.attributes:
                     # assign an existing id if attribute with the same name exists, otherwise create a new one
@@ -719,12 +720,11 @@ class HARIUploader:
         all_media_objects = []
         for media in self._medias:
             for media_object in media.media_objects:
-                self._media_object_cnt += 1
                 all_media_objects.append(media_object)
 
         self.validate_medias()
         self.validate_media_objects(all_media_objects)
-        self.validate_all_attributes()
+        attr_count = self.validate_all_attributes()
 
         # Handle scene and object category setup and validation
         self._handle_scene_and_category_data()
@@ -741,7 +741,7 @@ class HARIUploader:
             media_upload_responses,
             media_object_upload_responses,
             attribute_upload_responses,
-        ) = self.upload_data_in_batches()
+        ) = self.upload_data_in_batches(attr_count, len(all_media_objects))
 
         return HARIUploadResults(
             medias=_merge_bulk_responses(*media_upload_responses),
@@ -1393,22 +1393,28 @@ class HARIUploader:
             attributes_upload_responses,
         )
 
-    def upload_data_in_batches(self) -> tuple[list[models.BulkResponse], ...]:
-        """Uploads all medias and their media_objects and attributes in batches."""
+    def upload_data_in_batches(
+        self, attr_count: int, media_object_count: int
+    ) -> tuple[list[models.BulkResponse], ...]:
+        """Uploads all medias and their media_objects and attributes in batches.
+        Args:
+            attr_count: The total number of attributes to upload, used for progress tracking.
+            media_object_count: The total number of media objects to upload, used for progress tracking.
+        """
         # upload batches of medias
         log.info(
             f"Starting upload of {len(self._medias)} medias with "
-            f"{self._media_object_cnt} media_objects and {self._attribute_cnt} "
+            f"{media_object_cnt} media_objects and {attribute_cnt} "
             f"attributes to HARI."
         )
         self._media_upload_progress = tqdm.tqdm(
             desc="Media Upload", total=len(self._medias)
         )
         self._media_object_upload_progress = tqdm.tqdm(
-            desc="Media Object Upload", total=self._media_object_cnt
+            desc="Media Object Upload", total=media_object_cnt
         )
         self._attribute_upload_progress = tqdm.tqdm(
-            desc="Attribute Upload", total=self._attribute_cnt
+            desc="Attribute Upload", total=attribute_cnt
         )
 
         media_upload_responses: list[models.BulkResponse] = []
