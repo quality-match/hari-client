@@ -6,6 +6,9 @@
 - removed `lidar_sensor_pose` from `PointCloudMetadata` model, because it's not supported in the HARI backend [PR#90](https://github.com/quality-match/hari-client/pull/90)
 - Changed type of `CuboidCenterPoint.dimensions` from `Point3DTuple` to `CuboidDimensionsTuple` [PR#95](https://github.com/quality-match/hari-client/pull/95)
   - the underlying data type is still a `NamedTuple` with three float attributes
+- Validate that mediaObject type makes sense for the media it's being assigned to. [PR#96](https://github.com/quality-match/hari-client/pull/96)
+- Validate that mediaObjects have a geometry. [PR#96](https://github.com/quality-match/hari-client/pull/96)
+
 
 ### New Features
 
