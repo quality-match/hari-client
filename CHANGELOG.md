@@ -19,6 +19,10 @@
 - Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
   - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
 
+### Fixes
+
+- Prepare projection query parameter converting it to json string [PR#101](https://github.com/quality-match/hari-client/pull/101)
+
 #### Consistency in partially failed uploads
 
 - partially failed bulk uploads of medias and media objects are now handled consistently [PR#80](https://github.com/quality-match/hari-client/pull/80)

@@ -186,6 +186,8 @@ def _prepare_request_query_params(
                 + " Support for this behavior will be removed in a future release."
             )
             warnings.warn(msg)
+        elif param_name == "projection" and isinstance(param_value, dict):
+            params_copy[param_name] = json.dumps(param_value)
 
     return params_copy
 

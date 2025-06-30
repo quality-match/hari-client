@@ -449,6 +449,10 @@ def test_trigger_metadata_rebuild_validation_for_dataset_ids_list(test_client):
     [
         # None stays None
         ({"query": None, "other": None}, {"query": None, "other": None}),
+        (
+            {"projection": {"name": False, "url": False}},
+            {"projection": '{"name": false, "url": false}'},
+        ),
         # multiple typical query parameters (not related to QueryList)
         (
             {
