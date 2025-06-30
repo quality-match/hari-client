@@ -1841,10 +1841,7 @@ def test_validate_media_object_compatible_with_media_with_none_media_object_type
             media, media_object
         )
 
-    expected_msg = (
-        f"Images can only contain 2D geometries: "
-        f"None is not compatible with media type {models.MediaType.IMAGE}."
-    )
+    expected_msg = f"MediaObject type must be specified."
     assert str(exc_info.value) == expected_msg
 
 

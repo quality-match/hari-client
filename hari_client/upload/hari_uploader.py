@@ -542,7 +542,7 @@ class HARIUploader:
         """
         # Get the type value from the geometry object
         if media_object.media_object_type is None:
-            geometry_type_value = None
+            raise ValueError("MediaObject type must be specified.")
         else:
             geometry_type_value = media_object.media_object_type
 
