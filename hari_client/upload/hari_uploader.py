@@ -1063,6 +1063,14 @@ class HARIUploader:
         attributes_upload_responses = self._upload_attributes_in_batches(
             attributes_to_upload
         )
+        # add fake responses for skipped media objects and attributes
+        self.add_fake_bulk_responses_for_media_objects_and_attributes(
+            media_object_upload_responses,
+            failed_media_objects,
+            attributes_upload_responses,
+            failed_media_attributes + failed_media_object_attributes,
+        )
+
         return (
             media_upload_response,
             media_object_upload_responses,
@@ -1113,6 +1121,58 @@ class HARIUploader:
             media_object_upload_responses,
             attribute_upload_responses,
         )
+
+    @staticmethod
+    def add_fake_bulk_responses_for_media_objects_and_attributes(
+        media_object_upload_responses: list[models.BulkResponse],
+        media_objects: list[HARIMediaObject],
+        attributes_upload_responses: list[models.BulkResponse],
+        attributes: list[HARIAttribute],
+    ) -> None:
+        """Creates fake responses for media objects and attributes and appends them to the respective upload responses.
+            This is done for consistency of the responses, especially when media objects or attributes are skipped due to failed parent media uploads.
+
+        Args:
+            media_object_upload_responses: The media object upload responses.
+            media_objects: media objects to generate responses for.
+            attributes_upload_responses: The attribute upload responses.
+            attributes: attributes to generate responses for.
+        """
+        # handle skipped media objects and attributes
+        if media_objects:
+            skipped_mo_resp = models.BulkResponse()
+            for mo in media_objects:
+                skipped_mo_resp.results.append(
+                    models.AnnotatableCreateResponse(
+                        bulk_operation_annotatable_id="",
+                        item_id=None,
+                        status=models.ResponseStatesEnum.BAD_DATA,
+                        errors=["Parent media upload failed. Skipping media object."],
+                    )
+                )
+            # ensure summary matches results count
+            skipped_mo_resp.summary.total = len(skipped_mo_resp.results)
+            skipped_mo_resp.summary.failed = len(skipped_mo_resp.results)
+            skipped_mo_resp.status = models.BulkOperationStatusEnum.FAILURE
+            media_object_upload_responses.append(skipped_mo_resp)
+
+        if attributes:
+            skipped_attr_resp = models.BulkResponse()
+            for attr in attributes:
+                skipped_attr_resp.results.append(
+                    models.AnnotatableCreateResponse(
+                        bulk_operation_annotatable_id="",
+                        item_id=None,
+                        status=models.ResponseStatesEnum.BAD_DATA,
+                        errors=[
+                            "Parent media object upload failed. Skipping attribute."
+                        ],
+                    )
+                )
+            skipped_attr_resp.summary.total = len(skipped_attr_resp.results)
+            skipped_attr_resp.summary.failed = len(skipped_attr_resp.results)
+            skipped_attr_resp.status = models.BulkOperationStatusEnum.FAILURE
+            attributes_upload_responses.append(skipped_attr_resp)
 
 
 def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:
