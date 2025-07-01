@@ -37,6 +37,10 @@
   - disclaimer: there's no example data for this script yet, so it won't work out of the box.
 - added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
 
+### Internal
+
+- Add automatic parsing of pydantic BaseModels in CustomJSONEncoder remove unnecessary parsing. [PR#102](https://github.com/quality-match/hari-client/pull/102)
+
 ## [3.5.0] - 24-04-2025
 
 ### New Features

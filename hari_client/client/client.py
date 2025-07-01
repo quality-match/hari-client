@@ -492,9 +492,6 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-        if external_media_source:
-            external_media_source = external_media_source.model_dump()
-
         return self._request(
             "POST",
             "/datasets",
@@ -767,7 +764,6 @@ class HARIClient:
         Returns:
             The created scene
         """
-        frames = [frame.model_dump() for frame in frames]
         json_body = self._pack(
             locals(),
             ignore=["dataset_id"],
@@ -941,23 +937,19 @@ class HARIClient:
                 dataset_id, file_paths=file_paths
             )
 
-            # 2. set media_urls on medias and parse them to dicts
-            media_dicts = []
+            # 2. set media_urls on medias
             for idx, media in enumerate(medias):
                 media.media_url = media_upload_responses[idx].media_url
-                media_dicts.append(media.model_dump())
         else:
-            media_dicts = []
             for media in medias:
                 if not media.file_key:
                     raise errors.MediaCreateMissingFileKeyError(media)
-                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/medias:bulk",
-            json=media_dicts,
+            json=medias,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -1527,7 +1519,6 @@ class HARIClient:
             if isinstance(qm_data, list)
             else None
         )
-        reference_data = reference_data.model_dump() if reference_data else None
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/mediaObjects",
@@ -1559,16 +1550,10 @@ class HARIClient:
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
             )
 
-        # 1. parse media_objects to dicts before upload
-        media_object_dicts = [
-            media_object.model_dump() for media_object in media_objects
-        ]
-
-        # 2. send media_objects to HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/mediaObjects:bulk",
-            json=media_object_dicts,
+            json=media_objects,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -2058,14 +2043,10 @@ class HARIClient:
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(attributes)
             )
 
-        # 1. parse attributes to dicts before upload
-        attribute_dicts = [attribute.model_dump() for attribute in attributes]
-
-        # 2. send attributes to HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/attributes:bulk",
-            json=attribute_dicts,
+            json=attributes,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -2585,24 +2566,10 @@ class HARIClient:
         Returns:
             Created AINT learning data object.
         """
-
-        body = {
-            key: value
-            for key, value in locals().items()
-            if value is not None and key not in ["self", "training_attributes"]
-        }
-
-        training_attribute_dicts = [
-            training_attribute.model_dump()
-            for training_attribute in training_attributes
-        ]
-
-        body["training_attributes"] = training_attribute_dicts
-
         return self._request(
             "POST",
             "/aintLearningData",
-            json=body,
+            json=self._pack(locals()),
             success_response_item_model=models.AINTLearningData,
         )
 
@@ -3217,7 +3184,7 @@ class HARIClient:
         return self._request(
             "POST",
             "/annotationRuns",
-            json=annotation_run.model_dump(),
+            json=annotation_run,
             success_response_item_model=models.AnnotationRun,
         )
 
