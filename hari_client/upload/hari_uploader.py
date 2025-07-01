@@ -1146,7 +1146,7 @@ class HARIUploader:
                     models.AnnotatableCreateResponse(
                         bulk_operation_annotatable_id="",
                         item_id=None,
-                        status=models.ResponseStatesEnum.SKIPPED,
+                        status=models.ResponseStatesEnum.MISSING_DATA,
                         errors=["Parent media upload failed. Skipping media object."],
                     )
                 )
@@ -1167,7 +1167,7 @@ class HARIUploader:
                     models.AttributeCreateResponse(
                         annotatable_id="",
                         item_id=None,
-                        status=models.ResponseStatesEnum.SKIPPED,
+                        status=models.ResponseStatesEnum.MISSING_DATA,
                         errors=[
                             "Parent media object upload failed. Skipping attribute."
                         ],
