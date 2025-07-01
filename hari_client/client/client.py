@@ -142,6 +142,27 @@ def handle_union_parsing(item, union_type):
     )
 
 
+def _validate_request_query_params(
+    params: dict[str, typing.Any],
+) -> None:
+    for param_name, param_value in params.items():
+        if param_name == "projection":
+            if not isinstance(param_value, dict):
+                raise TypeError("Projection should be a dictionary")
+            unique_booleans = set()
+            for k, v in param_value.items():
+                if not isinstance(v, bool):
+                    raise TypeError(
+                        f"Invalid projection value for field '{k}': expected boolean, got {type(v).__name__}"
+                    )
+                unique_booleans.add(v)
+            if len(unique_booleans) != 1:
+                raise ValueError(
+                    "Mixing of True and False values in projection is not allowed. "
+                    "Use either only inclusions (True) or only exclusions (False)."
+                )
+
+
 def _prepare_request_query_params(
     params: dict[str, typing.Any],
 ) -> dict[str, typing.Any]:
@@ -188,7 +209,7 @@ def _prepare_request_query_params(
                 + " Support for this behavior will be removed in a future release."
             )
             warnings.warn(msg)
-        elif param_name == "projection" and isinstance(param_value, dict):
+        elif param_name == "projection":
             params_copy[param_name] = json.dumps(param_value)
 
     return params_copy
@@ -233,6 +254,7 @@ class HARIClient:
             )
 
         if "params" in kwargs:
+            _validate_request_query_params(kwargs["params"])
             kwargs["params"] = _prepare_request_query_params(kwargs["params"])
 
         # do request and basic error handling

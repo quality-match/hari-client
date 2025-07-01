@@ -596,3 +596,29 @@ def test_request_query_params_are_prepared_correctly(params, expected):
                 prepared_params[param_name], param_value
             ):
                 assert expected_param_value == prepared_param_value
+
+
+@pytest.mark.parametrize(
+    "params, expected_exception, expected_message",
+    [
+        ({"projection": {"name": True, "id": True}}, None, None),
+        ({"projection": True}, TypeError, "Projection should be a dictionary"),
+        (
+            {"projection": {"name": 0, "id": 1}},
+            TypeError,
+            "Invalid projection value for field 'name': expected boolean, got int",
+        ),
+        (
+            {"projection": {"name": True, "id": False}},
+            ValueError,
+            "Mixing of True and False values in projection is not allowed",
+        ),
+    ],
+)
+def test_validate_request_query_params(params, expected_exception, expected_message):
+    if expected_exception:
+        with pytest.raises(expected_exception) as exc_info:
+            client._validate_request_query_params(params)
+        assert expected_message in str(exc_info.value)
+    else:
+        client._validate_request_query_params(params)
