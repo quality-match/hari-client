@@ -30,6 +30,8 @@ class CustomJSONEncoder(json.JSONEncoder):
             return str(obj)
         elif isinstance(obj, datetime.datetime):
             return obj.isoformat()
+        elif isinstance(obj, pydantic.BaseModel):
+            return obj.model_dump()
         return super().default(obj)
 
 
