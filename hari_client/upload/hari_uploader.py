@@ -1160,8 +1160,8 @@ class HARIUploader:
             skipped_attr_resp = models.BulkResponse()
             for attr in attributes:
                 skipped_attr_resp.results.append(
-                    models.AnnotatableCreateResponse(
-                        bulk_operation_annotatable_id="",
+                    models.AttributeCreateResponse(
+                        annotatable_id="",
                         item_id=None,
                         status=models.ResponseStatesEnum.BAD_DATA,
                         errors=[
