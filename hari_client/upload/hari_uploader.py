@@ -1140,21 +1140,25 @@ class HARIUploader:
         """
         # handle skipped media objects and attributes
         if media_objects:
-            skipped_mo_resp = models.BulkResponse()
+            skipped_media_objects_resp = models.BulkResponse()
             for mo in media_objects:
-                skipped_mo_resp.results.append(
+                skipped_media_objects_resp.results.append(
                     models.AnnotatableCreateResponse(
                         bulk_operation_annotatable_id="",
                         item_id=None,
-                        status=models.ResponseStatesEnum.BAD_DATA,
+                        status=models.ResponseStatesEnum.SKIPPED,
                         errors=["Parent media upload failed. Skipping media object."],
                     )
                 )
             # ensure summary matches results count
-            skipped_mo_resp.summary.total = len(skipped_mo_resp.results)
-            skipped_mo_resp.summary.failed = len(skipped_mo_resp.results)
-            skipped_mo_resp.status = models.BulkOperationStatusEnum.FAILURE
-            media_object_upload_responses.append(skipped_mo_resp)
+            skipped_media_objects_resp.summary.total = len(
+                skipped_media_objects_resp.results
+            )
+            skipped_media_objects_resp.summary.failed = len(
+                skipped_media_objects_resp.results
+            )
+            skipped_media_objects_resp.status = models.BulkOperationStatusEnum.FAILURE
+            media_object_upload_responses.append(skipped_media_objects_resp)
 
         if attributes:
             skipped_attr_resp = models.BulkResponse()
@@ -1163,7 +1167,7 @@ class HARIUploader:
                     models.AttributeCreateResponse(
                         annotatable_id="",
                         item_id=None,
-                        status=models.ResponseStatesEnum.BAD_DATA,
+                        status=models.ResponseStatesEnum.SKIPPED,
                         errors=[
                             "Parent media object upload failed. Skipping attribute."
                         ],
