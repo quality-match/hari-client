@@ -789,17 +789,16 @@ class HARIUploader:
                 status=models.ResponseStatesEnum.SUCCESS,
             )
 
-        # manually mark medias that were skipped as successful
+        # mark medias that were skipped as already existing and treat as successful
         for media in medias_skipped:
             response.results.append(
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
-                    status=models.ResponseStatesEnum.SUCCESS,
+                    status=models.ResponseStatesEnum.ALREADY_EXISTS,
                     item_id=media.id,
                 )
             )
-        response.summary.successful += len(medias_skipped)
-        response.summary.total += len(medias_skipped)
+        self._reevaluate_bulk_status_for_already_exisiting_entities(response)
 
         # update the media ids
         self._update_hari_media_object_media_ids(
@@ -891,37 +890,48 @@ class HARIUploader:
             response = client._parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )
-        self._mark_already_uploaded_attributes_as_successful(response)
+        self._reevaluate_bulk_status_for_already_exisiting_entities(response)
         return response
 
-    def _mark_already_uploaded_attributes_as_successful(
+    def _reevaluate_bulk_status_for_already_exisiting_entities(
         self, response: models.BulkResponse
     ) -> None:
         """
-        Marks attributes that were already uploaded as successful in the BulkResponse
-        and reevaluates the overall response.
+        Treats entities (medias, media objects and attributes) in the given BulkResponse with status ALREADY_EXISTS
+        as successful for summary purposes, and updates the overall bulk response status
+        and summary counts accordingly.
+
+        This ensures that already uploaded entities are treated as successful,
+        allowing the bulk operation to reflect partial or complete success accurately.
+
         Args:
             response: The BulkResponse containing the results of the attribute upload.
         """
+        already_uploaded_cnt = 0
         for result in response.results:
             if result.status == models.ResponseStatesEnum.ALREADY_EXISTS:
-                result.status = models.ResponseStatesEnum.SUCCESS
-                result.errors = []
+                already_uploaded_cnt += 1
 
         # reevaluate the overall status
         unique_statuses = {result.status for result in response.results}
-        if unique_statuses == {models.ResponseStatesEnum.SUCCESS}:
+        if unique_statuses.issubset(
+            {
+                models.ResponseStatesEnum.SUCCESS,
+                models.ResponseStatesEnum.ALREADY_EXISTS,
+            }
+        ):
             response.status = models.BulkOperationStatusEnum.SUCCESS
-        elif models.ResponseStatesEnum.SUCCESS in unique_statuses:
+        elif (
+            models.ResponseStatesEnum.SUCCESS in unique_statuses
+            or models.ResponseStatesEnum.ALREADY_EXISTS in unique_statuses
+        ):
             response.status = models.BulkOperationStatusEnum.PARTIAL_SUCCESS
         else:
             response.status = models.BulkOperationStatusEnum.FAILURE
 
         # recalculate summary
         total = len(response.results)
-        successful = sum(
-            1 for r in response.results if r.status == models.ResponseStatesEnum.SUCCESS
-        )
+        successful = response.summary.successful + already_uploaded_cnt
         failed = total - successful
 
         response.summary = models.BulkUploadSuccessSummary(
@@ -970,17 +980,16 @@ class HARIUploader:
                 status=models.ResponseStatesEnum.SUCCESS,
             )
 
-        # manually mark media objects that were skipped as successful
+        # mark media objects that were skipped as already existing and treat as successful
         for media in media_objects_skipped:
             response.results.append(
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
-                    status=models.ResponseStatesEnum.SUCCESS,
+                    status=models.ResponseStatesEnum.ALREADY_EXISTS,
                     item_id=media_object.id,
                 )
             )
-        response.summary.successful += len(media_objects_skipped)
-        response.summary.total += len(media_objects_skipped)
+        self._reevaluate_bulk_status_for_already_exisiting_entities(response)
 
         return response
 

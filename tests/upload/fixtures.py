@@ -489,7 +489,13 @@ def create_configurable_mock_uploader_successful_single_batch_state_aware(
                         bulk_operation_annotatable_id=f"bulk_media_id_{i}",
                     )
                     for i in range(medias_cnt)
-                ]
+                ],
+                status=models.ResponseStatesEnum.SUCCESS,
+                summary=models.BulkUploadSuccessSummary(
+                    total=medias_cnt,
+                    successful=medias_cnt,
+                    failed=0,
+                ),
             ),
         )
         mocker.patch.object(
@@ -502,7 +508,13 @@ def create_configurable_mock_uploader_successful_single_batch_state_aware(
                         bulk_operation_annotatable_id=f"bulk_media_object_id_{i}",
                     )
                     for i in range(media_objects_cnt)
-                ]
+                ],
+                status=models.ResponseStatesEnum.SUCCESS,
+                summary=models.BulkUploadSuccessSummary(
+                    total=media_objects_cnt,
+                    successful=media_objects_cnt,
+                    failed=0,
+                ),
             ),
         )
         create_attributes_mock = mocker.patch.object(
