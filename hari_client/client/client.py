@@ -144,6 +144,27 @@ def handle_union_parsing(item, union_type):
     )
 
 
+def _validate_request_query_params(
+    params: dict[str, typing.Any],
+) -> None:
+    for param_name, param_value in params.items():
+        if param_name == "projection":
+            if not isinstance(param_value, dict):
+                raise TypeError("Projection should be a dictionary")
+            unique_booleans = set()
+            for k, v in param_value.items():
+                if not isinstance(v, bool):
+                    raise TypeError(
+                        f"Invalid projection value for field '{k}': expected boolean, got {type(v).__name__}"
+                    )
+                unique_booleans.add(v)
+            if len(unique_booleans) != 1:
+                raise ValueError(
+                    "Mixing of True and False values in projection is not allowed. "
+                    "Use either only inclusions (True) or only exclusions (False)."
+                )
+
+
 def _prepare_request_query_params(
     params: dict[str, typing.Any],
 ) -> dict[str, typing.Any]:
@@ -155,6 +176,8 @@ def _prepare_request_query_params(
         This method contains a workaround for the param "query". It's expected type is QueryList.
             - The workarounds are: passing a single already serialized QueryParameter/LogicParameter object (serialized with json.dumps), or a list of them.
             - Note that in the future only QueryList will be supported for query. For now other types are supported due to existing workarounds.
+
+        This method also serializes the projection value of type dict to a JSON string.
 
     Args:
         params: The query parameters that should be added to the request.
@@ -188,6 +211,8 @@ def _prepare_request_query_params(
                 + " Support for this behavior will be removed in a future release."
             )
             warnings.warn(msg)
+        elif param_name == "projection":
+            params_copy[param_name] = json.dumps(param_value)
 
     return params_copy
 
@@ -231,6 +256,7 @@ class HARIClient:
             )
 
         if "params" in kwargs:
+            _validate_request_query_params(kwargs["params"])
             kwargs["params"] = _prepare_request_query_params(kwargs["params"])
 
         # do request and basic error handling
@@ -1017,9 +1043,9 @@ class HARIClient:
             presign_media: Whether to presign media
             archived: Return archived media
             projection: The fields to be returned (dictionary keys with value True are
-                returned, keys with value False are not returned)
+                returned, keys with value False are not returned). Mixing of True and False values is not allowed.
 
-        Returns:
+         Returns:
             The media matching the provided id
 
         Raises:
@@ -1054,7 +1080,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of medias in a dataset
@@ -1090,7 +1116,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of medias in a dataset
@@ -1625,9 +1651,9 @@ class HARIClient:
             archived: Archived
             presign_media: Presign Media
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
-        Returns:
+            Returns:
             Requested media object
 
         Raises:
@@ -1662,7 +1688,7 @@ class HARIClient:
             query: Query
             sort: Sort
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             list of media objects of a dataset
@@ -1698,7 +1724,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of media objects in a dataset
@@ -2151,7 +2177,8 @@ class HARIClient:
             skip: The number of attributes to skip
             query: A query to filter attributes
             sort: A order by which to sort attributes
-            projection: A dictionary of fields to return
+            projection: The fields to be returned (dictionary keys with value True are
+                returned, keys with value False are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of attributes
@@ -2669,7 +2696,7 @@ class HARIClient:
 
         Args:
             projection: The fields to be returned (dictionary keys with value True are returned,
-            keys with value False are not returned).
+            keys with value False are not returned). Mixing of True and False values is not allowed.
             limit: limit the number of ml annotation models returned
             skip: skip the number of ml annotation models returned
             query: query parameters to filter the ml annotation models
@@ -2697,8 +2724,7 @@ class HARIClient:
         Args:
             ml_annotation_model_id: The unique identifier of the AI annotation model.
             projection: The fields to be returned (dictionary keys with value True are returned,
-            keys with value False are not returned).
-
+            keys with value False are not returned). Mixing of True and False values is not allowed.
         Returns:
             The requested ml model.
         """
