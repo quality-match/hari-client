@@ -1,5 +1,32 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### todo rearrange when it's known whether it goes to the next version
+### State aware uploader
+
+### Breaking Changes
+
+- skip already uploaded media and media objects during upload by default (by comparing existing back references)
+- get existing attribute metadata and reuse the existing ids on new attributes.
+- removed _`media_back_references`, _`media_object_back_references`, _`media_object_cnt` and _`attribute_cnt` fields from the HARIUploader
+
+### New features
+
+- added `skip_uploaded_medias` and `skip_uploaded_media_objects` flags to uploader to enable/disable uploading
+existing medias and media objects (defaulting to `True`)
+
+### Fixes
+
+- handle bulk responses parsing properly in hari uploader if bulk response status is `FAILURE` and 4xx error is returned
+  - now no error is raised, but the response is parsed again to `BulkResponse` model
+- remove all validation and other type of logic from `add_media` method of the uploader
+- assign attribute annotatable type in `add_attribute` method
+
+### Internal
+
+- added `id` and `uploaded` fields to `HARIMedia` and `HARIMediaObject` to check later on whether the entity was uploaded,
+and assign existing media/annotatable id
+- created method for media and media objects validation that is executed before upload and move all validations there
+
 ### Breaking Changes
 
 - Deleted `name_filter` from get multiple datasets endpoint [PR#91](https://github.com/quality-match/hari-client/pull/91)
@@ -8,7 +35,6 @@
   - the underlying data type is still a `NamedTuple` with three float attributes
 - Validate that mediaObject type makes sense for the media it's being assigned to. [PR#96](https://github.com/quality-match/hari-client/pull/96)
 - Validate that mediaObjects have a geometry. [PR#96](https://github.com/quality-match/hari-client/pull/96)
-
 
 ### New Features
 
