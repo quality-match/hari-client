@@ -2307,7 +2307,7 @@ def test_hari_uploader_skips_uploaded_entities(
         ),
     ],
 )
-def test_mark_already_uploaded_attributes_as_successful(
+def test_reevaluate_bulk_status_for_already_existing_entities(
     statuses, summary, expected_status, expected_summary, mock_uploader_for_batching
 ):
     uploader, _, _, _ = mock_uploader_for_batching
@@ -2328,7 +2328,7 @@ def test_mark_already_uploaded_attributes_as_successful(
         ],
     )
 
-    uploader._reevaluate_bulk_status_for_already_exisiting_entities(response)
+    uploader._reevaluate_bulk_status_for_already_existing_entities(response)
 
     assert response.status == expected_status
     assert response.summary.total == expected_summary["total"]

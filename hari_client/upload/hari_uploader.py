@@ -798,7 +798,7 @@ class HARIUploader:
                     item_id=media.id,
                 )
             )
-        self._reevaluate_bulk_status_for_already_exisiting_entities(response)
+        self._reevaluate_bulk_status_for_already_existing_entities(response)
 
         # update the media ids
         self._update_hari_media_object_media_ids(
@@ -890,10 +890,10 @@ class HARIUploader:
             response = client._parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )
-        self._reevaluate_bulk_status_for_already_exisiting_entities(response)
+        self._reevaluate_bulk_status_for_already_existing_entities(response)
         return response
 
-    def _reevaluate_bulk_status_for_already_exisiting_entities(
+    def _reevaluate_bulk_status_for_already_existing_entities(
         self, response: models.BulkResponse
     ) -> None:
         """
@@ -989,7 +989,7 @@ class HARIUploader:
                     item_id=media_object.id,
                 )
             )
-        self._reevaluate_bulk_status_for_already_exisiting_entities(response)
+        self._reevaluate_bulk_status_for_already_existing_entities(response)
 
         return response
 
