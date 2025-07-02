@@ -2955,13 +2955,6 @@ class HARIClient:
         dataset_id: uuid.UUID,
         subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
-        attribute_metadata_id: uuid.UUID | None = None,
-        id: uuid.UUID | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.AIAnnotationRun:
         """
@@ -2973,13 +2966,6 @@ class HARIClient:
             subset_id: The unique identifier of the subset to be annotated.
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
-            attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
-            id: The id of the AINT learning data. If None, random id will be generated during creation.
-            status: The status of the AI annotation run.
-            created_at: The creation timestamp of the AI annotation run.
-            updated_at: The update timestamp of the AI annotation run.
-            archived_at: The archived timestamp of the AI annotation run.
-            owner: The owner of the AI annotation run.
 
         Returns:
             The created AI annotation run.
@@ -3003,8 +2989,6 @@ class HARIClient:
         ai_annotation_run_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        attribute_metadata_id: uuid.UUID | None = None,
     ) -> models.AIAnnotationRun:
         """
         Update an AI annotation run.
@@ -3013,8 +2997,6 @@ class HARIClient:
             ai_annotation_run_id: The id of the AI annotation run.
             name: new desired name for the AI annotation run.
             user_group: new desired user group for the AI annotation run.
-            status: status for the AI annotation run.
-            attribute_metadata_id: attribute metadata id for the AI annotation run.
 
         Returns:
             The updated AI annotation run.
