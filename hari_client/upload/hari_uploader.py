@@ -691,9 +691,9 @@ class HARIUploader:
         Uploads all HARIMedia items along with their media objects and attributes to HARI.
 
         This method:
-          1. Validates media, media_objects and attributes to be consistent and do not include duplicates.
+          1. Validates media, media_objects and attributes to be consistent and to not include duplicates.
           2. (Optionally) skips already uploaded medias and media objects by comparing their back references, if specified.
-          3.Ensures all object categories subsets are either reused or created if not yet exist.
+          3. Ensures all object categories subsets are either reused or created if not yet exist.
           4. Batches the actual uploading of medias, media objects, and attributes. The items are uploaded as media batches,
             if medias are uploaded, the corresponding media objects and attributes for this media batch are uploaded.
 

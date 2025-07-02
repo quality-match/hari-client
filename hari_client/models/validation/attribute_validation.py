@@ -28,7 +28,6 @@ def validate_attributes(
         AttributeValidationInconsistentValueTypeError: If the value type for an attribute is inconsistent.
         AttributeValidationInconsistentListElementValueTypesError: If the elements in a list attribute value have inconsistent value types.
         AttributeValidationInconsistentListElementValueTypesMultipleAttributesError: If multiple list attributes have inconsistent element value types.
-        AttributeValidationIdNotReusedError: If multiple attributes with the same name and annotatable type have different ids.
     """
     grouped_by_annotatable_type: dict[str, list[models.AttributeCreate]] = {
         models.DataBaseObjectType.MEDIA: [],

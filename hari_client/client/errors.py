@@ -136,14 +136,3 @@ class AttributeValidationInconsistentListElementValueTypesMultipleAttributesErro
             + " Make sure every instance of this attribute uses the same list element value types."
         )
         super().__init__(message)
-
-
-class AttributeValidationIdNotReusedError(Exception):
-    def __init__(
-        self, attribute_name: str, annotatable_type: str, found_ids: list[str]
-    ):
-        message = (
-            f"Found multiple ids {found_ids} for the same attribute name {attribute_name} with {annotatable_type=}."
-            + " Make sure every attribute with the same name and annotatable type is using the same id."
-        )
-        super().__init__(message)
