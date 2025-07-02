@@ -57,6 +57,19 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     ) -> typing.Any:
         return data
 
+    @property
+    def geometry(self) -> models.GeometryUnion:
+        return (
+            self.reference_data
+            if self.source == models.DataSource.REFERENCE
+            else self.qm_data
+        )
+
+    @pydantic.model_validator(mode="after")
+    def set_media_object_type(self) -> None:
+        if self.geometry is not None:
+            self.media_object_type = self.geometry.type
+
     def add_attribute(self, *args: HARIAttribute) -> None:
         for attribute in args:
             if not attribute.annotatable_type:
@@ -495,8 +508,66 @@ class HARIUploader:
         dataset = self._load_dataset()
         return dataset and dataset.external_media_source is not None
 
-    def validate_medias(self) -> None:
+    @staticmethod
+    def _validate_media_object_compatible_with_media(
+        media: models.MediaCreate, media_object: models.MediaObjectCreate
+    ):
+        """Validates that the media object is compatible with the media.
+
+        Args:
+            media: The media.
+            media_object: The media object.
+
+        Raises:
+            ValueError: If the media object is not compatible with the media.
+        """
+        # Get the type value from the geometry object
+        if media_object.media_object_type is None:
+            raise ValueError("MediaObject type must be specified.")
+        else:
+            geometry_type_value = media_object.media_object_type
+
+        match media.media_type:
+            case models.MediaType.IMAGE:
+                if geometry_type_value not in [
+                    models.MediaObjectType.POLYLINE2D_FLAT_COORDINATES.value,
+                    models.MediaObjectType.BBOX2D_CENTER_POINT.value,
+                    models.MediaObjectType.BBOX_2D_CENTER_POINT_AGGREGATION.value,
+                    models.MediaObjectType.POINT2D_XY.value,
+                    models.MediaObjectType.POINT_2D_XY_AGGREGATION.value,
+                    models.MediaObjectType.SEGMENT_RLE_COMPRESSED.value,
+                ]:
+                    raise ValueError(
+                        f"Images can only contain 2D geometries: "
+                        f"{geometry_type_value} is not compatible with media"
+                        f" type {media.media_type}."
+                    )
+            case models.MediaType.VIDEO:
+                raise ValueError("Videos can not contian media objects.")
+            case models.MediaType.POINT_CLOUD:
+                if geometry_type_value not in [
+                    models.MediaObjectType.POINT3D_XYZ.value,
+                    models.MediaObjectType.POINT_3D_XYZ_AGGREGATION.value,
+                    models.MediaObjectType.CUBOID_CENTER_POINT.value,
+                ]:
+                    raise ValueError(
+                        f"Point clouds can only contain 3D geometries: "
+                        f"{geometry_type_value} is not compatible with media"
+                        f" type {media.media_type}."
+                    )
+
+    @staticmethod
+    def _validate_geometry_is_provided(media_object: models.MediaObjectCreate) -> None:
+        """Validates that at least one geometry is provided."""
+        if not media_object.geometry:
+            raise ValueError(
+                f"Media object {media_object.back_reference} has no geometry."
+            )
+
+    def validate_medias_and_media_objects(self) -> None:
         media_back_references = set()
+        media_object_back_references = set()
+
         for media in self._medias:
             # validate back reference uniqueness
             if media.back_reference in media_back_references:
@@ -507,20 +578,21 @@ class HARIUploader:
                 )
             else:
                 media_back_references.add(media.back_reference)
+            # validate media_objects
+            for media_object in media.media_objects:
+                # validate back reference uniqueness
+                if media_object.back_reference in media_object_back_references:
+                    log.warning(
+                        f"Found duplicate media_object back_reference: "
+                        f"{media_object.back_reference}. If you want to be able to match HARI "
+                        f"objects 1:1 to your own, consider using unique "
+                        f"back_references."
+                    )
+                else:
+                    media_object_back_references.add(media_object.back_reference)
 
-    def validate_media_objects(self, media_objects: list[HARIMediaObject]) -> None:
-        media_object_back_references = set()
-        for media_object in media_objects:
-            # validate back reference uniqueness
-            if media_object.back_reference in media_object_back_references:
-                log.warning(
-                    f"Found duplicate media_object back_reference: "
-                    f"{media_object.back_reference}. If you want to be able to match HARI "
-                    f"objects 1:1 to your own, consider using unique "
-                    f"back_references."
-                )
-            else:
-                media_object_back_references.add(media_object.back_reference)
+                self._validate_geometry_is_provided(media_object)
+                self._validate_media_object_compatible_with_media(media, media_object)
 
     def validate_all_attributes(self) -> int:
         """
@@ -721,8 +793,7 @@ class HARIUploader:
             for media_object in media.media_objects:
                 all_media_objects.append(media_object)
 
-        self.validate_medias()
-        self.validate_media_objects(all_media_objects)
+        self.validate_medias_and_media_objects()
         attr_count = self.validate_all_attributes()
 
         # Handle scene and object category setup and validation

@@ -6,6 +6,9 @@
 - removed `lidar_sensor_pose` from `PointCloudMetadata` model, because it's not supported in the HARI backend [PR#90](https://github.com/quality-match/hari-client/pull/90)
 - Changed type of `CuboidCenterPoint.dimensions` from `Point3DTuple` to `CuboidDimensionsTuple` [PR#95](https://github.com/quality-match/hari-client/pull/95)
   - the underlying data type is still a `NamedTuple` with three float attributes
+- Validate that mediaObject type makes sense for the media it's being assigned to. [PR#96](https://github.com/quality-match/hari-client/pull/96)
+- Validate that mediaObjects have a geometry. [PR#96](https://github.com/quality-match/hari-client/pull/96)
+
 
 ### New Features
 
@@ -15,6 +18,10 @@
 - Add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
 - Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
   - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
+
+### Fixes
+
+- Prepare projection query parameter converting it to json string [PR#101](https://github.com/quality-match/hari-client/pull/101)
 
 #### Consistency in partially failed uploads
 
@@ -33,6 +40,10 @@
   - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
   - disclaimer: there's no example data for this script yet, so it won't work out of the box.
 - added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
+
+### Internal
+
+- Add automatic parsing of pydantic BaseModels in CustomJSONEncoder remove unnecessary parsing. [PR#102](https://github.com/quality-match/hari-client/pull/102)
 
 ## [3.5.0] - 24-04-2025
 

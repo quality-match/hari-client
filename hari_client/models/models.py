@@ -236,6 +236,7 @@ class MediaObjectType(str, enum.Enum):
     BBOX2D_CENTER_POINT = "bbox2d_center_point"
     CUBOID_CENTER_POINT = "cuboid_center_point"
     POLYLINE2D_FLAT_COORDINATES = "polyline_2d_flat_coordinates"
+    SEGMENT_RLE_COMPRESSED = "segment_rle_compressed"
 
 
 class VisibilityStatus(str, enum.Enum):
@@ -1226,7 +1227,7 @@ class MediaObjectCreate(BaseModel):
     qm_data: list[GeometryUnion] | None = None
     reference_data: GeometryUnion | None = None
     frame_idx: int | None = None
-    media_object_type: GeometryUnion | None = None
+    media_object_type: MediaObjectType | None = None
 
 
 class BulkMediaObjectCreate(MediaObjectCreate):
