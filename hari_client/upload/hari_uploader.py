@@ -751,7 +751,8 @@ class HARIUploader:
         self, medias_to_upload: list[HARIMedia]
     ) -> models.BulkResponse:
         """
-        Uploads medias from one batch.
+        Uploads a batch of medias, then update relevant ids, so that their media objects and attributes can reference them.
+        Skips medias that have already been uploaded and treats them as successful.
 
         Args:
             medias_to_upload: A list of HARIMedia to upload.
@@ -759,6 +760,7 @@ class HARIUploader:
         Returns:
             the bulk response for medias.
         """
+        # split medias into those needing upload and already uploaded that are skipped for the upload
         medias_need_upload = []
         medias_skipped = []
         for media in medias_to_upload:
@@ -768,48 +770,48 @@ class HARIUploader:
             else:
                 medias_need_upload.append(media)
 
-        # upload only needed media for batch
+        # upload medias if needed
         if medias_need_upload:
             # prevents failing if bulk response status is failure
             try:
-                media_upload_response = self.client.create_medias(
+                response = self.client.create_medias(
                     dataset_id=self.dataset_id,
                     medias=medias_need_upload,
                     with_media_files_upload=self._with_media_files_upload,
                 )
             except errors.APIError as e:
-                media_upload_response = client._parse_response_model(
+                response = client._parse_response_model(
                     response_data=e.message, response_model=models.BulkResponse
                 )
         else:
             # if no media needs to be uploaded, return an empty response
-            media_upload_response = models.BulkResponse(
+            response = models.BulkResponse(
                 status=models.ResponseStatesEnum.SUCCESS,
             )
 
         # manually mark medias that were skipped as successful
-        media_upload_response.summary.successful += len(medias_skipped)
-        media_upload_response.summary.total += len(medias_skipped)
-        media_upload_response.results.extend(
-            [
+        for media in medias_skipped:
+            response.results.append(
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
                     status=models.ResponseStatesEnum.SUCCESS,
                     item_id=media.id,
                 )
-                for media in medias_skipped
-            ]
-        )
+            )
+        response.summary.successful += len(medias_skipped)
+        response.summary.total += len(medias_skipped)
+
+        # update the media ids
         self._update_hari_media_object_media_ids(
             medias_to_upload=medias_to_upload,
-            media_upload_bulk_response=media_upload_response,
+            media_upload_bulk_response=response,
         )
         self._update_hari_attribute_media_ids(
             medias_to_upload=medias_to_upload,
-            media_upload_bulk_response=media_upload_response,
+            media_upload_bulk_response=response,
         )
         self._media_upload_progress.update(len(medias_to_upload))
-        return media_upload_response
+        return response
 
     def _upload_attributes_in_batches(
         self, attributes: list[HARIAttribute]
@@ -932,7 +934,8 @@ class HARIUploader:
         self, media_objects_to_upload: list[HARIMediaObject]
     ) -> models.BulkResponse:
         """
-        Upload a batch of media objects, then update relevant IDs so attributes can reference them.
+        Uploads a batch of media objects, then update relevant ids so attributes can reference them.
+        Skips media objects that have already been uploaded and treats them as successful.
 
         Args:
             media_objects_to_upload: A batch of media objects to be uploaded.
@@ -940,6 +943,7 @@ class HARIUploader:
         Returns:
             The BulkResponse result of uploading these media objects.
         """
+        # split media objects into those needing upload and already uploaded that are skipped for the upload
         media_objects_need_upload = []
         media_objects_skipped = []
         for media_object in media_objects_to_upload:
@@ -949,6 +953,7 @@ class HARIUploader:
             else:
                 media_objects_need_upload.append(media_object)
 
+        # upload media objects if needed
         if media_objects_need_upload:
             # prevents failing if bulk response status is failure
             try:
@@ -966,18 +971,16 @@ class HARIUploader:
             )
 
         # manually mark media objects that were skipped as successful
-        response.summary.successful += len(media_objects_skipped)
-        response.summary.total += len(media_objects_skipped)
-        response.results.extend(
-            [
+        for media in media_objects_skipped:
+            response.results.append(
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
                     status=models.ResponseStatesEnum.SUCCESS,
                     item_id=media_object.id,
                 )
-                for media_object in media_objects_skipped
-            ]
-        )
+            )
+        response.summary.successful += len(media_objects_skipped)
+        response.summary.total += len(media_objects_skipped)
 
         return response
 
