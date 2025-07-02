@@ -1284,7 +1284,10 @@ class HARIUploader:
                 if (
                     media_upload_response_result
                     and media_upload_response_result.status
-                    is not models.ResponseStatesEnum.SUCCESS
+                    not in {
+                        models.ResponseStatesEnum.SUCCESS,
+                        models.ResponseStatesEnum.ALREADY_EXISTS,
+                    }
                 ):
                     failed_medias.append(media)
                     self.failures.failed_medias.append(
@@ -1370,7 +1373,10 @@ class HARIUploader:
                 if (
                     media_object_upload_response_result
                     and media_object_upload_response_result.status
-                    is not models.ResponseStatesEnum.SUCCESS
+                    not in {
+                        models.ResponseStatesEnum.SUCCESS,
+                        models.ResponseStatesEnum.ALREADY_EXISTS,
+                    }
                 ):
                     self.failures.failed_media_objects.append(
                         (media_object, media_object_upload_response_result.errors)

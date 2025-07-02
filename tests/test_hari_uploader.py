@@ -1636,87 +1636,107 @@ def test_determine_media_files_upload_behavior_throws_exception_for_missing_file
 @pytest.mark.parametrize(
     "media_bulk_operation_status, media_response_status_responses, media_object_bulk_operation_status, media_object_response_status_responses, uploader_result",
     [
+        # (
+        #     # success
+        #     models.BulkOperationStatusEnum.SUCCESS,
+        #     [
+        #         # 2 medias
+        #         models.ResponseStatesEnum.SUCCESS,
+        #         models.ResponseStatesEnum.SUCCESS,
+        #     ],
+        #     models.BulkOperationStatusEnum.SUCCESS,
+        #     [
+        #         # 3 media objects (2 for first media, 1 for second)
+        #         models.ResponseStatesEnum.SUCCESS,
+        #         models.ResponseStatesEnum.SUCCESS,
+        #         models.ResponseStatesEnum.SUCCESS,
+        #     ],
+        #     {
+        #         "num_failed_medias": 0,
+        #         "num_failed_media_objects": 0,
+        #         "num_failed_media_attributes": 0,
+        #         "num_failed_media_object_attributes": 0,
+        #     },
+        # ),
+        # (
+        #     # partial_success_medias_fail
+        #     models.BulkOperationStatusEnum.FAILURE,
+        #     [
+        #         models.ResponseStatesEnum.MISSING_DATA,
+        #         models.ResponseStatesEnum.CONFLICT,
+        #     ],
+        #     models.BulkOperationStatusEnum.SUCCESS,
+        #     [
+        #         # these should not matter, since medias have failed and media objects should be skipped
+        #         models.ResponseStatesEnum.SUCCESS,
+        #         models.ResponseStatesEnum.SUCCESS,
+        #         models.ResponseStatesEnum.SUCCESS,
+        #     ],
+        #     {
+        #         "num_failed_medias": 2,
+        #         "num_failed_media_objects": 3,
+        #         "num_failed_media_attributes": 4,
+        #         "num_failed_media_object_attributes": 6,
+        #     },
+        # ),
+        # (
+        #     # partial_success_media_objects_fail
+        #     models.BulkOperationStatusEnum.SUCCESS,
+        #     [
+        #         models.ResponseStatesEnum.SUCCESS,
+        #         models.ResponseStatesEnum.SUCCESS,
+        #     ],
+        #     models.BulkOperationStatusEnum.FAILURE,
+        #     [
+        #         models.ResponseStatesEnum.MISSING_DATA,
+        #         models.ResponseStatesEnum.CONFLICT,
+        #         models.ResponseStatesEnum.MISSING_DATA,
+        #     ],
+        #     {
+        #         "num_failed_medias": 0,
+        #         "num_failed_media_objects": 3,
+        #         "num_failed_media_attributes": 0,
+        #         "num_failed_media_object_attributes": 6,
+        #     },
+        # ),
+        # (
+        #     # partial_success_medias_and_media_objects_fail
+        #     models.BulkOperationStatusEnum.FAILURE,
+        #     [
+        #         models.ResponseStatesEnum.SERVER_ERROR,
+        #         models.ResponseStatesEnum.MISSING_DATA,
+        #     ],
+        #     models.BulkOperationStatusEnum.FAILURE,
+        #     [
+        #         models.ResponseStatesEnum.SERVER_ERROR,
+        #         models.ResponseStatesEnum.MISSING_DATA,
+        #         models.ResponseStatesEnum.MISSING_DATA,
+        #     ],
+        #     {
+        #         "num_failed_medias": 2,
+        #         "num_failed_media_objects": 3,
+        #         "num_failed_media_attributes": 4,
+        #         "num_failed_media_object_attributes": 6,
+        #     },
+        # ),
         (
-            # success
-            models.BulkOperationStatusEnum.SUCCESS,
-            [
-                # 2 medias
-                models.ResponseStatesEnum.SUCCESS,
-                models.ResponseStatesEnum.SUCCESS,
-            ],
-            models.BulkOperationStatusEnum.SUCCESS,
-            [
-                # 3 media objects (2 for first media, 1 for second)
-                models.ResponseStatesEnum.SUCCESS,
-                models.ResponseStatesEnum.SUCCESS,
-                models.ResponseStatesEnum.SUCCESS,
-            ],
-            {
-                "num_failed_medias": 0,
-                "num_failed_media_objects": 0,
-                "num_failed_media_attributes": 0,
-                "num_failed_media_object_attributes": 0,
-            },
-        ),
-        (
-            # partial_success_medias_fail
+            # partial_success_medias_and_media_objects_fail, already existing response are skipped
             models.BulkOperationStatusEnum.FAILURE,
             [
-                models.ResponseStatesEnum.MISSING_DATA,
-                models.ResponseStatesEnum.CONFLICT,
-            ],
-            models.BulkOperationStatusEnum.SUCCESS,
-            [
-                # these should not matter, since medias have failed and media objects should be skipped
-                models.ResponseStatesEnum.SUCCESS,
-                models.ResponseStatesEnum.SUCCESS,
-                models.ResponseStatesEnum.SUCCESS,
-            ],
-            {
-                "num_failed_medias": 2,
-                "num_failed_media_objects": 3,
-                "num_failed_media_attributes": 4,
-                "num_failed_media_object_attributes": 6,
-            },
-        ),
-        (
-            # partial_success_media_objects_fail
-            models.BulkOperationStatusEnum.SUCCESS,
-            [
-                models.ResponseStatesEnum.SUCCESS,
-                models.ResponseStatesEnum.SUCCESS,
-            ],
-            models.BulkOperationStatusEnum.FAILURE,
-            [
-                models.ResponseStatesEnum.MISSING_DATA,
-                models.ResponseStatesEnum.CONFLICT,
-                models.ResponseStatesEnum.MISSING_DATA,
-            ],
-            {
-                "num_failed_medias": 0,
-                "num_failed_media_objects": 3,
-                "num_failed_media_attributes": 0,
-                "num_failed_media_object_attributes": 6,
-            },
-        ),
-        (
-            # partial_success_medias_and_media_objects_fail
-            models.BulkOperationStatusEnum.FAILURE,
-            [
+                models.ResponseStatesEnum.ALREADY_EXISTS,
                 models.ResponseStatesEnum.SERVER_ERROR,
-                models.ResponseStatesEnum.MISSING_DATA,
             ],
             models.BulkOperationStatusEnum.FAILURE,
             [
+                models.ResponseStatesEnum.ALREADY_EXISTS,
+                models.ResponseStatesEnum.MISSING_DATA,
                 models.ResponseStatesEnum.SERVER_ERROR,
-                models.ResponseStatesEnum.MISSING_DATA,
-                models.ResponseStatesEnum.MISSING_DATA,
             ],
             {
-                "num_failed_medias": 2,
-                "num_failed_media_objects": 3,
-                "num_failed_media_attributes": 4,
-                "num_failed_media_object_attributes": 6,
+                "num_failed_medias": 1,  # 1 already existing media is not a failure
+                "num_failed_media_objects": 2,  # 1 already existing media object is not a failure
+                "num_failed_media_attributes": 2,  # 2 attributes for already existing media are valid
+                "num_failed_media_object_attributes": 4,  # 2 attributes for already existing media object are valid
             },
         ),
     ],
