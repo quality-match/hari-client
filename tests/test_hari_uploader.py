@@ -2343,7 +2343,7 @@ def test_reevaluate_bulk_status_for_already_existing_entities(
         ],
     )
 
-    uploader._reevaluate_bulk_status_for_already_existing_entities(response)
+    uploader._reevaluate_bulk_response_for_already_existing_entities(response)
 
     assert response.status == expected_status
     assert response.summary.total == expected_summary["total"]
