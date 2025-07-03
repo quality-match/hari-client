@@ -148,7 +148,7 @@ def _validate_request_query_params(
     params: dict[str, typing.Any],
 ) -> None:
     for param_name, param_value in params.items():
-        if param_name == "projection":
+        if param_name == "projection" and param_value:
             if not isinstance(param_value, dict):
                 raise TypeError("Projection should be a dictionary")
             unique_booleans = set()
