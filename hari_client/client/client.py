@@ -30,6 +30,8 @@ class CustomJSONEncoder(json.JSONEncoder):
             return str(obj)
         elif isinstance(obj, datetime.datetime):
             return obj.isoformat()
+        elif isinstance(obj, pydantic.BaseModel):
+            return obj.model_dump()
         return super().default(obj)
 
 
@@ -142,6 +144,27 @@ def handle_union_parsing(item, union_type):
     )
 
 
+def _validate_request_query_params(
+    params: dict[str, typing.Any],
+) -> None:
+    for param_name, param_value in params.items():
+        if param_name == "projection":
+            if not isinstance(param_value, dict):
+                raise TypeError("Projection should be a dictionary")
+            unique_booleans = set()
+            for k, v in param_value.items():
+                if not isinstance(v, bool):
+                    raise TypeError(
+                        f"Invalid projection value for field '{k}': expected boolean, got {type(v).__name__}"
+                    )
+                unique_booleans.add(v)
+            if len(unique_booleans) != 1:
+                raise ValueError(
+                    "Mixing of True and False values in projection is not allowed. "
+                    "Use either only inclusions (True) or only exclusions (False)."
+                )
+
+
 def _prepare_request_query_params(
     params: dict[str, typing.Any],
 ) -> dict[str, typing.Any]:
@@ -153,6 +176,8 @@ def _prepare_request_query_params(
         This method contains a workaround for the param "query". It's expected type is QueryList.
             - The workarounds are: passing a single already serialized QueryParameter/LogicParameter object (serialized with json.dumps), or a list of them.
             - Note that in the future only QueryList will be supported for query. For now other types are supported due to existing workarounds.
+
+        This method also serializes the projection value of type dict to a JSON string.
 
     Args:
         params: The query parameters that should be added to the request.
@@ -186,6 +211,8 @@ def _prepare_request_query_params(
                 + " Support for this behavior will be removed in a future release."
             )
             warnings.warn(msg)
+        elif param_name == "projection":
+            params_copy[param_name] = json.dumps(param_value)
 
     return params_copy
 
@@ -229,6 +256,7 @@ class HARIClient:
             )
 
         if "params" in kwargs:
+            _validate_request_query_params(kwargs["params"])
             kwargs["params"] = _prepare_request_query_params(kwargs["params"])
 
         # do request and basic error handling
@@ -490,9 +518,6 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-        if external_media_source:
-            external_media_source = external_media_source.model_dump()
-
         return self._request(
             "POST",
             "/datasets",
@@ -765,7 +790,6 @@ class HARIClient:
         Returns:
             The created scene
         """
-        frames = [frame.model_dump() for frame in frames]
         json_body = self._pack(
             locals(),
             ignore=["dataset_id"],
@@ -939,23 +963,19 @@ class HARIClient:
                 dataset_id, file_paths=file_paths
             )
 
-            # 2. set media_urls on medias and parse them to dicts
-            media_dicts = []
+            # 2. set media_urls on medias
             for idx, media in enumerate(medias):
                 media.media_url = media_upload_responses[idx].media_url
-                media_dicts.append(media.model_dump())
         else:
-            media_dicts = []
             for media in medias:
                 if not media.file_key:
                     raise errors.MediaCreateMissingFileKeyError(media)
-                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/medias:bulk",
-            json=media_dicts,
+            json=medias,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -1023,9 +1043,9 @@ class HARIClient:
             presign_media: Whether to presign media
             archived: Return archived media
             projection: The fields to be returned (dictionary keys with value True are
-                returned, keys with value False are not returned)
+                returned, keys with value False are not returned). Mixing of True and False values is not allowed.
 
-        Returns:
+         Returns:
             The media matching the provided id
 
         Raises:
@@ -1060,7 +1080,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of medias in a dataset
@@ -1096,7 +1116,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of medias in a dataset
@@ -1525,7 +1545,6 @@ class HARIClient:
             if isinstance(qm_data, list)
             else None
         )
-        reference_data = reference_data.model_dump() if reference_data else None
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/mediaObjects",
@@ -1557,16 +1576,10 @@ class HARIClient:
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
             )
 
-        # 1. parse media_objects to dicts before upload
-        media_object_dicts = [
-            media_object.model_dump() for media_object in media_objects
-        ]
-
-        # 2. send media_objects to HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/mediaObjects:bulk",
-            json=media_object_dicts,
+            json=media_objects,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -1638,9 +1651,9 @@ class HARIClient:
             archived: Archived
             presign_media: Presign Media
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
-        Returns:
+            Returns:
             Requested media object
 
         Raises:
@@ -1675,7 +1688,7 @@ class HARIClient:
             query: Query
             sort: Sort
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             list of media objects of a dataset
@@ -1711,7 +1724,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of media objects in a dataset
@@ -2056,14 +2069,10 @@ class HARIClient:
                 limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(attributes)
             )
 
-        # 1. parse attributes to dicts before upload
-        attribute_dicts = [attribute.model_dump() for attribute in attributes]
-
-        # 2. send attributes to HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/attributes:bulk",
-            json=attribute_dicts,
+            json=attributes,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -2168,7 +2177,8 @@ class HARIClient:
             skip: The number of attributes to skip
             query: A query to filter attributes
             sort: A order by which to sort attributes
-            projection: A dictionary of fields to return
+            projection: The fields to be returned (dictionary keys with value True are
+                returned, keys with value False are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of attributes
@@ -2583,24 +2593,10 @@ class HARIClient:
         Returns:
             Created AINT learning data object.
         """
-
-        body = {
-            key: value
-            for key, value in locals().items()
-            if value is not None and key not in ["self", "training_attributes"]
-        }
-
-        training_attribute_dicts = [
-            training_attribute.model_dump()
-            for training_attribute in training_attributes
-        ]
-
-        body["training_attributes"] = training_attribute_dicts
-
         return self._request(
             "POST",
             "/aintLearningData",
-            json=body,
+            json=self._pack(locals()),
             success_response_item_model=models.AINTLearningData,
         )
 
@@ -2700,7 +2696,7 @@ class HARIClient:
 
         Args:
             projection: The fields to be returned (dictionary keys with value True are returned,
-            keys with value False are not returned).
+            keys with value False are not returned). Mixing of True and False values is not allowed.
             limit: limit the number of ml annotation models returned
             skip: skip the number of ml annotation models returned
             query: query parameters to filter the ml annotation models
@@ -2728,8 +2724,7 @@ class HARIClient:
         Args:
             ml_annotation_model_id: The unique identifier of the AI annotation model.
             projection: The fields to be returned (dictionary keys with value True are returned,
-            keys with value False are not returned).
-
+            keys with value False are not returned). Mixing of True and False values is not allowed.
         Returns:
             The requested ml model.
         """
@@ -3215,7 +3210,7 @@ class HARIClient:
         return self._request(
             "POST",
             "/annotationRuns",
-            json=annotation_run.model_dump(),
+            json=annotation_run,
             success_response_item_model=models.AnnotationRun,
         )
 
