@@ -15,8 +15,8 @@ def load_local_3d_dataset() -> tuple[list[hari_uploader.HARIMedia], set[str], se
     This functions loads the 3d example dataset from the `3d_dataset` directory and is built to this specific dataset's requirements.
     The dataset doesn't follow any specific common directory structure.
     It follows the HARI 3D conventions, though, so no further transformations are required to make it compatible with HARI.
-    You can find the description of the HARI 3D conventions in the HARI documentation:
-        - [TODO: add link once it's available].
+    You can find the description of the HARI 3D conventions and requirements in the HARI documentation:
+        - https://docs.quality-match.com/hari_client/3d_data_requirements/#hari-3d-conventions-and-requirements
 
     Dataset structure:
         - The dataset contains 3 frames, each with 4 cameras and a point cloud.
