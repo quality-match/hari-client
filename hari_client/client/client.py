@@ -2566,12 +2566,6 @@ class HARIClient:
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
-        id: uuid.UUID | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.AINTLearningData:
         """
@@ -2583,12 +2577,6 @@ class HARIClient:
             name: A descriptive name for the AINT learning data.
             training_attributes: The training attributes to be used in the AINT learning data.
             user_group: The user group for creating the AINT learning data (default: None).
-            id: The id of the AINT learning data. If None, random id will be generated during creation.
-            status: The status of the AINT learning data.
-            created_at: The creation date of the AINT learning data.
-            updated_at: The update date of the AINT learning data.
-            archived_at: The archived date of the AINT learning data.
-            owner: The owner of the AINT learning data.
 
         Returns:
             Created AINT learning data object.
@@ -2604,9 +2592,7 @@ class HARIClient:
         self,
         aint_learning_data_id: uuid.UUID,
         name: str | None = None,
-        question: str | None = None,
         user_group: str | None = None,
-        status: models.AINTLearningDataStatus | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2616,9 +2602,7 @@ class HARIClient:
         Args:
             aint_learning_data_id: The unique identifier of the AINT learning data.
             name: The desired name of the AINT learning data.
-            question: The desired question of the AINT learning data.
             user_group: The desired user group of the AINT learning data.
-            status: The desired status of the AINT learning data.
 
         Returns:
            Updated AINT learning data.
