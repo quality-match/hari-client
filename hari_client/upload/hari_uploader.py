@@ -1055,7 +1055,7 @@ class HARIUploader:
             )
 
         # mark media objects that were skipped as already existing and treat as successful
-        for media in media_objects_skipped:
+        for media_object in media_objects_skipped:
             response.results.append(
                 models.AnnotatableCreateResponse(
                     bulk_operation_annotatable_id=media_object.bulk_operation_annotatable_id,
