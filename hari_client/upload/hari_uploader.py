@@ -978,10 +978,7 @@ class HARIUploader:
         Args:
             response: The BulkResponse containing the results of the attribute upload.
         """
-        already_uploaded_cnt = 0
-        for result in response.results:
-            if result.status == models.ResponseStatesEnum.ALREADY_EXISTS:
-                already_uploaded_cnt += 1
+        already_uploaded_cnt = len([_ for _ in response.results if _.status == models.ResponseStatesEnum.ALREADY_EXISTS])
 
         # reevaluate the overall status
         unique_statuses = {result.status for result in response.results}
