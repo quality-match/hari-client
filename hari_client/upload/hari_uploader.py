@@ -571,23 +571,39 @@ class HARIUploader:
         for media in self._medias:
             # validate back reference uniqueness
             if media.back_reference in media_back_references:
-                log.warning(
-                    f"Found duplicate media back_reference: {media.back_reference}. If "
-                    f"you want to be able to match HARI objects 1:1 to your own, "
-                    f"consider using unique back_references."
-                )
+                if not self.skip_uploaded_medias:
+                    log.warning(
+                        f"Found duplicate media back_reference: {media.back_reference}. If "
+                        f"you want to be able to match HARI objects 1:1 to your own, "
+                        f"consider using unique back_references."
+                    )
+                else:
+                    raise ValueError(
+                        f"Found duplicate media back_reference: {media.back_reference}. "
+                        f"Back_references need to be unique across dataset "
+                        f"in order to be able to match HARI objects 1:1 to your own "
+                        f"and to check, which medias were already uploaded."
+                    )
             else:
                 media_back_references.add(media.back_reference)
             # validate media_objects
             for media_object in media.media_objects:
                 # validate back reference uniqueness
                 if media_object.back_reference in media_object_back_references:
-                    log.warning(
-                        f"Found duplicate media_object back_reference: "
-                        f"{media_object.back_reference}. If you want to be able to match HARI "
-                        f"objects 1:1 to your own, consider using unique "
-                        f"back_references."
-                    )
+                    if not self.skip_uploaded_media_objects:
+                        log.warning(
+                            f"Found duplicate media_object back_reference: "
+                            f"{media_object.back_reference}. If you want to be able to match HARI "
+                            f"medias 1:1 to your own, consider using unique "
+                            f"back_references."
+                        )
+                    else:
+                        raise ValueError(
+                            f"Found duplicate media object back_reference: {media.back_reference}. "
+                            f"Back_references need to be unique across dataset "
+                            f"in order to be able to match HARI media objects 1:1 to your own "
+                            f"and to check, which media objectss were already uploaded."
+                        )
                 else:
                     media_object_back_references.add(media_object.back_reference)
 

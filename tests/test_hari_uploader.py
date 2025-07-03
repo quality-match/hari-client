@@ -820,18 +820,13 @@ def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(
     log_spy = mocker.spy(hari_uploader.log, "warning")
     uploader.add_media(
         create_test_media(
-            name="my image 1",
             back_reference="img_1",
-            file_path="images/image_1.jpg",
         )
     )
-    uploader.add_media(
-        create_test_media(
-            name="my image 2",
-            back_reference="img_1",
-            file_path="images/image_2.jpg",
-        )
-    )
+    uploader.add_media(create_test_media(back_reference="img_1"))
+
+    # disable state aware check that raises and error rather than warning
+    uploader.skip_uploaded_medias = False
 
     # Act
     uploader.upload()
@@ -852,11 +847,50 @@ def test_warning_for_hari_uploader_receives_duplicate_media_object_back_referenc
     media.add_media_object(create_test_media_object_2d(back_reference="img_1_obj_1"))
     uploader.add_media(media)
 
+    # disable state aware check that raises and error rather than warning
+    uploader.skip_uploaded_media_objects = False
+
     # Act
     uploader.upload()
 
     # Assert
     assert log_spy.call_count == 1
+
+
+def test_error_for_hari_state_aware_uploader_receives_duplicate_media_back_reference(
+    mock_uploader_for_batching, mocker
+):
+    # Arrange
+    uploader, media_spy, media_object_spy, attribute_spy = mock_uploader_for_batching
+    uploader.add_media(
+        create_test_media(
+            back_reference="img_1",
+        )
+    )
+    uploader.add_media(create_test_media(back_reference="img_1"))
+
+    # Act + Assert
+    with pytest.raises(
+        ValueError, match="Back_references need to be unique across dataset"
+    ):
+        uploader.upload()
+
+
+def test_error_for_hari_state_aware_uploader_receives_duplicate_media_object_back_reference(
+    mock_uploader_for_batching,
+    mocker,
+):
+    # Arrange
+    uploader, media_spy, media_object_spy, attribute_spy = mock_uploader_for_batching
+    media = create_test_media(name="my image 1", back_reference="img_1")
+    media.add_media_object(create_test_media_object_2d(back_reference="img_1_obj_1"))
+    media.add_media_object(create_test_media_object_2d(back_reference="img_1_obj_1"))
+    uploader.add_media(media)
+
+    with pytest.raises(
+        ValueError, match="Back_references need to be unique across dataset"
+    ):
+        uploader.upload()
 
 
 def test_warning_for_media_without_back_reference(mocker):
