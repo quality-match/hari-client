@@ -39,7 +39,7 @@
 
 - added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
   - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
-  - disclaimer: there's no example data for this script yet, so it won't work out of the box.
+- added small example 3D dataset which is used by the `quickstart_3D.py` script [PR#98](https://github.com/quality-match/hari-client/pull/98)
 - added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
 
 ### Internal
