@@ -974,6 +974,7 @@ class HARIUploader:
                         )
                     )
                     failed_media_objects.extend(media.media_objects)
+                    self._media_object_upload_progress.update(len(media.media_objects))
 
                     for media_object in media.media_objects:
                         self.failures.failed_media_object_attributes.extend(
@@ -988,6 +989,9 @@ class HARIUploader:
                             )
                         )
                         failed_media_object_attributes.extend(media_object.attributes)
+                        self._attribute_upload_progress.update(
+                            len(media_object.attributes)
+                        )
 
         # filter out media_objects and attributes that should be skipped because its media failed to upload
         media_objects_to_upload: list[HARIMediaObject] = [
@@ -1050,6 +1054,7 @@ class HARIUploader:
                         )
                     )
                     failed_media_object_attributes.extend(media_object.attributes)
+                    self._attribute_upload_progress.update(len(media_object.attributes))
 
         # update attributes to upload with the media_object attributes that should not be skipped
         for media_object in media_objects_to_upload:
