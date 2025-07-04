@@ -35,6 +35,7 @@ and assign existing media/annotatable id
   - the underlying data type is still a `NamedTuple` with three float attributes
 - Validate that mediaObject type makes sense for the media it's being assigned to. [PR#96](https://github.com/quality-match/hari-client/pull/96)
 - Validate that mediaObjects have a geometry. [PR#96](https://github.com/quality-match/hari-client/pull/96)
+- Remove arguments for aint endpoints that were deleted from API models. [PR#103](https://github.com/quality-match/hari-client/pull/103)
 
 ### New Features
 

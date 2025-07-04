@@ -148,7 +148,7 @@ def _validate_request_query_params(
     params: dict[str, typing.Any],
 ) -> None:
     for param_name, param_value in params.items():
-        if param_name == "projection":
+        if param_name == "projection" and param_value:
             if not isinstance(param_value, dict):
                 raise TypeError("Projection should be a dictionary")
             unique_booleans = set()
@@ -2566,12 +2566,6 @@ class HARIClient:
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
-        id: uuid.UUID | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.AINTLearningData:
         """
@@ -2583,12 +2577,6 @@ class HARIClient:
             name: A descriptive name for the AINT learning data.
             training_attributes: The training attributes to be used in the AINT learning data.
             user_group: The user group for creating the AINT learning data (default: None).
-            id: The id of the AINT learning data. If None, random id will be generated during creation.
-            status: The status of the AINT learning data.
-            created_at: The creation date of the AINT learning data.
-            updated_at: The update date of the AINT learning data.
-            archived_at: The archived date of the AINT learning data.
-            owner: The owner of the AINT learning data.
 
         Returns:
             Created AINT learning data object.
@@ -2604,9 +2592,7 @@ class HARIClient:
         self,
         aint_learning_data_id: uuid.UUID,
         name: str | None = None,
-        question: str | None = None,
         user_group: str | None = None,
-        status: models.AINTLearningDataStatus | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2616,9 +2602,7 @@ class HARIClient:
         Args:
             aint_learning_data_id: The unique identifier of the AINT learning data.
             name: The desired name of the AINT learning data.
-            question: The desired question of the AINT learning data.
             user_group: The desired user group of the AINT learning data.
-            status: The desired status of the AINT learning data.
 
         Returns:
            Updated AINT learning data.
@@ -2762,12 +2746,6 @@ class HARIClient:
         name: str,
         aint_learning_data_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
-        id: uuid.UUID | None = None,
-        dataset_id: uuid.UUID | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.MlAnnotationModel:
         """
@@ -2777,12 +2755,6 @@ class HARIClient:
             name: A descriptive name for the ml annotation model.
             aint_learning_data_id: The unique identifier of the AINT learning data to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
-            id: The id of the model. If None, random id will be generated during creation.
-            dataset_id: The dataset id to train the model on.
-            created_at: The creation timestamp of the ml annotation model.
-            updated_at: The update timestamp of the ml annotation model.
-            archived_at: The archived timestamp of the ml annotation model.
-            owner: The owner of the ml annotation model.
             user_group: The user group for scoping this annotation run (default: None).
 
         Either aint_learning_data_id or reference_set_annotation_run_id must be specified.
@@ -2811,14 +2783,6 @@ class HARIClient:
         ml_annotation_model_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-        status: models.MLAnnotationModelStatus | None = None,
-        training_subset_id: uuid.UUID | None = None,
-        validation_subset_id: uuid.UUID | None = None,
-        test_subset_id: uuid.UUID | None = None,
-        reference_set_annotation_run_id: uuid.UUID | None = None,
-        model_weight_location: str | None = None,
-        automation_correctness_curve: dict | None = None,
-        aint_learning_data_id: uuid.UUID | None = None,
     ) -> models.MlAnnotationModel:
         """
         Update a ml annotation model.
@@ -2827,14 +2791,6 @@ class HARIClient:
             ml_annotation_model_id: The id of the ml annotation model.
             name: new desired name for the ml annotation model.
             user_group: new desired user group for the ml annotation model.
-            status: new desired status for the ml annotation model.
-            training_subset_id: training subset id for the ml annotation model.
-            validation_subset_id: validation subset id for the ml annotation model.
-            test_subset_id: test subset id for the ml annotation model.
-            reference_set_annotation_run_id: reference set annotation run id for the ml annotation model.
-            model_weight_location: model weight location for the ml annotation model.
-            automation_correctness_curve: automation correctness curve for the ml annotation model.
-            aint_learning_data_id: AINT learning data id for the ml annotation model.
 
         Returns:
             The updated ml annotation model.
@@ -2955,13 +2911,6 @@ class HARIClient:
         dataset_id: uuid.UUID,
         subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
-        attribute_metadata_id: uuid.UUID | None = None,
-        id: uuid.UUID | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.AIAnnotationRun:
         """
@@ -2973,13 +2922,6 @@ class HARIClient:
             subset_id: The unique identifier of the subset to be annotated.
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
-            attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
-            id: The id of the AINT learning data. If None, random id will be generated during creation.
-            status: The status of the AI annotation run.
-            created_at: The creation timestamp of the AI annotation run.
-            updated_at: The update timestamp of the AI annotation run.
-            archived_at: The archived timestamp of the AI annotation run.
-            owner: The owner of the AI annotation run.
 
         Returns:
             The created AI annotation run.
@@ -3003,8 +2945,6 @@ class HARIClient:
         ai_annotation_run_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        attribute_metadata_id: uuid.UUID | None = None,
     ) -> models.AIAnnotationRun:
         """
         Update an AI annotation run.
@@ -3013,8 +2953,6 @@ class HARIClient:
             ai_annotation_run_id: The id of the AI annotation run.
             name: new desired name for the AI annotation run.
             user_group: new desired user group for the AI annotation run.
-            status: status for the AI annotation run.
-            attribute_metadata_id: attribute metadata id for the AI annotation run.
 
         Returns:
             The updated AI annotation run.
