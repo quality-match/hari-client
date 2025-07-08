@@ -1756,7 +1756,27 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
                         bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
                     )
                 )
-        return models.BulkResponse(results=results, status=media_bulk_operation_status)
+        return models.BulkResponse(
+            results=results,
+            status=media_bulk_operation_status,
+            summary=models.BulkUploadSuccessSummary(
+                total=len(results),
+                successful=len(
+                    [
+                        x
+                        for x in results
+                        if x.status == models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+                failed=len(
+                    [
+                        x
+                        for x in results
+                        if x.status != models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+            ),
+        )
 
     client.create_medias = mock_create_medias
 
@@ -1799,7 +1819,25 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
                     )
                 )
         return models.BulkResponse(
-            results=results, status=media_object_bulk_operation_status
+            results=results,
+            status=media_object_bulk_operation_status,
+            summary=models.BulkUploadSuccessSummary(
+                total=len(results),
+                successful=len(
+                    [
+                        x
+                        for x in results
+                        if x.status == models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+                failed=len(
+                    [
+                        x
+                        for x in results
+                        if x.status != models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+            ),
         )
 
     client.create_media_objects = mock_create_media_objects
