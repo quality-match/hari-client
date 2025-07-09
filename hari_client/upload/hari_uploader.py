@@ -582,7 +582,8 @@ class HARIUploader:
                         f"Found duplicate media back_reference: {media.back_reference}. "
                         f"Back_references need to be unique across dataset "
                         f"in order to be able to match HARI objects 1:1 to your own "
-                        f"and to check, which medias were already uploaded."
+                        f"and to check, which medias were already uploaded,"
+                        f"as part of state aware uploader flow."
                     )
             else:
                 media_back_references.add(media.back_reference)
@@ -763,7 +764,8 @@ class HARIUploader:
             if entity.back_reference in uploaded_back_references:
                 log.warning(
                     f"Multiple of the same back reference '{entity.back_reference}' encountered on the server; "
-                    f"using the last found id."
+                    f"using the last found id. That means that all media objects/attributes will be attached to the"
+                    f"last found media/media object. When using state aware uploader, back references must be unique."
                 )
             uploaded_back_references[entity.back_reference] = entity.id
 
