@@ -26,6 +26,7 @@ existing medias and media objects (defaulting to `True`)
 - added `id` and `uploaded` fields to `HARIMedia` and `HARIMediaObject` to check later on whether the entity was uploaded,
 and assign existing media/annotatable id
 - created method for media and media objects validation that is executed before upload and move all validations there
+- removed subset creation from `check_and_upload_dataset` utility
 
 ### Breaking Changes
 
