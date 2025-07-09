@@ -137,8 +137,6 @@ def check_and_upload_dataset(
     dataset_id: uuid.UUID,
     medias: list[HARIMedia],
     object_categories: set[str] | None = None,
-    new_subset_name: str = "All media objects",
-    subset_type: models.SubsetType = models.SubsetType.MEDIA_OBJECT,
 ):
     """
     Check and upload data to an existing or new dataset, optionally creating a new subset.
@@ -149,8 +147,6 @@ def check_and_upload_dataset(
         dataset_id: The UUID of the dataset to upload data to.
         object_categories: A list of object categories to be associated with the data.
         medias: A list of media objects to be uploaded.
-        new_subset_name: The name of the subset to create or use.
-        subset_type: The type of subset (e.g., MEDIA_OBJECT).
     """
     log.info("Prepare Upload to HARI...")
 
@@ -177,24 +173,9 @@ def check_and_upload_dataset(
         or upload_results.attributes.status != models.BulkOperationStatusEnum.SUCCESS
     ):
         log.info(
-            "The data upload wasn't fully successful. Subset and metadata creation are skipped. See the details below."
+            "The data upload wasn't fully successful. Metadata creation are skipped. See the details below."
         )
         log.info(f"media upload details: {upload_results.medias.results}")
 
-    new_subset_id, exists = get_or_create_subset_for_all(
-        hari, dataset_id, new_subset_name, subset_type
-    )
-
-    if exists:
-        # TODO This is not optimal, if data is appended to a dataset
-        #  The subset is not updated and only this error message is shown
-        log.warning(
-            "You did not create a new subset since the name already exists. "
-            "If you added new images during upload the metadata update will be skipped for the new images. "
-            "If you added new images please provide a new subset name or delete the old one."
-        )
-
     # Trigger metadata updates
-    trigger_and_display_metadata_update(
-        hari, dataset_id=dataset_id, subset_id=new_subset_id
-    )
+    trigger_and_display_metadata_update(hari=hari, dataset_id=dataset_id)
