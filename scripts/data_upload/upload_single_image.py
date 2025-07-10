@@ -68,10 +68,4 @@ if __name__ == "__main__":
     )
 
     # upload image to dataset
-    check_and_upload_dataset(
-        hari=hari,
-        dataset_id=dataset_id,
-        medias=[media],
-        new_subset_name="All Media",
-        subset_type=models.SubsetType.MEDIA,
-    )
+    check_and_upload_dataset(hari=hari, dataset_id=dataset_id, medias=[media])

@@ -10,12 +10,12 @@ T = typing.TypeVar("T")
 class APIError(Exception):
     def __init__(self, response: requests.Response):
         http_response_status_code = response.status_code
-        message = ""
+        self.message = ""
         try:
-            message = response.json()
+            self.message = response.json()
         except:
             pass
-        super().__init__(f"{http_response_status_code=}: {message=}")
+        super().__init__(f"{http_response_status_code=}: {self.message=}")
 
 
 class AuthenticationError(APIError):
@@ -134,16 +134,5 @@ class AttributeValidationInconsistentListElementValueTypesMultipleAttributesErro
         message = (
             f"Found multiple instances of attribute {attribute_name} with {annotatable_type=} with inconsistent list element value types {found_value_types}."
             + " Make sure every instance of this attribute uses the same list element value types."
-        )
-        super().__init__(message)
-
-
-class AttributeValidationIdNotReusedError(Exception):
-    def __init__(
-        self, attribute_name: str, annotatable_type: str, found_ids: list[str]
-    ):
-        message = (
-            f"Found multiple ids {found_ids} for the same attribute name {attribute_name} with {annotatable_type=}."
-            + " Make sure every attribute with the same name and annotatable type is using the same id."
         )
         super().__init__(message)
