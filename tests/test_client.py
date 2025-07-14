@@ -7,6 +7,7 @@ from hari_client import errors
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.client import client
+from hari_client.config import config
 
 
 def test_create_medias_with_missing_file_paths(test_client):
@@ -255,7 +256,7 @@ def test_create_medias_with_too_many_objects(test_client):
     with pytest.raises(errors.BulkUploadSizeRangeError):
         client.create_medias(
             dataset_id="1234",
-            medias=[media_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)],
+            medias=[media_create for i in range(config.MEDIA_BULK_UPLOAD_LIMIT + 1)],
         )
 
 
@@ -273,7 +274,7 @@ def test_create_media_objects_with_too_many_objects(test_client):
         client.create_media_objects(
             dataset_id="1234",
             media_objects=[
-                media_object_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)
+                media_object_create for i in range(config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT + 1)
             ],
         )
 
@@ -292,12 +293,12 @@ def test_get_presigned_media_upload_url_batch_size_range(test_client):
 
     with pytest.raises(
         errors.ParameterNumberRangeError,
-        match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
+        match=f"value={HARIClient.MAX_FETCH_BATCH_SIZE + 1}",
     ):
         client.get_presigned_media_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
-            batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
+            batch_size=HARIClient.MAX_FETCH_BATCH_SIZE + 1,
         )
 
 
@@ -316,13 +317,13 @@ def test_get_presigned_visualisation_upload_url_batch_size_range(test_client):
 
     with pytest.raises(
         errors.ParameterNumberRangeError,
-        match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
+        match=f"value={HARIClient.MAX_FETCH_BATCH_SIZE + 1}",
     ):
         client.get_presigned_visualisation_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             visualisation_config_id="1234",
-            batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
+            batch_size=HARIClient.MAX_FETCH_BATCH_SIZE + 1,
         )
 
 
