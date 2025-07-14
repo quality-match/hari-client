@@ -1812,3 +1812,82 @@ class BaseProcessingJobMethod(BaseModel):
     user_id: uuid.UUID | None = None
     user_group: str | None = None
     parameters: BaseProcessingJobParameters
+
+
+class AnnotationRunNodeMetrics(pydantic.BaseModel):
+    cant_solve_count: int
+    corrupt_data_count: int
+    latest_submission_at: datetime.datetime
+    max_duration_ms: int
+    max_loading_duration_ms: int
+    max_wp_duration_ms: int
+    mean_duration_ms: int
+    mean_loading_duration_ms: int
+    mean_wp_duration_ms: int
+    median_duration_ms: int
+    median_loading_duration_ms: int
+    median_wp_duration_ms: int
+    min_duration_ms: int
+    min_loading_duration_ms: int
+    min_wp_duration_ms: int
+    total_duration_ms: int
+    total_loading_duration_ms: int
+    total_tasks: int
+    total_wp_duration_ms: int
+    user_id: str
+    vendor_id: str
+    vendor_user_id: str
+
+
+class AnnotationRunMetrics(AnnotationRunNodeMetrics):
+    pass
+
+
+class AnnotationRunNodeStatus(pydantic.BaseModel):
+    agglomerated_output_per_second: float
+    first_task_submitted_at: datetime.datetime | None
+    is_done: bool
+    is_done_localy: bool
+    is_started: bool
+    latest_task_submitted_at: datetime.datetime | None
+    max_repeats: int
+    name: str
+    needed_repeats: float
+    num_agglomerated_project_node_outputs: int
+    num_project_node_ground_truth: int
+    num_project_node_inputs: int
+    num_project_node_outputs: int
+    num_tasks_available_in_queue: int
+    num_tasks_in_task_router: int
+    num_tasks_waiting_for_acknowledgment: int
+    output_per_second: float
+
+
+class AnnotationRunProjectStatus(pydantic.BaseModel):
+    is_done: bool
+    nodes: list[AnnotationRunNodeStatus]
+
+
+class Repeats(pydantic.BaseModel):
+    min_repeats: int
+    max_repeats: int
+
+
+class Workpackage(pydantic.BaseModel):
+    total_size: int
+    time_limit_seconds: int
+    ground_truth_size: int
+
+
+class AnnotationRunNodeDetails(pydantic.BaseModel):
+    id: uuid.UUID
+    repeats: Repeats
+    workpackage: Workpackage
+
+
+class AnnotationRunProjectDetails(pydantic.BaseModel):
+    created_at: datetime.datetime
+    id: uuid.UUID
+    name: str
+    nodes: dict[str, AnnotationRunNodeDetails]
+    started: bool

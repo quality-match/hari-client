@@ -15,7 +15,11 @@
 - Add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
 - Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
   - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
-
+- Add methods for getting annotation run times [PR#108](https://github.com/quality-match/hari-client/pull/108)
+  - get_annotation_run_times
+  - get_annotation_run_node_times
+  - get_annotation_run_project_status
+  - get_annotation_run_project
 #### Consistency in partially failed uploads
 
 - partially failed bulk uploads of medias and media objects are now handled consistently [PR#80](https://github.com/quality-match/hari-client/pull/80)
