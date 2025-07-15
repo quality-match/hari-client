@@ -218,8 +218,6 @@ def _prepare_request_query_params(
 
 
 class HARIClient:
-    MAX_FETCH_BATCH_SIZE = 500
-
     def __init__(self, config: config.Config):
         self.config = config
 
@@ -1264,11 +1262,11 @@ class HARIClient:
             APIException: If the request fails.
             ParameterRangeError: If the batch_size is out of range.
         """
-        if batch_size < 1 or batch_size > HARIClient.MAX_FETCH_BATCH_SIZE:
+        if batch_size < 1 or batch_size > config.PRESIGNED_URL_MAX_BATCH_SIZE:
             raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
-                maximum=HARIClient.MAX_FETCH_BATCH_SIZE,
+                maximum=config.PRESIGNED_URL_MAX_BATCH_SIZE,
                 value=batch_size,
             )
         return self._request(
@@ -1482,11 +1480,11 @@ class HARIClient:
             APIException: If the request fails.
             ParameterRangeError: If the validating input args fails.
         """
-        if batch_size < 1 or batch_size > HARIClient.MAX_FETCH_BATCH_SIZE:
+        if batch_size < 1 or batch_size > config.PRESIGNED_URL_MAX_BATCH_SIZE:
             raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
-                maximum=HARIClient.MAX_FETCH_BATCH_SIZE,
+                maximum=config.PRESIGNED_URL_MAX_BATCH_SIZE,
                 value=batch_size,
             )
         return self._request(
@@ -1573,7 +1571,8 @@ class HARIClient:
 
         if len(media_objects) > config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT:
             raise errors.BulkUploadSizeRangeError(
-                limit=config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
+                limit=config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT,
+                found_amount=len(media_objects),
             )
 
         return self._request(

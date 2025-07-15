@@ -4,11 +4,19 @@ import pydantic_settings
 MEDIA_BULK_UPLOAD_LIMIT = 500
 MEDIA_OBJECT_BULK_UPLOAD_LIMIT = 5000
 ATTRIBUTE_BULK_UPLOAD_LIMIT = 750
+PRESIGNED_URL_MAX_BATCH_SIZE = MEDIA_BULK_UPLOAD_LIMIT
+
 
 class HARIUploaderConfig(pydantic.BaseModel):
-    media_upload_batch_size: int = pydantic.Field(default=500, ge=1, le=MEDIA_BULK_UPLOAD_LIMIT)
-    media_object_upload_batch_size: int = pydantic.Field(default=5000, ge=1, le=MEDIA_OBJECT_BULK_UPLOAD_LIMIT)
-    attribute_upload_batch_size: int = pydantic.Field(default=750, ge=1, le=ATTRIBUTE_BULK_UPLOAD_LIMIT)
+    media_upload_batch_size: int = pydantic.Field(
+        default=500, ge=1, le=MEDIA_BULK_UPLOAD_LIMIT
+    )
+    media_object_upload_batch_size: int = pydantic.Field(
+        default=5000, ge=1, le=MEDIA_OBJECT_BULK_UPLOAD_LIMIT
+    )
+    attribute_upload_batch_size: int = pydantic.Field(
+        default=750, ge=1, le=ATTRIBUTE_BULK_UPLOAD_LIMIT
+    )
 
 
 class Config(pydantic_settings.BaseSettings):
