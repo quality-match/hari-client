@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [4.0.0] - 15-07-2025
+
 ### Breaking Changes
 
 - Deleted `name_filter` from get multiple datasets endpoint [PR#91](https://github.com/quality-match/hari-client/pull/91)
