@@ -1039,6 +1039,7 @@ class HARIUploader:
                         )
                     )
                     failed_media_attributes.extend(media.attributes)
+                    self._attribute_upload_progress.update(len(media.attributes))
 
                     self.failures.failed_media_objects.extend(
                         map(

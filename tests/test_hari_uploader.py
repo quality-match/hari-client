@@ -1862,6 +1862,15 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         len(results.failures.failed_media_object_attributes)
         == uploader_result["num_failed_media_object_attributes"]
     )
+    assert uploader._media_upload_progress.total == uploader._media_upload_progress.n
+    assert (
+        uploader._media_object_upload_progress.total
+        == uploader._media_object_upload_progress.n
+    )
+    assert (
+        uploader._attribute_upload_progress.total
+        == uploader._attribute_upload_progress.n
+    )
 
 
 def test_validate_media_object_compatible_with_media_with_none_media_object_type():
