@@ -19,6 +19,8 @@
 - Add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
 - Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
   - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
+- Create separate bulk size limits in the config for medias, objects and attributes (500, 5000 and 750 respectively) [PR#106](https://github.com/quality-match/hari-client/pull/106)
+  - Set presigned url maximum batch size to 500 accordingly
 
 ### Fixes
 
