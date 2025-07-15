@@ -30,10 +30,10 @@ def get_latest_benchmark_file(results_dir: pathlib.Path) -> pathlib.Path | None:
 
 
 REUSE_SAME_MEDIA_BINARY = False
-NUM_MEDIAS = 5000
-NUM_MEDIA_OBJECTS_BY_MEDIA = 2
-NUM_ATTRIBUTES_BY_MEDIA = 1
-NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 1
+NUM_MEDIAS = 15000
+NUM_MEDIA_OBJECTS_BY_MEDIA = 10
+NUM_ATTRIBUTES_BY_MEDIA = 10
+NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 10
 REUSE_PREVIOUS_CONFIGURATION = False
 
 if REUSE_PREVIOUS_CONFIGURATION:
@@ -160,9 +160,14 @@ def generate_medias(
     ]
     for idx, item in enumerate(s3_files_list):
         media = hari_uploader.HARIMedia(
-            # file_key=item.split("/")[-1],
-            # file_path=str((pathlib.Path(__file__).parent.parent / "docs/example_code/2694ea70-9b4e-47c0-8e85-b3c18050be2b/anonymized/2694ea70-9b4e-47c0-8e85-b3c18050be2b_0a0a600c-5410-42b3-b77a-9a2cf772716f.jpg").absolute()),
-            file_path=item,
+            file_key=item.split("/")[-1],
+            file_path=str(
+                (
+                    pathlib.Path(__file__).parent.parent
+                    / "docs/example_code/2694ea70-9b4e-47c0-8e85-b3c18050be2b/anonymized/2694ea70-9b4e-47c0-8e85-b3c18050be2b_0a0a600c-5410-42b3-b77a-9a2cf772716f.jpg"
+                ).absolute()
+            ),
+            # file_path=item,
             name=str(idx),
             back_reference=str(idx),
             media_type=models.MediaType.IMAGE,
@@ -192,13 +197,13 @@ s3_file_list = s3_file_list[:NUM_MEDIAS]
 
 
 media_objects = generate_random_media_objects(NUM_MEDIA_OBJECTS_BY_MEDIA)
-# medias = generate_medias(media_objects, s3_file_list, 500)
-files = []
-s3_file_list = []
-for file in (pathlib.Path(__file__).parent / "images").iterdir():
-    s3_file_list.append(str(file.absolute()))
-s3_file_list = s3_file_list[:NUM_MEDIAS]
-medias = generate_medias(media_objects, s3_file_list, 5000)
+medias = generate_medias(media_objects, s3_file_list, 15000)
+# files = []
+# s3_file_list = []
+# for file in (pathlib.Path(__file__).parent / "images").iterdir():
+#     s3_file_list.append(str(file.absolute()))
+# s3_file_list = s3_file_list[:NUM_MEDIAS]
+# medias = generate_medias(media_objects, s3_file_list, 5000)
 
 config = Config()
 
@@ -209,11 +214,11 @@ hari = HARIClient(config=config)
 new_dataset = hari.create_dataset(
     name="performance_test",
     user_group="QM-ops",
-    # external_media_source=models.ExternalMediaSourceAPICreate(
-    #     credentials=models.ExternalMediaSourceS3CrossAccountAccessInfo(
-    #         bucket_name="zod-external", region="eu-central-1"
-    #     )
-    # ),
+    external_media_source=models.ExternalMediaSourceAPICreate(
+        credentials=models.ExternalMediaSourceS3CrossAccountAccessInfo(
+            bucket_name="zod-external", region="eu-central-1"
+        )
+    ),
 )
 dataset_id = new_dataset.id
 print(dataset_id)
