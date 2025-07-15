@@ -50,6 +50,19 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
     ) -> typing.Any:
         return data
 
+    @property
+    def geometry(self) -> models.GeometryUnion:
+        return (
+            self.reference_data
+            if self.source == models.DataSource.REFERENCE
+            else self.qm_data
+        )
+
+    @pydantic.model_validator(mode="after")
+    def set_media_object_type(self) -> None:
+        if self.geometry is not None:
+            self.media_object_type = self.geometry.type
+
     def add_attribute(self, *args: HARIAttribute) -> None:
         for attribute in args:
             self.attributes.append(attribute)
@@ -514,6 +527,68 @@ class HARIUploader:
         dataset = self._load_dataset()
         return dataset and dataset.external_media_source is not None
 
+    @staticmethod
+    def _validate_media_object_compatible_with_media(
+        media: models.MediaCreate, media_object: models.MediaObjectCreate
+    ):
+        """Validates that the media object is compatible with the media.
+
+        Args:
+            media: The media.
+            media_object: The media object.
+
+        Raises:
+            ValueError: If the media object is not compatible with the media.
+        """
+        # Get the type value from the geometry object
+        if media_object.media_object_type is None:
+            raise ValueError("MediaObject type must be specified.")
+        else:
+            geometry_type_value = media_object.media_object_type
+
+        match media.media_type:
+            case models.MediaType.IMAGE:
+                if geometry_type_value not in [
+                    models.MediaObjectType.POLYLINE2D_FLAT_COORDINATES.value,
+                    models.MediaObjectType.BBOX2D_CENTER_POINT.value,
+                    models.MediaObjectType.BBOX_2D_CENTER_POINT_AGGREGATION.value,
+                    models.MediaObjectType.POINT2D_XY.value,
+                    models.MediaObjectType.POINT_2D_XY_AGGREGATION.value,
+                    models.MediaObjectType.SEGMENT_RLE_COMPRESSED.value,
+                ]:
+                    raise ValueError(
+                        f"Images can only contain 2D geometries: "
+                        f"{geometry_type_value} is not compatible with media"
+                        f" type {media.media_type}."
+                    )
+            case models.MediaType.VIDEO:
+                raise ValueError("Videos can not contian media objects.")
+            case models.MediaType.POINT_CLOUD:
+                if geometry_type_value not in [
+                    models.MediaObjectType.POINT3D_XYZ.value,
+                    models.MediaObjectType.POINT_3D_XYZ_AGGREGATION.value,
+                    models.MediaObjectType.CUBOID_CENTER_POINT.value,
+                ]:
+                    raise ValueError(
+                        f"Point clouds can only contain 3D geometries: "
+                        f"{geometry_type_value} is not compatible with media"
+                        f" type {media.media_type}."
+                    )
+
+    @staticmethod
+    def _validate_geometry_is_provided(media_object: models.MediaObjectCreate) -> None:
+        """Validates that at least one geometry is provided."""
+        if not media_object.geometry:
+            raise ValueError(
+                f"Media object {media_object.back_reference} has no geometry."
+            )
+
+    def validate_medias(self) -> None:
+        for media in self._medias:
+            for media_object in media.media_objects:
+                self._validate_geometry_is_provided(media_object)
+                self._validate_media_object_compatible_with_media(media, media_object)
+
     def validate_all_attributes(self) -> None:
         """Validates all attributes of medias and media objects."""
         all_attributes = []
@@ -587,6 +662,7 @@ class HARIUploader:
             return None
 
         self.validate_unique_attributes_limit()
+        self.validate_medias()
         self.validate_all_attributes()
 
         # Handle scene and object category setup and validation
@@ -974,6 +1050,7 @@ class HARIUploader:
                         )
                     )
                     failed_media_objects.extend(media.media_objects)
+                    self._media_object_upload_progress.update(len(media.media_objects))
 
                     for media_object in media.media_objects:
                         self.failures.failed_media_object_attributes.extend(
@@ -988,6 +1065,9 @@ class HARIUploader:
                             )
                         )
                         failed_media_object_attributes.extend(media_object.attributes)
+                        self._attribute_upload_progress.update(
+                            len(media_object.attributes)
+                        )
 
         # filter out media_objects and attributes that should be skipped because its media failed to upload
         media_objects_to_upload: list[HARIMediaObject] = [
@@ -1050,6 +1130,7 @@ class HARIUploader:
                         )
                     )
                     failed_media_object_attributes.extend(media_object.attributes)
+                    self._attribute_upload_progress.update(len(media_object.attributes))
 
         # update attributes to upload with the media_object attributes that should not be skipped
         for media_object in media_objects_to_upload:
@@ -1063,6 +1144,14 @@ class HARIUploader:
         attributes_upload_responses = self._upload_attributes_in_batches(
             attributes_to_upload
         )
+        # add fake responses for skipped media objects and attributes
+        self.add_fake_bulk_responses_for_media_objects_and_attributes(
+            media_object_upload_responses,
+            failed_media_objects,
+            attributes_upload_responses,
+            failed_media_attributes + failed_media_object_attributes,
+        )
+
         return (
             media_upload_response,
             media_object_upload_responses,
@@ -1113,6 +1202,62 @@ class HARIUploader:
             media_object_upload_responses,
             attribute_upload_responses,
         )
+
+    @staticmethod
+    def add_fake_bulk_responses_for_media_objects_and_attributes(
+        media_object_upload_responses: list[models.BulkResponse],
+        media_objects: list[HARIMediaObject],
+        attributes_upload_responses: list[models.BulkResponse],
+        attributes: list[HARIAttribute],
+    ) -> None:
+        """Creates fake responses for media objects and attributes and appends them to the respective upload responses.
+            This is done for consistency of the responses, especially when media objects or attributes are skipped due to failed parent media uploads.
+
+        Args:
+            media_object_upload_responses: The media object upload responses.
+            media_objects: media objects to generate responses for.
+            attributes_upload_responses: The attribute upload responses.
+            attributes: attributes to generate responses for.
+        """
+        # handle skipped media objects and attributes
+        if media_objects:
+            skipped_media_objects_resp = models.BulkResponse()
+            for mo in media_objects:
+                skipped_media_objects_resp.results.append(
+                    models.AnnotatableCreateResponse(
+                        bulk_operation_annotatable_id="",
+                        item_id=None,
+                        status=models.ResponseStatesEnum.MISSING_DATA,
+                        errors=["Parent media upload failed. Skipping media object."],
+                    )
+                )
+            # ensure summary matches results count
+            skipped_media_objects_resp.summary.total = len(
+                skipped_media_objects_resp.results
+            )
+            skipped_media_objects_resp.summary.failed = len(
+                skipped_media_objects_resp.results
+            )
+            skipped_media_objects_resp.status = models.BulkOperationStatusEnum.FAILURE
+            media_object_upload_responses.append(skipped_media_objects_resp)
+
+        if attributes:
+            skipped_attr_resp = models.BulkResponse()
+            for attr in attributes:
+                skipped_attr_resp.results.append(
+                    models.AttributeCreateResponse(
+                        annotatable_id="",
+                        item_id=None,
+                        status=models.ResponseStatesEnum.MISSING_DATA,
+                        errors=[
+                            "Parent media object upload failed. Skipping attribute."
+                        ],
+                    )
+                )
+            skipped_attr_resp.summary.total = len(skipped_attr_resp.results)
+            skipped_attr_resp.summary.failed = len(skipped_attr_resp.results)
+            skipped_attr_resp.status = models.BulkOperationStatusEnum.FAILURE
+            attributes_upload_responses.append(skipped_attr_resp)
 
 
 def _merge_bulk_responses(*args: models.BulkResponse) -> models.BulkResponse:

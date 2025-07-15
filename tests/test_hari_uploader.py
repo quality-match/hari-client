@@ -7,6 +7,107 @@ from hari_client import hari_uploader
 from hari_client import models
 
 
+# Helper functions for creating test objects with proper geometries
+def create_test_media(
+    name: str = "test_media",
+    back_reference: str = "test_media_ref",
+    media_type: models.MediaType = models.MediaType.IMAGE,
+    file_path: str = None,
+    file_key: str = None,
+    object_category_subset_name: str = None,
+    scene_back_reference: str = None,
+    frame_idx: int = None,
+) -> hari_uploader.HARIMedia:
+    """Create a test media with sensible defaults."""
+    media = hari_uploader.HARIMedia(
+        name=name,
+        media_type=media_type,
+        back_reference=back_reference,
+        file_path=file_path,
+        file_key=file_key,
+        object_category_subset_name=object_category_subset_name,
+        scene_back_reference=scene_back_reference,
+        frame_idx=frame_idx,
+    )
+    return media
+
+
+def create_test_media_object_2d(
+    back_reference: str = "test_media_obj_ref",
+    source: models.DataSource = models.DataSource.REFERENCE,
+    bbox_x: float = 100.0,
+    bbox_y: float = 100.0,
+    bbox_width: float = 50.0,
+    bbox_height: float = 50.0,
+    object_category_subset_name: str = None,
+    scene_back_reference: str = None,
+    frame_idx: int = None,
+) -> hari_uploader.HARIMediaObject:
+    """Create a test media object with 2D bounding box geometry."""
+    reference_data = models.BBox2DCenterPoint(
+        type=models.BBox2DType.BBOX2D_CENTER_POINT,
+        x=bbox_x,
+        y=bbox_y,
+        width=bbox_width,
+        height=bbox_height,
+    )
+
+    media_object = hari_uploader.HARIMediaObject(
+        source=source,
+        back_reference=back_reference,
+        reference_data=reference_data,
+        object_category_subset_name=object_category_subset_name,
+        scene_back_reference=scene_back_reference,
+        frame_idx=frame_idx,
+    )
+    return media_object
+
+
+def create_test_media_object_3d(
+    back_reference: str = "test_media_obj_ref",
+    source: models.DataSource = models.DataSource.REFERENCE,
+    x: float = 1.0,
+    y: float = 2.0,
+    z: float = 3.0,
+    object_category_subset_name: str = None,
+    scene_back_reference: str = None,
+    frame_idx: int = None,
+) -> hari_uploader.HARIMediaObject:
+    """Create a test media object with 3D point geometry."""
+    reference_data = models.Point3DXYZ(
+        type="point3d_xyz",
+        x=x,
+        y=y,
+        z=z,
+    )
+
+    media_object = hari_uploader.HARIMediaObject(
+        source=source,
+        back_reference=back_reference,
+        reference_data=reference_data,
+        object_category_subset_name=object_category_subset_name,
+        scene_back_reference=scene_back_reference,
+        frame_idx=frame_idx,
+    )
+    return media_object
+
+
+def create_test_attribute(
+    name: str = "test_attribute",
+    value: str = "test_value",
+    id: uuid.UUID = None,
+) -> hari_uploader.HARIAttribute:
+    """Create a test attribute with sensible defaults."""
+    if id is None:
+        id = uuid.uuid4()
+
+    return hari_uploader.HARIAttribute(
+        id=id,
+        name=name,
+        value=value,
+    )
+
+
 def test_add_media(mock_uploader_for_object_category_validation):
     # Arrange
     (
@@ -17,20 +118,11 @@ def test_add_media(mock_uploader_for_object_category_validation):
     assert uploader._attribute_cnt == 0
 
     # Act
-    uploader.add_media(
-        hari_uploader.HARIMedia(
-            name="my image",
-            media_type=models.MediaType.IMAGE,
-            back_reference="img",
-            attributes=[
-                hari_uploader.HARIAttribute(
-                    id=uuid.uuid4(),
-                    name="my attribute 1",
-                    value="value 1",
-                )
-            ],
-        )
-    )
+    media_with_attribute = create_test_media(name="my image", back_reference="img")
+    media_with_attribute.attributes = [
+        create_test_attribute(name="my attribute 1", value="value 1")
+    ]
+    uploader.add_media(media_with_attribute)
 
     # Assert
     assert len(uploader._medias) == 1
@@ -38,13 +130,9 @@ def test_add_media(mock_uploader_for_object_category_validation):
 
     # Act
     # add another media without attributes
-    uploader.add_media(
-        hari_uploader.HARIMedia(
-            name="my image",
-            media_type=models.MediaType.IMAGE,
-            back_reference="img",
-        )
-    )
+    media_without_attributes = create_test_media(name="my image", back_reference="img")
+    uploader.add_media(media_without_attributes)
+
     # Assert
     assert len(uploader._medias) == 2
     assert uploader._attribute_cnt == 1
@@ -77,15 +165,13 @@ def test_validate_media_objects_object_category_subsets_consistency(
         object_categories_vs_subsets,
     ) = mock_uploader_for_object_category_validation
 
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
     )
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1", object_category_subset_name="pedestrian"
     )
-    media_object_1.set_object_category_subset_name("pedestrian")
     media_1.add_media_object(media_object_1)
     uploader.add_media(media_1)
     # Act
@@ -99,10 +185,10 @@ def test_validate_media_objects_object_category_subsets_consistency(
     assert found_object_category_subset_names == {"pedestrian"}
 
     # Arrange
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2",
+        object_category_subset_name="some_non-existent-subset_name",
     )
-    media_object_2.set_object_category_subset_name("some_non-existent-subset_name")
     media_1.add_media_object(media_object_2)
 
     # Act
@@ -136,21 +222,18 @@ def test_assign_media_objects_to_object_category_subsets_sets_subset_ids_correct
     object_category_1, subset_1 = next(obj_cat_vs_subs_iter)
     object_category_2, subset_2 = next(obj_cat_vs_subs_iter)
 
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
         object_category_subset_name="pedestrian",
     )
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1", object_category_subset_name="pedestrian"
     )
-    media_object_1.set_object_category_subset_name("pedestrian")
     media_1.add_media_object(media_object_1)
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2", object_category_subset_name="wheel"
     )
-    media_object_2.set_object_category_subset_name("wheel")
     media_1.add_media_object(media_object_2)
     uploader.add_media(media_1)
 
@@ -180,18 +263,17 @@ def test_validate_scene_consistency(
 
     (uploader, scene_back_references_vs_scene_ids) = mock_uploader_for_scene_validation
 
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
+        scene_back_reference="scene_1",
+        frame_idx=0,
     )
-    media_1.set_scene_back_reference("scene_1")
-    media_1.set_frame_idx(0)
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1",
+        scene_back_reference="scene_1",
+        frame_idx=0,
     )
-    media_object_1.set_scene_back_reference("scene_1")
-    media_object_1.set_frame_idx(0)
     media_1.add_media_object(media_object_1)
     uploader.add_media(media_1)
     # Act
@@ -205,11 +287,11 @@ def test_validate_scene_consistency(
     assert found_object_category_subset_names == {"scene_1"}
 
     # Arrange
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2",
+        scene_back_reference="some_non-existent-scene_back_reference",
+        frame_idx=1,
     )
-    media_object_2.set_scene_back_reference("some_non-existent-scene_back_reference")
-    media_object_2.set_frame_idx(1)
     media_1.add_media_object(media_object_2)
 
     # Act
@@ -252,23 +334,20 @@ def test_assign_scenes_and_frames_correctly(mock_uploader_for_scene_validation, 
     scene_back_reference_1, scene_1 = next(scene_back_references_vs_scenes_iter)
     scene_back_reference_2, scene_2 = next(scene_back_references_vs_scenes_iter)
 
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
         object_category_subset_name="pedestrian",
         scene_back_reference="scene_1",
         frame_idx=0,
     )
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1", frame_idx=0
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1", frame_idx=0, scene_back_reference="scene_1"
     )
-    media_object_1.set_scene_back_reference("scene_1")
     media_1.add_media_object(media_object_1)
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2", frame_idx=0
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2", frame_idx=0, scene_back_reference="scene_2"
     )
-    media_object_2.set_scene_back_reference("scene_2")
     media_1.add_media_object(media_object_2)
     uploader.add_media(media_1)
     scenes_to_create = ["scene_1", "scene_2"]
@@ -296,29 +375,21 @@ def test_update_hari_media_object_media_ids(
         object_categories_vs_subsets,
     ) = mock_uploader_for_object_category_validation
 
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
     )
     media_1.bulk_operation_annotatable_id = "bulk_id_1"
-    shared_media_object = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-    )
+    shared_media_object = create_test_media_object_2d(back_reference="img_1_obj_1")
     media_1.add_media_object(shared_media_object)
     uploader.add_media(media_1)
-    media_2 = hari_uploader.HARIMedia(
+    media_2 = create_test_media(
         name="my image 2",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_2",
     )
     media_2.bulk_operation_annotatable_id = "bulk_id_2"
     media_2.add_media_object(shared_media_object)
-    media_2.add_media_object(
-        hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE, back_reference="img_2_obj_2"
-        )
-    )
+    media_2.add_media_object(create_test_media_object_2d(back_reference="img_2_obj_2"))
     uploader.add_media(media_2)
     media_upload_bulk_response = models.BulkResponse(
         results=[
@@ -357,29 +428,25 @@ def test_update_hari_attribute_media_ids(mock_uploader_for_object_category_valid
         object_categories_vs_subsets,
     ) = mock_uploader_for_object_category_validation
 
-    shared_attribute = hari_uploader.HARIAttribute(
-        id=uuid.uuid4(),
+    shared_attribute = create_test_attribute(
         name="my attribute 1",
         value="value 1",
     )
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
     )
     media_1.bulk_operation_annotatable_id = "bulk_id_1"
     media_1.add_attribute(shared_attribute)
     uploader.add_media(media_1)
-    media_2 = hari_uploader.HARIMedia(
+    media_2 = create_test_media(
         name="my image 2",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_2",
     )
     media_2.bulk_operation_annotatable_id = "bulk_id_2"
     media_2.add_attribute(shared_attribute)
     media_2.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="my attribute 2",
             value="value 2",
         )
@@ -426,50 +493,38 @@ def test_update_hari_attribute_media_object_ids(
         object_categories_vs_subsets,
     ) = mock_uploader_for_object_category_validation
 
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
     )
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
+    media_object_1 = create_test_media_object_2d(
         back_reference="img_1_obj_1",
-        reference_data=models.BBox2DCenterPoint(
-            type=models.BBox2DType.BBOX2D_CENTER_POINT,
-            x=1400.0,
-            y=1806.0,
-            width=344.0,
-            height=732.0,
-        ),
+        bbox_x=1400.0,
+        bbox_y=1806.0,
+        bbox_width=344.0,
+        bbox_height=732.0,
     )
     media_object_1.bulk_operation_annotatable_id = "bulk_id_1"
-    shared_attribute_object_1 = hari_uploader.HARIAttribute(
-        id=uuid.uuid4(),
+    shared_attribute_object_1 = create_test_attribute(
         name="Is human?",
         value="yes",
     )
     media_object_1.add_attribute(shared_attribute_object_1)
     media_1.add_media_object(media_object_1)
 
-    media_2 = hari_uploader.HARIMedia(
+    media_2 = create_test_media(
         name="my image 2",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_2",
     )
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
+    media_object_2 = create_test_media_object_2d(
         back_reference="img_2_obj_1",
-        reference_data=models.BBox2DCenterPoint(
-            type=models.BBox2DType.BBOX2D_CENTER_POINT,
-            x=1400.0,
-            y=1806.0,
-            width=344.0,
-            height=732.0,
-        ),
+        bbox_x=1400.0,
+        bbox_y=1806.0,
+        bbox_width=344.0,
+        bbox_height=732.0,
     )
     media_object_2.bulk_operation_annotatable_id = "bulk_id_2"
-    attribute_object_2 = hari_uploader.HARIAttribute(
-        id=uuid.uuid4(),
+    attribute_object_2 = create_test_attribute(
         name="Is human?",
         value="yes",
     )
@@ -536,20 +591,18 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
     #   - 2 attributes per media object and two media objects per media
     #   - --> 6 attribute batches per media batch
     for i in range(1100):
-        media = hari_uploader.HARIMedia(
+        media = create_test_media(
             name=f"my image {i}",
-            media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
             file_path=f"images/image_{i}.jpg",
         )
         for k in range(2):
-            media_object = hari_uploader.HARIMediaObject(
-                source=models.DataSource.REFERENCE,
+            media_object = create_test_media_object_2d(
                 back_reference=f"img_{i}_obj_{k}",
             )
             media.add_media_object(media_object)
             media.add_attribute(
-                hari_uploader.HARIAttribute(
+                create_test_attribute(
                     id=attribute_media_id,
                     name=f"attr_{i}_{k}",
                     value=f"value_{i}_{k}",
@@ -557,7 +610,7 @@ def test_hari_uploader_creates_batches_correctly(mock_uploader_for_batching):
             )
             for l in range(2):
                 media_object.add_attribute(
-                    hari_uploader.HARIAttribute(
+                    create_test_attribute(
                         id=attribute_media_object_id,
                         name=f"attr_{i}_{k}_{l}",
                         value=f"value_{i}_{k}_{l}",
@@ -614,29 +667,25 @@ def test_hari_uploader_creates_single_batch_correctly(
     # 10 media_objects --> 1 batch
     # 30 attributes --> 1 batch
     for i in range(5):
-        media = hari_uploader.HARIMedia(
+        media = create_test_media(
             name=f"my image {i}",
-            media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
             file_path=f"images/image_{i}.jpg",
         )
         for k in range(2):
-            media_object = hari_uploader.HARIMediaObject(
-                source=models.DataSource.REFERENCE,
+            media_object = create_test_media_object_2d(
                 back_reference=f"img_{i}_obj_{k}",
             )
             media.add_media_object(media_object)
             media.add_attribute(
-                hari_uploader.HARIAttribute(
-                    id=uuid.uuid4(),
+                create_test_attribute(
                     name=f"attr_{i}_{k}",
                     value=f"value_{i}_{k}",
                 )
             )
             for l in range(2):
                 media_object.add_attribute(
-                    hari_uploader.HARIAttribute(
-                        id=uuid.uuid4(),
+                    create_test_attribute(
                         name=f"attr_{i}_{k}_{l}",
                         value=f"value_{i}_{k}_{l}",
                     )
@@ -692,29 +741,25 @@ def test_hari_uploader_creates_single_batch_correctly_without_uploading_media_fi
     # 10 media_objects --> 1 batch
     # 30 attributes --> 1 batch
     for i in range(5):
-        media = hari_uploader.HARIMedia(
+        media = create_test_media(
             name=f"my image {i}",
-            media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
             file_key=f"images/image_{i}.jpg",
         )
         for k in range(2):
-            media_object = hari_uploader.HARIMediaObject(
-                source=models.DataSource.REFERENCE,
+            media_object = create_test_media_object_2d(
                 back_reference=f"img_{i}_obj_{k}",
             )
             media.add_media_object(media_object)
             media.add_attribute(
-                hari_uploader.HARIAttribute(
-                    id=uuid.uuid4(),
+                create_test_attribute(
                     name=f"attr_{i}_{k}",
                     value=f"value_{i}_{k}",
                 )
             )
             for l in range(2):
                 media_object.add_attribute(
-                    hari_uploader.HARIAttribute(
-                        id=uuid.uuid4(),
+                    create_test_attribute(
                         name=f"attr_{i}_{k}_{l}",
                         value=f"value_{i}_{k}_{l}",
                     )
@@ -758,18 +803,16 @@ def test_warning_for_hari_uploader_receives_duplicate_media_back_reference(
     ) = mock_uploader_for_object_category_validation
     log_spy = mocker.spy(hari_uploader.log, "warning")
     uploader.add_media(
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my image 1",
-            media_type=models.MediaType.IMAGE,
             back_reference="img_1",
         )
     )
 
     # Act
     uploader.add_media(
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my image 2",
-            media_type=models.MediaType.IMAGE,
             back_reference="img_1",
         )
     )
@@ -788,19 +831,9 @@ def test_warning_for_hari_uploader_receives_duplicate_media_object_back_referenc
         object_categories_vs_subsets,
     ) = mock_uploader_for_object_category_validation
     log_spy = mocker.spy(hari_uploader.log, "warning")
-    media = hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference="img_1"
-    )
-    media.add_media_object(
-        hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-        )
-    )
-    media.add_media_object(
-        hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-        )
-    )
+    media = create_test_media(name="my image 1", back_reference="img_1")
+    media.add_media_object(create_test_media_object_2d(back_reference="img_1_obj_1"))
+    media.add_media_object(create_test_media_object_2d(back_reference="img_1_obj_1"))
 
     # Act
     uploader.add_media(media)
@@ -814,9 +847,7 @@ def test_warning_for_media_without_back_reference(mocker):
     log_spy = mocker.spy(hari_uploader.log, "warning")
 
     # Act
-    hari_uploader.HARIMedia(
-        name="my image 1", media_type=models.MediaType.IMAGE, back_reference=""
-    )
+    create_test_media(name="my image 1", back_reference="")
 
     # Assert
     assert log_spy.call_count == 1
@@ -827,7 +858,7 @@ def test_warning_for_media_object_without_back_reference(mocker):
     log_spy = mocker.spy(hari_uploader.log, "warning")
 
     # Act
-    hari_uploader.HARIMediaObject(source=models.DataSource.REFERENCE, back_reference="")
+    create_test_media_object_2d(back_reference="")
 
     # Assert
     assert log_spy.call_count == 1
@@ -841,15 +872,13 @@ def test_hari_uploader_sets_bulk_operation_annotatable_id_automatically_on_media
 
     # Act
     # 1 media with 1 media_object
-    media = hari_uploader.HARIMedia(
+    media = create_test_media(
         name="my image",
-        media_type=models.MediaType.IMAGE,
         back_reference="img",
         file_path="images/image.jpg",
     )
     media.add_media_object(
-        hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE,
+        create_test_media_object_2d(
             back_reference="img_obj",
         )
     )
@@ -871,23 +900,18 @@ def test_hari_uploader_upload_without_specified_object_categories(mock_client, m
     # Arrange
     uploader = hari_uploader.HARIUploader(mock_client[0], dataset_id=uuid.UUID(int=0))
     mocker.patch.object(uploader, "_load_dataset", return_value=None)
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-    )
-    media_object_1.set_object_category_subset_name("pedestrian")
-
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
-    )
-    media_object_2.set_object_category_subset_name("wheel")
-
-    media_object_3 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1", object_category_subset_name="pedestrian"
     )
 
-    media_1 = hari_uploader.HARIMedia(
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2", object_category_subset_name="wheel"
+    )
+
+    media_object_3 = create_test_media_object_2d(back_reference="img_1_obj_3")
+
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
         file_path="images/image_1.jpg",
     )
@@ -926,23 +950,18 @@ def test_hari_uploader_upload_with_known_specified_object_categories(
         create_subset_side_effect=create_subset_side_effect,
     )
 
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-    )
-    media_object_1.set_object_category_subset_name("pedestrian")
-
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
-    )
-    media_object_2.set_object_category_subset_name("wheel")
-
-    media_object_3 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1", object_category_subset_name="pedestrian"
     )
 
-    media_1 = hari_uploader.HARIMedia(
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2", object_category_subset_name="wheel"
+    )
+
+    media_object_3 = create_test_media_object_2d(back_reference="img_1_obj_3")
+
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
         file_path="images/image_1.jpg",
     )
@@ -975,23 +994,18 @@ def test_hari_uploader_upload_with_unknown_specified_object_categories(
         create_subset_side_effect=create_subset_side_effect,
     )
 
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-    )
-    media_object_1.set_object_category_subset_name("pedestrian")
-
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
-    )
-    media_object_2.set_object_category_subset_name("wheeel")
-
-    media_object_3 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1", object_category_subset_name="pedestrian"
     )
 
-    media_1 = hari_uploader.HARIMedia(
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2", object_category_subset_name="wheeel"
+    )
+
+    media_object_3 = create_test_media_object_2d(back_reference="img_1_obj_3")
+
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
         file_path="images/image_1.jpg",
     )
@@ -1048,23 +1062,18 @@ def test_hari_uploader_upload_with_already_existing_backend_category_subsets(
         get_subsets_for_dataset_side_effect=get_subsets_for_dataset_side_effect,
     )
 
-    media_object_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_1"
-    )
-    media_object_1.set_object_category_subset_name("pedestrian")
-
-    media_object_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_2"
-    )
-    media_object_2.set_object_category_subset_name("wheel")
-
-    media_object_3 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE, back_reference="img_1_obj_3"
+    media_object_1 = create_test_media_object_2d(
+        back_reference="img_1_obj_1", object_category_subset_name="pedestrian"
     )
 
-    media_1 = hari_uploader.HARIMedia(
+    media_object_2 = create_test_media_object_2d(
+        back_reference="img_1_obj_2", object_category_subset_name="wheel"
+    )
+
+    media_object_3 = create_test_media_object_2d(back_reference="img_1_obj_3")
+
+    media_1 = create_test_media(
         name="my image 1",
-        media_type=models.MediaType.IMAGE,
         back_reference="img_1",
         file_path="images/image_1.jpg",
     )
@@ -1246,15 +1255,14 @@ def test_hari_uploader_unique_attributes_number_limit_error(
     expected_attr_cnt = 0
     # Act
     for i in range(100):
-        media = hari_uploader.HARIMedia(
+        media = create_test_media(
             name="my image",
-            media_type=models.MediaType.IMAGE,
             back_reference=f"img_{i}",
             file_path=f"images/image_{i}.jpg",
         )
         for j in range(5):
             attribute_media_id = uuid.uuid4()
-            attribute_media = hari_uploader.HARIAttribute(
+            attribute_media = create_test_attribute(
                 id=attribute_media_id,
                 name="area",
                 value=6912,
@@ -1262,14 +1270,13 @@ def test_hari_uploader_unique_attributes_number_limit_error(
             media.add_attribute(attribute_media)
             expected_attr_cnt += 1
 
-        media_object = hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE,
+        media_object = create_test_media_object_2d(
             back_reference=f"img_{i}_obj_{i}",
         )
         media.add_media_object(media_object)
         for k in range(10):
             attribute_object_id = uuid.uuid4()
-            attribute_object = hari_uploader.HARIAttribute(
+            attribute_object = create_test_attribute(
                 id=attribute_object_id,
                 name="Is this a human being?",
                 value=True,
@@ -1318,22 +1325,20 @@ def test_hari_uploader_unique_attributes_number_limit_error_with_existing_attrib
         lambda *args, **kwargs: mock_attribute_metadata
     )
 
-    media = hari_uploader.HARIMedia(
+    media = create_test_media(
         name="my image",
-        media_type=models.MediaType.IMAGE,
         back_reference="img",
         file_path="images/image.jpg",
     )
 
     new_attrs_number = 2
     for k in range(new_attrs_number):
-        media_object = hari_uploader.HARIMediaObject(
-            source=models.DataSource.REFERENCE,
+        media_object = create_test_media_object_2d(
             back_reference=f"img_obj_{k}",
         )
         media.add_media_object(media_object)
         media_object.add_attribute(
-            hari_uploader.HARIAttribute(
+            create_test_attribute(
                 id=uuid.UUID(int=k),
                 name=f"attr_{k}",
                 value=f"value_{k}",
@@ -1395,22 +1400,19 @@ def test_determine_media_files_upload_behavior_without_upload(test_client, mocke
     )
 
     medias = [
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my_image_0",
             back_reference="my_image_backref_0",
-            media_type=models.MediaType.IMAGE,
             file_key="path/to/image_0.jpg",
         ),
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my_image_1",
             back_reference="my_image_backref_1",
-            media_type=models.MediaType.IMAGE,
             file_key="path/to/imag_1.jpg",
         ),
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my_image_2",
             back_reference="my_image_backref_2",
-            media_type=models.MediaType.IMAGE,
             file_key="path/to/image_2.jpg",
         ),
     ]
@@ -1431,22 +1433,19 @@ def test_determine_media_files_upload_behavior_with_upload(test_client, mocker):
     )
 
     medias = [
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my_image_0",
             back_reference="my_image_backref_0",
-            media_type=models.MediaType.IMAGE,
             file_path="path/to/image_0.jpg",
         ),
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my_image_1",
             back_reference="my_image_backref_1",
-            media_type=models.MediaType.IMAGE,
             file_path="path/to/image_1.jpg",
         ),
-        hari_uploader.HARIMedia(
+        create_test_media(
             name="my_image_2",
             back_reference="my_image_backref_2",
-            media_type=models.MediaType.IMAGE,
             file_path="path/to/image_2.jpg",
         ),
     ]
@@ -1642,116 +1641,91 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         attributes_cnt=6,
     )
 
-    media_1 = hari_uploader.HARIMedia(
+    media_1 = create_test_media(
         name="media_1",
-        media_type=models.MediaType.IMAGE,
         back_reference="media_ref_1",
         file_path="images/1.jpg",
     )
 
-    media_obj_1 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
+    media_obj_1 = create_test_media_object_2d(
         back_reference="media_obj_1",
     )
     media_obj_1.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="attr1_1",
             value="value1_1",
-            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
         )
     )
     media_obj_1.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="attr1_2",
             value="value1_2",
-            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
         )
     )
 
-    media_obj_2 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
+    media_obj_2 = create_test_media_object_2d(
         back_reference="media_obj_2",
     )
     media_obj_2.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="attr2_1",
             value="value2_1",
-            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
         )
     )
     media_obj_2.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="attr2_2",
             value="value2_2",
-            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
         )
     )
 
     media_1.add_media_object(media_obj_1, media_obj_2)
     media_1.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="media_attr1_1",
             value="media_value1_1",
-            annotatable_type=models.DataBaseObjectType.MEDIA,
         )
     )
     media_1.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="media_attr1_2",
             value="media_value1_2",
-            annotatable_type=models.DataBaseObjectType.MEDIA,
         )
     )
 
-    media_2 = hari_uploader.HARIMedia(
+    media_2 = create_test_media(
         name="media_2",
-        media_type=models.MediaType.IMAGE,
         back_reference="media_ref_2",
         file_path="images/2.jpg",
     )
 
-    media_obj_3 = hari_uploader.HARIMediaObject(
-        source=models.DataSource.REFERENCE,
+    media_obj_3 = create_test_media_object_2d(
         back_reference="media_obj_3",
     )
     media_obj_3.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="attr3_1",
             value="value3_1",
-            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
         )
     )
     media_obj_3.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="attr3_2",
             value="value3_2",
-            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
         )
     )
 
     media_2.add_media_object(media_obj_3)
     media_2.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="media_attr2_1",
             value="media_value2_1",
-            annotatable_type=models.DataBaseObjectType.MEDIAOBJECT,
         )
     )
     media_2.add_attribute(
-        hari_uploader.HARIAttribute(
-            id=uuid.uuid4(),
+        create_test_attribute(
             name="media_attr2",
             value="media_value2_2",
-            annotatable_type=models.DataBaseObjectType.MEDIA,
         )
     )
 
@@ -1782,7 +1756,27 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
                         bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
                     )
                 )
-        return models.BulkResponse(results=results, status=media_bulk_operation_status)
+        return models.BulkResponse(
+            results=results,
+            status=media_bulk_operation_status,
+            summary=models.BulkUploadSuccessSummary(
+                total=len(results),
+                successful=len(
+                    [
+                        x
+                        for x in results
+                        if x.status == models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+                failed=len(
+                    [
+                        x
+                        for x in results
+                        if x.status != models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+            ),
+        )
 
     client.create_medias = mock_create_medias
 
@@ -1825,7 +1819,25 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
                     )
                 )
         return models.BulkResponse(
-            results=results, status=media_object_bulk_operation_status
+            results=results,
+            status=media_object_bulk_operation_status,
+            summary=models.BulkUploadSuccessSummary(
+                total=len(results),
+                successful=len(
+                    [
+                        x
+                        for x in results
+                        if x.status == models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+                failed=len(
+                    [
+                        x
+                        for x in results
+                        if x.status != models.ResponseStatesEnum.SUCCESS
+                    ]
+                ),
+            ),
         )
 
     client.create_media_objects = mock_create_media_objects
@@ -1850,3 +1862,158 @@ def test_hari_uploader_marks_dependencies_as_failed_when_media_object_upload_fai
         len(results.failures.failed_media_object_attributes)
         == uploader_result["num_failed_media_object_attributes"]
     )
+
+
+def test_validate_media_object_compatible_with_media_with_none_media_object_type():
+    """Test behavior when media_object_type is None."""
+    media = models.MediaCreate(
+        name="test_image", media_type=models.MediaType.IMAGE, back_reference="img_ref"
+    )
+
+    media_object = models.MediaObjectCreate(
+        media_id="test_media_id", back_reference="obj_ref", media_object_type=None
+    )
+
+    with pytest.raises(ValueError) as exc_info:
+        hari_uploader.HARIUploader._validate_media_object_compatible_with_media(
+            media, media_object
+        )
+
+    expected_msg = f"MediaObject type must be specified."
+    assert str(exc_info.value) == expected_msg
+
+
+@pytest.mark.parametrize(
+    "media_type,valid_object_geometries,invalid_object_geometries,expected_error_msg",
+    [
+        (
+            models.MediaType.IMAGE,
+            [
+                models.PolyLine2DFlatCoordinates(coordinates=[1.0, 2.0, 3.0, 4.0]),
+                models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.BoundingBox2DAggregation(
+                    type="bbox2d_center_point_aggregation",
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.Point2DXY(x=1.0, y=2.0),
+                models.Point2DAggregation(type="point2d_xy_aggregation", x=1.0, y=2.0),
+                models.SegmentRLECompressed(size=[100, 100], counts="1a2b3c4d"),
+            ],
+            [
+                models.Point3DXYZ(type="point3d_xyz", x=1.0, y=2.0, z=3.0),
+                models.Point3DAggregation(
+                    type="point3d_xyz_aggregation", x=1.0, y=2.0, z=3.0
+                ),
+                models.CuboidCenterPoint(
+                    position=(1.0, 2.0, 3.0),
+                    heading=(0.0, 0.0, 0.0, 1.0),
+                    dimensions=(1.0, 1.0, 1.0),
+                ),
+            ],
+            "Images can only contain 2D geometries",
+        ),
+        (
+            models.MediaType.POINT_CLOUD,
+            [
+                models.Point3DXYZ(type="point3d_xyz", x=1.0, y=2.0, z=3.0),
+                models.Point3DAggregation(
+                    type="point3d_xyz_aggregation", x=1.0, y=2.0, z=3.0
+                ),
+                models.CuboidCenterPoint(
+                    position=(1.0, 2.0, 3.0),
+                    heading=(0.0, 0.0, 0.0, 1.0),
+                    dimensions=(1.0, 1.0, 1.0),
+                ),
+            ],
+            [
+                models.PolyLine2DFlatCoordinates(coordinates=[1.0, 2.0, 3.0, 4.0]),
+                models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.BoundingBox2DAggregation(
+                    type="bbox2d_center_point_aggregation",
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.Point2DXY(x=1.0, y=2.0),
+                models.Point2DAggregation(type="point2d_xy_aggregation", x=1.0, y=2.0),
+                models.SegmentRLECompressed(size=[100, 100], counts="1a2b3c4d"),
+            ],
+            "Point clouds can only contain 3D geometries",
+        ),
+        (
+            models.MediaType.VIDEO,
+            [],  # No valid geometries for video
+            [
+                # All geometry types should be invalid for video
+                models.PolyLine2DFlatCoordinates(coordinates=[1.0, 2.0, 3.0, 4.0]),
+                models.BBox2DCenterPoint(
+                    type=models.BBox2DType.BBOX2D_CENTER_POINT,
+                    x=1.0,
+                    y=2.0,
+                    width=10.0,
+                    height=20.0,
+                ),
+                models.Point2DXY(x=1.0, y=2.0),
+                models.Point3DXYZ(type="point3d_xyz", x=1.0, y=2.0, z=3.0),
+                models.CuboidCenterPoint(
+                    position=(1.0, 2.0, 3.0),
+                    heading=(0.0, 0.0, 0.0, 1.0),
+                    dimensions=(1.0, 1.0, 1.0),
+                ),
+                models.SegmentRLECompressed(size=[100, 100], counts="1a2b3c4d"),
+            ],
+            "Videos can not contian media objects.",
+        ),
+    ],
+)
+def test_validate_media_object_compatible_with_media_parametrized(
+    media_type, valid_object_geometries, invalid_object_geometries, expected_error_msg
+):
+    """Parametrized test for media object compatibility validation."""
+    media = models.MediaCreate(
+        name="test_media", media_type=media_type, back_reference="media_ref"
+    )
+
+    # Test valid types - should not raise
+    for geometry in valid_object_geometries:
+        media_object = models.MediaObjectCreate(
+            media_id="test_media_id",
+            back_reference="obj_ref",
+            media_object_type=geometry.type,
+        )
+
+        hari_uploader.HARIUploader._validate_media_object_compatible_with_media(
+            media, media_object
+        )
+
+    # Test invalid types - should raise ValueError
+    for geometry in invalid_object_geometries:
+        media_object = models.MediaObjectCreate(
+            media_id="test_media_id",
+            back_reference="obj_ref",
+            media_object_type=geometry.type,
+        )
+
+        with pytest.raises(ValueError) as exc_info:
+            hari_uploader.HARIUploader._validate_media_object_compatible_with_media(
+                media, media_object
+            )
+
+        # Check that the error message contains the expected text
+        assert expected_error_msg in str(exc_info.value)

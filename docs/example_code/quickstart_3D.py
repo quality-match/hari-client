@@ -1,3 +1,5 @@
+import json
+import pathlib
 import sys
 import time
 import uuid
@@ -7,98 +9,142 @@ from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 
+
+def load_local_3d_dataset() -> tuple[list[hari_uploader.HARIMedia], set[str], set[str]]:
+    """
+    This functions loads the 3d example dataset from the `3d_dataset` directory and is built to this specific dataset's requirements.
+    The dataset doesn't follow any specific common directory structure.
+    It follows the HARI 3D conventions, though, so no further transformations are required to make it compatible with HARI.
+    You can find the description of the HARI 3D conventions and requirements in the HARI documentation:
+        - https://docs.quality-match.com/hari_client/3d_data_requirements/#hari-3d-conventions-and-requirements
+
+    Dataset structure:
+        - The dataset contains 3 frames, each with 4 cameras and a point cloud.
+        - Each camera has a corresponding image file, and the point cloud is stored in a PCD file.
+        - The cameras' extrinsics and intrinsics, as well as the objects in the scene, are stored in a JSON file.
+
+    In order to load your own dataset, you have to adapt the data loading to your own dataset requirements,
+    directory structure and apply the necessary transformations to make it compatible with the HARI 3D conventions.
+
+    Returns:
+        A list of HARIMedia representing all data of the dataset, a set of scene names, a set of object categories.
+    """
+    base_dir = pathlib.Path(__file__).parent / "3d_dataset"
+    # we know that the dataset consists of only one scene, 3 frames and 4 cameras
+    frame_indices = [0, 1, 2]
+    camera_names = ["Camera_Front", "Camera_Back", "Camera_Right", "Camera_Left"]
+    # there's only one scene in this example dataset, so we use a static scene name
+    scene_name = "scene_0"
+
+    medias = []
+    scene_names = set([scene_name])
+    object_categories = set()
+
+    for frame_idx in frame_indices:
+        frame_dir = base_dir / f"frame_{frame_idx}"
+        data_filename = frame_dir / f"data_{frame_idx}.json"
+        pointcloud_filename = frame_dir / f"pointcloud_{frame_idx}.pcd"
+
+        # Load data: camera extrinsics, camera intrinsics, objects
+        with open(data_filename, "r") as f:
+            frame_data = json.load(f)
+
+        cameras = frame_data["cameras"]
+        objects = frame_data["objects"]
+
+        # Create HARIMedia for every camera image
+        for camera_name in camera_names:
+            camera = cameras[camera_name]
+            image_name = f"{camera_name}_{frame_idx}.jpg"
+            medias.append(
+                hari_uploader.HARIMedia(
+                    file_path=str(frame_dir / image_name),
+                    name=image_name,
+                    back_reference=image_name,
+                    frame_idx=frame_idx,
+                    scene_back_reference=scene_name,
+                    media_type=models.MediaType.IMAGE,
+                    metadata=models.ImageMetadata(
+                        sensor_id=camera_name,
+                        camera_intrinsics=models.CameraIntrinsics(
+                            camera_model=models.CameraModelType.PINHOLE,
+                            focal_length=(camera["fx"], camera["fy"]),
+                            principal_point=(camera["cx"], camera["cy"]),
+                            # we know that all images are 1920x1080, so we can set these values directly
+                            width_px=1920,
+                            height_px=1080,
+                            distortion_coefficients=None,
+                        ),
+                        camera_extrinsics=models.Pose3D(
+                            position=camera["location"],
+                            heading=camera["rotation_quaternion_wxyz"],
+                        ),
+                        width=1920,
+                        height=1080,
+                    ),
+                )
+            )
+
+        # Create HARIMedia for the pointcloud
+        pointcloud_media = hari_uploader.HARIMedia(
+            file_path=str(pointcloud_filename),
+            name=f"pointcloud_{frame_idx}.pcd",
+            back_reference=f"pointcloud_{frame_idx}",
+            frame_idx=frame_idx,
+            scene_back_reference=scene_name,
+            media_type=models.MediaType.POINT_CLOUD,
+            metadata=models.PointCloudMetadata(
+                sensor_id="lidar_sensor",
+            ),
+        )
+        medias.append(pointcloud_media)
+
+        # Create HARIMediaObjects for each object in the frame
+        for object_name, object in objects.items():
+            media_object = hari_uploader.HARIMediaObject(
+                scene_back_reference=scene_name,
+                frame_idx=frame_idx,
+                # in this dataset, the object names aren't unique across frames, so append the frame_idx to
+                # make the back_reference unique
+                back_reference=f"{object_name}_{frame_idx}",
+                reference_data=models.CuboidCenterPoint(
+                    type="cuboid_center_point",
+                    position=object["location"],
+                    dimensions=object["dimensions"],
+                    heading=object["rotation_quaternion_wxyz"],
+                ),
+            )
+            media_object.set_object_category_subset_name(object["class"])
+            object_categories.add(object["class"])
+            pointcloud_media.add_media_object(media_object)
+
+    return medias, scene_names, object_categories
+
+
 # The Config class will look for a .env file in your script's current working directory.
 # Copy the .env_example file as .env for that and store your HARI credentials in there.
 config = Config()
 
+# 0. Load the local 3D dataset
+medias, scene_names, object_categories = load_local_3d_dataset()
+
 # 1. Initialize the HARI client
 hari = HARIClient(config=config)
-# # 2. Create a dataset
-# # Replace "CHANGEME" with your own user group!
-new_dataset = hari.create_dataset(name="My first dataset")
+
+# 2. Create a dataset
+# Replace "CHANGEME" with your own user group!
+new_dataset = hari.create_dataset(name="My first 3D dataset", user_group="CHANGEME")
 print("Dataset created with id:", new_dataset.id)
-#
 dataset_id = new_dataset.id
 
-attribute_object_1_id = uuid.uuid4()
-attribute_media_1_id = uuid.uuid4()
-medias = []
-
-# 3. Set up your medias and all of their media objects and attributes.
-# In this example we use 3 images with 1 media object each.
-# The first media and media object have 1 attribute each.
-scenes = {"scene1"}
-object_categories = {"truck"}
+# 3. Set up hari uploader
 uploader = hari_uploader.HARIUploader(
     client=hari,
     dataset_id=dataset_id,
-    scenes=scenes,
+    scenes=scene_names,
     object_categories=object_categories,
 )
-point_cloud = hari_uploader.HARIMedia(
-    file_path="images/point_cloud.pcd",
-    name="test_point_cloud",
-    back_reference="point_cloud",
-    frame_idx=0,
-    scene_back_reference="scene1",
-    media_type=models.MediaType.POINT_CLOUD,
-    metadata=models.PointCloudMetadata(
-        sensor_id="lidar_sensor_1",
-        lidar_sensor_pose={
-            "test": models.Pose3D(heading=(0, 0, 0, 0), position=(0, 0, 0))
-        },
-    ),
-)
-media_object = hari_uploader.HARIMediaObject(
-    back_reference="cuboid_center_point",
-    reference_data=models.CuboidCenterPoint(
-        type="cuboid_center_point",
-        position=[-10.227567047441426, 19.460821128585394, 0.03743642453830098],
-        dimensions=[2.312, 7.516, 3.093],
-        heading=[
-            0.9543446154177624,
-            0.0016914195330597179,
-            -0.0028850132191384366,
-            -0.29868908721580645,
-        ],
-    ),
-    scene_back_reference="scene1",
-    frame_idx=0,
-)
-media_object.set_object_category_subset_name("truck")
-point_cloud.add_media_object(media_object)
-image = hari_uploader.HARIMedia(
-    file_path="images/acdcf2c4-9585-4c9c-90bb-cfa0883898f4.jpg",
-    name="test_image_1",
-    back_reference="test_image_1",
-    frame_idx=0,
-    scene_back_reference="scene1",
-    metadata=models.ImageMetadata(
-        camera_intrinsics=models.CameraIntrinsics(
-            camera_model=models.CameraModelType.PINHOLE,
-            focal_length=(1266.417203046554, 1266.417203046554),
-            principal_point=(816.2670197447984, 491.50706579294757),
-            width_px=1600,
-            height_px=900,
-            distortion_coefficients=None,
-        ),
-        camera_extrinsics=models.Pose3D(
-            position=(-0.012463384576629074, 0.76486688894964, -0.3109103442096659),
-            heading=(
-                0.713640516187247,
-                -0.700501707318727,
-                -0.0036449450274057653,
-                -0.0011340525982261474,
-            ),
-        ),
-        width=1600,
-        height=900,
-    ),
-    media_type=models.MediaType.IMAGE,
-)
-
-uploader.add_media(image)
-uploader.add_media(point_cloud)
+uploader.add_media(*medias)
 
 # 4. Trigger the upload process
 upload_results = uploader.upload()

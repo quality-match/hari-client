@@ -168,3 +168,5 @@ cython_debug/
 
 
 **/benchmarks/user_results/
+
+.DS_Store
