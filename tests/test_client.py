@@ -241,7 +241,7 @@ def test_create_medias_with_unidentifiable_file_extension(test_client):
         )
 
 
-def test_create_medias_with_too_many_objects(test_client):
+def test_create_too_many_medias(test_client):
     # Arrange
     client = test_client
     media_create = models.MediaCreate(
@@ -259,7 +259,7 @@ def test_create_medias_with_too_many_objects(test_client):
         )
 
 
-def test_create_media_objects_with_too_many_objects(test_client):
+def test_create_too_many_media_objects(test_client):
     # Arrange
     client = test_client
     media_object_create = models.MediaObjectCreate(
@@ -275,6 +275,27 @@ def test_create_media_objects_with_too_many_objects(test_client):
             media_objects=[
                 media_object_create
                 for i in range(config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT + 1)
+            ],
+        )
+
+
+def test_create_too_many_attributes(test_client):
+    # Arrange
+    client = test_client
+    attribute_create = models.AttributeCreate(
+        id=uuid.uuid4(),
+        annotatable_id="id",
+        annotatable_type="Media",
+        name="name",
+        value="value",
+    )
+
+    # Act + Assert
+    with pytest.raises(errors.BulkUploadSizeRangeError):
+        client.create_attributes(
+            dataset_id="1234",
+            attributes=[
+                attribute_create for i in range(config.ATTRIBUTE_BULK_UPLOAD_LIMIT + 1)
             ],
         )
 
