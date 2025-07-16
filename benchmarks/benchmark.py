@@ -30,7 +30,7 @@ def get_latest_benchmark_file(results_dir: pathlib.Path) -> pathlib.Path | None:
 
 
 REUSE_SAME_MEDIA_BINARY = False
-NUM_MEDIAS = 15000
+NUM_MEDIAS = 1
 NUM_MEDIA_OBJECTS_BY_MEDIA = 10
 NUM_ATTRIBUTES_BY_MEDIA = 5
 NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 5
@@ -282,9 +282,8 @@ benchmark_results = {
     "Timer per media object": time_per_media_object,
     "Timer per attribute": time_per_attribute,
     "endpoint_timings": uploader.client.timings,
-    "upload_failures": {
-        "medias": str(upload_results.failures),
-    },
+    "upload_failures": {str(upload_results.failures)},
+    "upload_results_all": {str(upload_results)},
 }
 print(json.dumps(benchmark_results, indent=2))
 with open(
