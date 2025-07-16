@@ -30,7 +30,7 @@ def get_latest_benchmark_file(results_dir: pathlib.Path) -> pathlib.Path | None:
 
 
 REUSE_SAME_MEDIA_BINARY = False
-NUM_MEDIAS = 1
+NUM_MEDIAS = 15000
 NUM_MEDIA_OBJECTS_BY_MEDIA = 10
 NUM_ATTRIBUTES_BY_MEDIA = 5
 NUM_ATTRIBUTES_BY_MEDIA_OBJECT = 5
