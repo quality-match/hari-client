@@ -132,10 +132,8 @@ def generate_random_media_objects(number_of_objects: int) -> list[str]:
     ]
 
     for media_object in media_objects:
-        for _ in range(NUM_ATTRIBUTES_BY_MEDIA_OBJECT):
-            # randomly choose an attribute id from the list of 100 attributes
-            media_object_attribute = random.choice(attributes)
-            media_object.add_attribute(media_object_attribute)
+        for attr in random.sample(attributes, NUM_ATTRIBUTES_BY_MEDIA_OBJECT):
+            media_object.add_attribute(attr)
 
     return media_objects
 
@@ -178,9 +176,8 @@ def generate_medias(
 
         # generate 100 different attributes
 
-        for _ in range(NUM_ATTRIBUTES_BY_MEDIA):
-            # randomly choose an attribute id from the list of 100 attributes)
-            media.add_attribute(random.choice(attributes))
+        for attr in random.sample(attributes, NUM_ATTRIBUTES_BY_MEDIA):
+            media.add_attribute(attr)
         medias.append(media)
         if limit and idx >= limit - 1:
             break
