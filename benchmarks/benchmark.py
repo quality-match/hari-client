@@ -274,6 +274,10 @@ benchmark_results = {
     "Timer per media object": time_per_media_object,
     "Timer per attribute": time_per_attribute,
     "endpoint_timings": uploader.client.timings,
+    "upload_failures": str(upload_results.failures),
+    "upload_results_attributes": str(
+        upload_results.attributes.results
+    ),  # because failures don't include failed attrs yet
 }
 print(json.dumps(benchmark_results, indent=2))
 with open(
