@@ -158,8 +158,10 @@ def generate_medias(
     ]
     for idx, item in enumerate(s3_files_list):
         media = hari_uploader.HARIMedia(
+            # external data source
             # file_key=item.split("/")[-1],
             # file_path=str((pathlib.Path(__file__).parent.parent / "docs/example_code/2694ea70-9b4e-47c0-8e85-b3c18050be2b/anonymized/2694ea70-9b4e-47c0-8e85-b3c18050be2b_0a0a600c-5410-42b3-b77a-9a2cf772716f.jpg").absolute()),
+            # with binary upload
             file_path=item,
             name=str(idx),
             back_reference=str(idx),
@@ -189,7 +191,10 @@ s3_file_list = s3_file_list[:NUM_MEDIAS]
 
 
 media_objects = generate_random_media_objects(NUM_MEDIA_OBJECTS_BY_MEDIA)
+# external data source
 # medias = generate_medias(media_objects, s3_file_list, 500)
+
+# with binary upload
 files = []
 s3_file_list = []
 for file in (pathlib.Path(__file__).parent / "images").iterdir():
@@ -206,6 +211,7 @@ hari = HARIClient(config=config)
 new_dataset = hari.create_dataset(
     name="performance_test",
     user_group="QM-ops",
+    # uncomment for external data source
     # external_media_source=models.ExternalMediaSourceAPICreate(
     #     credentials=models.ExternalMediaSourceS3CrossAccountAccessInfo(
     #         bucket_name="zod-external", region="eu-central-1"
