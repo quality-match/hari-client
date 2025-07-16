@@ -283,7 +283,7 @@ benchmark_results = {
     "Timer per attribute": time_per_attribute,
     "endpoint_timings": uploader.client.timings,
     "upload_failures": {str(upload_results.failures)},
-    "upload_results_all": {str(upload_results)},
+    "upload_results_attributes": {str(upload_results.attributes.results)},
 }
 print(json.dumps(benchmark_results, indent=2))
 with open(
