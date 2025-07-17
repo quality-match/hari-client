@@ -3174,3 +3174,99 @@ class HARIClient:
             params=self._pack(locals()),
             success_response_item_model=int,
         )
+
+    def get_annotation_run_metrics(
+        self, annotation_run_id: uuid.UUID
+    ) -> list[models.AnnotationRunMetrics]:
+        """Get the annotation run metrics for a given annotation run.
+            Requires internal user role.
+
+        Args:
+            annotation_run_id: The ID of the annotation run.
+
+        Returns:
+            list[models.AnnotationRunMetrics]: The annotation run metrics.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/annotationRuns/{annotation_run_id}/annotationMetrics",
+            params=self._pack(locals()),
+            success_response_item_model=list[models.AnnotationRunMetrics],
+        )
+
+    def get_annotation_run_node_metrics(
+        self, annotation_run_node_id: uuid.UUID
+    ) -> list[models.AnnotationRunNodeMetrics]:
+        """Get the annotation run metrics for a given annotation run node.
+            Requires internal user role.
+
+        Args:
+            annotation_run_node_id: The ID of the annotation run node.
+
+        Returns:
+            list[models.AnnotationRunNodeMetrics]: The annotation run metrics.
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/annotationRunNodes/{annotation_run_node_id}/annotationMetrics",
+            params=self._pack(locals()),
+            success_response_item_model=list[models.AnnotationRunNodeMetrics],
+        )
+
+    def get_annotation_run_project_status(
+        self, annotation_run_id: uuid.UUID
+    ) -> models.AnnotationRunProjectStatus:
+        """
+        !!! Only available for qm internal users !!!
+
+        Get the annotation run project status for a given annotation run.
+            Requires internal user role.
+
+        Args:
+            annotation_run_id: The ID of the annotation run.
+
+        Returns:
+            models.AnnotationRunProjectStatus: The annotation run project status.
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/annotationRuns/{annotation_run_id}/goliatProjectStatus",
+            params=self._pack(locals()),
+            success_response_item_model=models.AnnotationRunProjectStatus,
+        )
+
+    def get_annotation_run_project(
+        self, annotation_run_id: uuid.UUID
+    ) -> models.AnnotationRunProjectDetails:
+        """
+        !!! Only available for qm internal users !!!
+
+        Get the annotation run project for a given annotation run.
+            Requires internal user role.
+
+        Args:
+            annotation_run_id: The ID of the annotation run.
+
+        Returns:
+            models.AnnotationRunProjectDetails: The annotation run project.
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/annotationRuns/{annotation_run_id}/goliatProject",
+            params=self._pack(locals()),
+            success_response_item_model=models.AnnotationRunProjectDetails,
+        )
