@@ -3292,7 +3292,10 @@ class HARIClient:
     def get_annotation_run_project_status(
         self, annotation_run_id: uuid.UUID
     ) -> models.AnnotationRunProjectStatus:
-        """Get the annotation run project status for a given annotation run.
+        """
+        !!! Only available for qm internal users !!!
+
+        Get the annotation run project status for a given annotation run.
             Requires internal user role.
 
         Args:
@@ -3314,7 +3317,10 @@ class HARIClient:
     def get_annotation_run_project(
         self, annotation_run_id: uuid.UUID
     ) -> models.AnnotationRunProjectDetails:
-        """Get the annotation run project for a given annotation run.
+        """
+        !!! Only available for qm internal users !!!
+
+        Get the annotation run project for a given annotation run.
             Requires internal user role.
 
         Args:
