@@ -3243,17 +3243,17 @@ class HARIClient:
             success_response_item_model=int,
         )
 
-    def get_annotation_run_times(
+    def get_annotation_run_metrics(
         self, annotation_run_id: uuid.UUID
     ) -> list[models.AnnotationRunMetrics]:
-        """Get the annotation run times for a given annotation run.
+        """Get the annotation run metrics for a given annotation run.
             Requires internal user role.
 
         Args:
             annotation_run_id: The ID of the annotation run.
 
         Returns:
-            list[models.AnnotationRunMetrics]: The annotation run times.
+            list[models.AnnotationRunMetrics]: The annotation run metrics.
 
         Raises:
             APIException: If the request fails.
@@ -3261,22 +3261,22 @@ class HARIClient:
 
         return self._request(
             "GET",
-            f"/annotationRuns/{annotation_run_id}/annotationTimes",
+            f"/annotationRuns/{annotation_run_id}/annotationMetrics",
             params=self._pack(locals()),
             success_response_item_model=list[models.AnnotationRunMetrics],
         )
 
-    def get_annotation_run_node_times(
+    def get_annotation_run_node_metrics(
         self, annotation_run_node_id: uuid.UUID
     ) -> list[models.AnnotationRunNodeMetrics]:
-        """Get the annotation run times for a given annotation run node.
+        """Get the annotation run metrics for a given annotation run node.
             Requires internal user role.
 
         Args:
             annotation_run_node_id: The ID of the annotation run node.
 
         Returns:
-            list[models.AnnotationRunNodeMetrics]: The annotation run times.
+            list[models.AnnotationRunNodeMetrics]: The annotation run metrics.
 
         Raises:
             APIException: If the request fails.
@@ -3284,7 +3284,7 @@ class HARIClient:
 
         return self._request(
             "GET",
-            f"/annotationRunNodes/{annotation_run_node_id}/annotationTimes",
+            f"/annotationRunNodes/{annotation_run_node_id}/annotationMetrics",
             params=self._pack(locals()),
             success_response_item_model=list[models.AnnotationRunNodeMetrics],
         )
