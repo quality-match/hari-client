@@ -209,7 +209,7 @@ hari = HARIClient(config=config)
 
 # 2. Create a dataset
 new_dataset = hari.create_dataset(
-    name="performance_test",
+    name="final_test",
     user_group="QM-ops",
     external_media_source=models.ExternalMediaSourceAPICreate(
         credentials=models.ExternalMediaSourceS3CrossAccountAccessInfo(
@@ -280,7 +280,9 @@ benchmark_results = {
     "Timer per attribute": time_per_attribute,
     "endpoint_timings": uploader.client.timings,
     "upload_failures": str(upload_results.failures),
-    "upload_results_attributes": str(upload_results.attributes.results),
+    "upload_results_attributes": str(
+        upload_results.attributes.results
+    ),  # because failures don't include failed attrs yet
 }
 print(json.dumps(benchmark_results, indent=2))
 with open(
