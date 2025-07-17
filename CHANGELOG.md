@@ -24,6 +24,12 @@ existing medias and media objects (defaulting to `True`)
 and assign existing media/annotatable id
 - created method for media and media objects validation that is executed before upload and move all validations there
 - removed subset creation from `check_and_upload_dataset` utility
+- added internal methods for getting annotation run metrics [PR#108](https://github.com/quality-match/hari-client/pull/108)
+  - get_annotation_run_metrics
+  - get_annotation_run_node_metrics
+  - get_annotation_run_project_status
+  - get_annotation_run_project
+
 
 ## [4.0.0] - 15-07-2025
 
@@ -58,13 +64,6 @@ and assign existing media/annotatable id
 ### Fixes
 
 - Prepare projection query parameter converting it to json string [PR#101](https://github.com/quality-match/hari-client/pull/101)
-
-### Internal
-- Add internal methods for getting annotation run metrics [PR#108](https://github.com/quality-match/hari-client/pull/108)
-  - get_annotation_run_metrics
-  - get_annotation_run_node_metrics
-  - get_annotation_run_project_status
-  - get_annotation_run_project
 
 #### Consistency in partially failed uploads
 
