@@ -4,9 +4,9 @@ import uuid
 import pytest
 
 from hari_client import errors
-from hari_client import HARIClient
 from hari_client import models
 from hari_client.client import client
+from hari_client.config import config
 
 
 def test_create_medias_with_missing_file_paths(test_client):
@@ -241,7 +241,7 @@ def test_create_medias_with_unidentifiable_file_extension(test_client):
         )
 
 
-def test_create_medias_with_too_many_objects(test_client):
+def test_create_too_many_medias(test_client):
     # Arrange
     client = test_client
     media_create = models.MediaCreate(
@@ -255,11 +255,11 @@ def test_create_medias_with_too_many_objects(test_client):
     with pytest.raises(errors.BulkUploadSizeRangeError):
         client.create_medias(
             dataset_id="1234",
-            medias=[media_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)],
+            medias=[media_create for i in range(config.MEDIA_BULK_UPLOAD_LIMIT + 1)],
         )
 
 
-def test_create_media_objects_with_too_many_objects(test_client):
+def test_create_too_many_media_objects(test_client):
     # Arrange
     client = test_client
     media_object_create = models.MediaObjectCreate(
@@ -273,7 +273,29 @@ def test_create_media_objects_with_too_many_objects(test_client):
         client.create_media_objects(
             dataset_id="1234",
             media_objects=[
-                media_object_create for i in range(HARIClient.BULK_UPLOAD_LIMIT + 1)
+                media_object_create
+                for i in range(config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT + 1)
+            ],
+        )
+
+
+def test_create_too_many_attributes(test_client):
+    # Arrange
+    client = test_client
+    attribute_create = models.AttributeCreate(
+        id=uuid.uuid4(),
+        annotatable_id="id",
+        annotatable_type="Media",
+        name="name",
+        value="value",
+    )
+
+    # Act + Assert
+    with pytest.raises(errors.BulkUploadSizeRangeError):
+        client.create_attributes(
+            dataset_id="1234",
+            attributes=[
+                attribute_create for i in range(config.ATTRIBUTE_BULK_UPLOAD_LIMIT + 1)
             ],
         )
 
@@ -292,12 +314,12 @@ def test_get_presigned_media_upload_url_batch_size_range(test_client):
 
     with pytest.raises(
         errors.ParameterNumberRangeError,
-        match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
+        match=f"value={config.PRESIGNED_URL_MAX_BATCH_SIZE + 1}",
     ):
         client.get_presigned_media_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
-            batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
+            batch_size=config.PRESIGNED_URL_MAX_BATCH_SIZE + 1,
         )
 
 
@@ -316,13 +338,13 @@ def test_get_presigned_visualisation_upload_url_batch_size_range(test_client):
 
     with pytest.raises(
         errors.ParameterNumberRangeError,
-        match=f"value={HARIClient.BULK_UPLOAD_LIMIT + 1}",
+        match=f"value={config.PRESIGNED_URL_MAX_BATCH_SIZE + 1}",
     ):
         client.get_presigned_visualisation_upload_url(
             dataset_id="1234",
             file_extension=".jpg",
             visualisation_config_id="1234",
-            batch_size=HARIClient.BULK_UPLOAD_LIMIT + 1,
+            batch_size=config.PRESIGNED_URL_MAX_BATCH_SIZE + 1,
         )
 
 
@@ -449,6 +471,10 @@ def test_trigger_metadata_rebuild_validation_for_dataset_ids_list(test_client):
     [
         # None stays None
         ({"query": None, "other": None}, {"query": None, "other": None}),
+        (
+            {"projection": {"name": False, "url": False}},
+            {"projection": '{"name": false, "url": false}'},
+        ),
         # multiple typical query parameters (not related to QueryList)
         (
             {
@@ -592,3 +618,29 @@ def test_request_query_params_are_prepared_correctly(params, expected):
                 prepared_params[param_name], param_value
             ):
                 assert expected_param_value == prepared_param_value
+
+
+@pytest.mark.parametrize(
+    "params, expected_exception, expected_message",
+    [
+        ({"projection": {"name": True, "id": True}}, None, None),
+        ({"projection": True}, TypeError, "Projection should be a dictionary"),
+        (
+            {"projection": {"name": 0, "id": 1}},
+            TypeError,
+            "Invalid projection value for field 'name': expected boolean, got int",
+        ),
+        (
+            {"projection": {"name": True, "id": False}},
+            ValueError,
+            "Mixing of True and False values in projection is not allowed",
+        ),
+    ],
+)
+def test_validate_request_query_params(params, expected_exception, expected_message):
+    if expected_exception:
+        with pytest.raises(expected_exception) as exc_info:
+            client._validate_request_query_params(params)
+        assert expected_message in str(exc_info.value)
+    else:
+        client._validate_request_query_params(params)

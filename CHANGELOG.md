@@ -1,11 +1,16 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [4.0.0] - 15-07-2025
+
 ### Breaking Changes
 
 - Deleted `name_filter` from get multiple datasets endpoint [PR#91](https://github.com/quality-match/hari-client/pull/91)
 - removed `lidar_sensor_pose` from `PointCloudMetadata` model, because it's not supported in the HARI backend [PR#90](https://github.com/quality-match/hari-client/pull/90)
 - Changed type of `CuboidCenterPoint.dimensions` from `Point3DTuple` to `CuboidDimensionsTuple` [PR#95](https://github.com/quality-match/hari-client/pull/95)
   - the underlying data type is still a `NamedTuple` with three float attributes
+- Validate that mediaObject type makes sense for the media it's being assigned to. [PR#96](https://github.com/quality-match/hari-client/pull/96)
+- Validate that mediaObjects have a geometry. [PR#96](https://github.com/quality-match/hari-client/pull/96)
+- Remove arguments for aint endpoints that were deleted from API models. [PR#103](https://github.com/quality-match/hari-client/pull/103)
 
 ### New Features
 
@@ -15,6 +20,19 @@
 - Add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
 - Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
   - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
+- Create separate bulk size limits in the config for medias, objects and attributes (500, 5000 and 750 respectively) [PR#106](https://github.com/quality-match/hari-client/pull/106)
+  - Set presigned url maximum batch size to 500 accordingly
+
+#### 3D
+
+- added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
+  - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
+- added small example 3D dataset which is used by the `quickstart_3D.py` script [PR#98](https://github.com/quality-match/hari-client/pull/98)
+- added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
+
+### Fixes
+
+- Prepare projection query parameter converting it to json string [PR#101](https://github.com/quality-match/hari-client/pull/101)
 
 ### Internal
 - Add internal methods for getting annotation run metrics [PR#108](https://github.com/quality-match/hari-client/pull/108)
@@ -34,12 +52,9 @@
 - improved reporting of failed and skipped uploads [PR#80](https://github.com/quality-match/hari-client/pull/80)
   - failed uploads are now reported in the `HARIUploadResults.failures` field
 
-#### 3D
+### Internal
 
-- added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
-  - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
-  - disclaimer: there's no example data for this script yet, so it won't work out of the box.
-- added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
+- Add automatic parsing of pydantic BaseModels in CustomJSONEncoder remove unnecessary parsing. [PR#102](https://github.com/quality-match/hari-client/pull/102)
 
 ## [3.5.0] - 24-04-2025
 

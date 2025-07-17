@@ -30,6 +30,8 @@ class CustomJSONEncoder(json.JSONEncoder):
             return str(obj)
         elif isinstance(obj, datetime.datetime):
             return obj.isoformat()
+        elif isinstance(obj, pydantic.BaseModel):
+            return obj.model_dump()
         return super().default(obj)
 
 
@@ -142,6 +144,27 @@ def handle_union_parsing(item, union_type):
     )
 
 
+def _validate_request_query_params(
+    params: dict[str, typing.Any],
+) -> None:
+    for param_name, param_value in params.items():
+        if param_name == "projection" and param_value:
+            if not isinstance(param_value, dict):
+                raise TypeError("Projection should be a dictionary")
+            unique_booleans = set()
+            for k, v in param_value.items():
+                if not isinstance(v, bool):
+                    raise TypeError(
+                        f"Invalid projection value for field '{k}': expected boolean, got {type(v).__name__}"
+                    )
+                unique_booleans.add(v)
+            if len(unique_booleans) != 1:
+                raise ValueError(
+                    "Mixing of True and False values in projection is not allowed. "
+                    "Use either only inclusions (True) or only exclusions (False)."
+                )
+
+
 def _prepare_request_query_params(
     params: dict[str, typing.Any],
 ) -> dict[str, typing.Any]:
@@ -153,6 +176,8 @@ def _prepare_request_query_params(
         This method contains a workaround for the param "query". It's expected type is QueryList.
             - The workarounds are: passing a single already serialized QueryParameter/LogicParameter object (serialized with json.dumps), or a list of them.
             - Note that in the future only QueryList will be supported for query. For now other types are supported due to existing workarounds.
+
+        This method also serializes the projection value of type dict to a JSON string.
 
     Args:
         params: The query parameters that should be added to the request.
@@ -186,13 +211,13 @@ def _prepare_request_query_params(
                 + " Support for this behavior will be removed in a future release."
             )
             warnings.warn(msg)
+        elif param_name == "projection" and param_value:
+            params_copy[param_name] = json.dumps(param_value)
 
     return params_copy
 
 
 class HARIClient:
-    BULK_UPLOAD_LIMIT = 500
-
     def __init__(self, config: config.Config):
         self.config = config
 
@@ -229,6 +254,7 @@ class HARIClient:
             )
 
         if "params" in kwargs:
+            _validate_request_query_params(kwargs["params"])
             kwargs["params"] = _prepare_request_query_params(kwargs["params"])
 
         # do request and basic error handling
@@ -490,9 +516,6 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-        if external_media_source:
-            external_media_source = external_media_source.model_dump()
-
         return self._request(
             "POST",
             "/datasets",
@@ -765,7 +788,6 @@ class HARIClient:
         Returns:
             The created scene
         """
-        frames = [frame.model_dump() for frame in frames]
         json_body = self._pack(
             locals(),
             ignore=["dataset_id"],
@@ -923,9 +945,9 @@ class HARIClient:
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
-        if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
+        if len(medias) > config.MEDIA_BULK_UPLOAD_LIMIT:
             raise errors.BulkUploadSizeRangeError(
-                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
+                limit=config.MEDIA_BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
         if with_media_files_upload:
             # 1. upload files - if necessary
@@ -939,23 +961,19 @@ class HARIClient:
                 dataset_id, file_paths=file_paths
             )
 
-            # 2. set media_urls on medias and parse them to dicts
-            media_dicts = []
+            # 2. set media_urls on medias
             for idx, media in enumerate(medias):
                 media.media_url = media_upload_responses[idx].media_url
-                media_dicts.append(media.model_dump())
         else:
-            media_dicts = []
             for media in medias:
                 if not media.file_key:
                     raise errors.MediaCreateMissingFileKeyError(media)
-                media_dicts.append(media.model_dump())
 
         # 3. create the medias in HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/medias:bulk",
-            json=media_dicts,
+            json=medias,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -1023,9 +1041,9 @@ class HARIClient:
             presign_media: Whether to presign media
             archived: Return archived media
             projection: The fields to be returned (dictionary keys with value True are
-                returned, keys with value False are not returned)
+                returned, keys with value False are not returned). Mixing of True and False values is not allowed.
 
-        Returns:
+         Returns:
             The media matching the provided id
 
         Raises:
@@ -1060,7 +1078,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of medias in a dataset
@@ -1096,7 +1114,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of medias in a dataset
@@ -1244,11 +1262,11 @@ class HARIClient:
             APIException: If the request fails.
             ParameterRangeError: If the batch_size is out of range.
         """
-        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
+        if batch_size < 1 or batch_size > config.PRESIGNED_URL_MAX_BATCH_SIZE:
             raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
-                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                maximum=config.PRESIGNED_URL_MAX_BATCH_SIZE,
                 value=batch_size,
             )
         return self._request(
@@ -1462,11 +1480,11 @@ class HARIClient:
             APIException: If the request fails.
             ParameterRangeError: If the validating input args fails.
         """
-        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
+        if batch_size < 1 or batch_size > config.PRESIGNED_URL_MAX_BATCH_SIZE:
             raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
-                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                maximum=config.PRESIGNED_URL_MAX_BATCH_SIZE,
                 value=batch_size,
             )
         return self._request(
@@ -1525,7 +1543,6 @@ class HARIClient:
             if isinstance(qm_data, list)
             else None
         )
-        reference_data = reference_data.model_dump() if reference_data else None
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/mediaObjects",
@@ -1538,7 +1555,7 @@ class HARIClient:
         dataset_id: uuid.UUID,
         media_objects: list[models.BulkMediaObjectCreate],
     ) -> models.BulkResponse:
-        """Creates new media_objects in the database. The limit is 500 per call.
+        """Creates new media_objects in the database. The limit is 5000 per call.
 
         Args:
             dataset_id: dataset id
@@ -1552,21 +1569,16 @@ class HARIClient:
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
         """
 
-        if len(media_objects) > HARIClient.BULK_UPLOAD_LIMIT:
+        if len(media_objects) > config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT:
             raise errors.BulkUploadSizeRangeError(
-                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
+                limit=config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT,
+                found_amount=len(media_objects),
             )
 
-        # 1. parse media_objects to dicts before upload
-        media_object_dicts = [
-            media_object.model_dump() for media_object in media_objects
-        ]
-
-        # 2. send media_objects to HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/mediaObjects:bulk",
-            json=media_object_dicts,
+            json=media_objects,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -1638,9 +1650,9 @@ class HARIClient:
             archived: Archived
             presign_media: Presign Media
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
-        Returns:
+            Returns:
             Requested media object
 
         Raises:
@@ -1675,7 +1687,7 @@ class HARIClient:
             query: Query
             sort: Sort
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             list of media objects of a dataset
@@ -1711,7 +1723,7 @@ class HARIClient:
             query: The filters to be applied to the search
             sort: The list of sorting parameters
             projection: The fields to be returned (dictionary keys with value True are returned, keys with value False
-                are not returned)
+                are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of media objects in a dataset
@@ -2035,7 +2047,7 @@ class HARIClient:
         dataset_id: uuid.UUID,
         attributes: list[models.BulkAttributeCreate],
     ) -> models.BulkResponse:
-        """Creates new attributes in the database. The limit is 500 per call.
+        """Creates new attributes in the database. The limit is 750 per call.
 
         Args:
             dataset_id: The dataset id
@@ -2051,19 +2063,15 @@ class HARIClient:
                 upload limit.
         """
 
-        if len(attributes) > HARIClient.BULK_UPLOAD_LIMIT:
+        if len(attributes) > config.ATTRIBUTE_BULK_UPLOAD_LIMIT:
             raise errors.BulkUploadSizeRangeError(
-                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(attributes)
+                limit=config.ATTRIBUTE_BULK_UPLOAD_LIMIT, found_amount=len(attributes)
             )
 
-        # 1. parse attributes to dicts before upload
-        attribute_dicts = [attribute.model_dump() for attribute in attributes]
-
-        # 2. send attributes to HARI
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/attributes:bulk",
-            json=attribute_dicts,
+            json=attributes,
             success_response_item_model=models.BulkResponse,
         )
 
@@ -2168,7 +2176,8 @@ class HARIClient:
             skip: The number of attributes to skip
             query: A query to filter attributes
             sort: A order by which to sort attributes
-            projection: A dictionary of fields to return
+            projection: The fields to be returned (dictionary keys with value True are
+                returned, keys with value False are not returned). Mixing of True and False values is not allowed.
 
         Returns:
             A list of attributes
@@ -2556,12 +2565,6 @@ class HARIClient:
         self,
         name: str,
         training_attributes: list[models.TrainingAttribute],
-        id: uuid.UUID | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.AINTLearningData:
         """
@@ -2573,34 +2576,14 @@ class HARIClient:
             name: A descriptive name for the AINT learning data.
             training_attributes: The training attributes to be used in the AINT learning data.
             user_group: The user group for creating the AINT learning data (default: None).
-            id: The id of the AINT learning data. If None, random id will be generated during creation.
-            status: The status of the AINT learning data.
-            created_at: The creation date of the AINT learning data.
-            updated_at: The update date of the AINT learning data.
-            archived_at: The archived date of the AINT learning data.
-            owner: The owner of the AINT learning data.
 
         Returns:
             Created AINT learning data object.
         """
-
-        body = {
-            key: value
-            for key, value in locals().items()
-            if value is not None and key not in ["self", "training_attributes"]
-        }
-
-        training_attribute_dicts = [
-            training_attribute.model_dump()
-            for training_attribute in training_attributes
-        ]
-
-        body["training_attributes"] = training_attribute_dicts
-
         return self._request(
             "POST",
             "/aintLearningData",
-            json=body,
+            json=self._pack(locals()),
             success_response_item_model=models.AINTLearningData,
         )
 
@@ -2608,9 +2591,7 @@ class HARIClient:
         self,
         aint_learning_data_id: uuid.UUID,
         name: str | None = None,
-        question: str | None = None,
         user_group: str | None = None,
-        status: models.AINTLearningDataStatus | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2620,9 +2601,7 @@ class HARIClient:
         Args:
             aint_learning_data_id: The unique identifier of the AINT learning data.
             name: The desired name of the AINT learning data.
-            question: The desired question of the AINT learning data.
             user_group: The desired user group of the AINT learning data.
-            status: The desired status of the AINT learning data.
 
         Returns:
            Updated AINT learning data.
@@ -2700,7 +2679,7 @@ class HARIClient:
 
         Args:
             projection: The fields to be returned (dictionary keys with value True are returned,
-            keys with value False are not returned).
+            keys with value False are not returned). Mixing of True and False values is not allowed.
             limit: limit the number of ml annotation models returned
             skip: skip the number of ml annotation models returned
             query: query parameters to filter the ml annotation models
@@ -2728,8 +2707,7 @@ class HARIClient:
         Args:
             ml_annotation_model_id: The unique identifier of the AI annotation model.
             projection: The fields to be returned (dictionary keys with value True are returned,
-            keys with value False are not returned).
-
+            keys with value False are not returned). Mixing of True and False values is not allowed.
         Returns:
             The requested ml model.
         """
@@ -2767,12 +2745,6 @@ class HARIClient:
         name: str,
         aint_learning_data_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
-        id: uuid.UUID | None = None,
-        dataset_id: uuid.UUID | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.MlAnnotationModel:
         """
@@ -2782,12 +2754,6 @@ class HARIClient:
             name: A descriptive name for the ml annotation model.
             aint_learning_data_id: The unique identifier of the AINT learning data to use for training.
             reference_set_annotation_run_id: The unique identifier of the annotation run to use the data for training from.
-            id: The id of the model. If None, random id will be generated during creation.
-            dataset_id: The dataset id to train the model on.
-            created_at: The creation timestamp of the ml annotation model.
-            updated_at: The update timestamp of the ml annotation model.
-            archived_at: The archived timestamp of the ml annotation model.
-            owner: The owner of the ml annotation model.
             user_group: The user group for scoping this annotation run (default: None).
 
         Either aint_learning_data_id or reference_set_annotation_run_id must be specified.
@@ -2816,14 +2782,6 @@ class HARIClient:
         ml_annotation_model_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-        status: models.MLAnnotationModelStatus | None = None,
-        training_subset_id: uuid.UUID | None = None,
-        validation_subset_id: uuid.UUID | None = None,
-        test_subset_id: uuid.UUID | None = None,
-        reference_set_annotation_run_id: uuid.UUID | None = None,
-        model_weight_location: str | None = None,
-        automation_correctness_curve: dict | None = None,
-        aint_learning_data_id: uuid.UUID | None = None,
     ) -> models.MlAnnotationModel:
         """
         Update a ml annotation model.
@@ -2832,14 +2790,6 @@ class HARIClient:
             ml_annotation_model_id: The id of the ml annotation model.
             name: new desired name for the ml annotation model.
             user_group: new desired user group for the ml annotation model.
-            status: new desired status for the ml annotation model.
-            training_subset_id: training subset id for the ml annotation model.
-            validation_subset_id: validation subset id for the ml annotation model.
-            test_subset_id: test subset id for the ml annotation model.
-            reference_set_annotation_run_id: reference set annotation run id for the ml annotation model.
-            model_weight_location: model weight location for the ml annotation model.
-            automation_correctness_curve: automation correctness curve for the ml annotation model.
-            aint_learning_data_id: AINT learning data id for the ml annotation model.
 
         Returns:
             The updated ml annotation model.
@@ -2960,13 +2910,6 @@ class HARIClient:
         dataset_id: uuid.UUID,
         subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
-        attribute_metadata_id: uuid.UUID | None = None,
-        id: uuid.UUID | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        created_at: datetime.datetime | None = None,
-        updated_at: datetime.datetime | None = None,
-        archived_at: datetime.datetime | None = None,
-        owner: uuid.UUID | None = None,
         user_group: str | None = None,
     ) -> models.AIAnnotationRun:
         """
@@ -2978,13 +2921,6 @@ class HARIClient:
             subset_id: The unique identifier of the subset to be annotated.
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
-            attribute_metadata_id: The unique identifier of the attribute metadata to use for the annotation run (default: None).
-            id: The id of the AINT learning data. If None, random id will be generated during creation.
-            status: The status of the AI annotation run.
-            created_at: The creation timestamp of the AI annotation run.
-            updated_at: The update timestamp of the AI annotation run.
-            archived_at: The archived timestamp of the AI annotation run.
-            owner: The owner of the AI annotation run.
 
         Returns:
             The created AI annotation run.
@@ -3008,8 +2944,6 @@ class HARIClient:
         ai_annotation_run_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-        status: models.AIAnnotationRunStatus | None = None,
-        attribute_metadata_id: uuid.UUID | None = None,
     ) -> models.AIAnnotationRun:
         """
         Update an AI annotation run.
@@ -3018,8 +2952,6 @@ class HARIClient:
             ai_annotation_run_id: The id of the AI annotation run.
             name: new desired name for the AI annotation run.
             user_group: new desired user group for the AI annotation run.
-            status: status for the AI annotation run.
-            attribute_metadata_id: attribute metadata id for the AI annotation run.
 
         Returns:
             The updated AI annotation run.
@@ -3215,7 +3147,7 @@ class HARIClient:
         return self._request(
             "POST",
             "/annotationRuns",
-            json=annotation_run.model_dump(),
+            json=annotation_run,
             success_response_item_model=models.AnnotationRun,
         )
 
