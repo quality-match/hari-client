@@ -211,15 +211,13 @@ def _prepare_request_query_params(
                 + " Support for this behavior will be removed in a future release."
             )
             warnings.warn(msg)
-        elif param_name == "projection":
+        elif param_name == "projection" and param_value:
             params_copy[param_name] = json.dumps(param_value)
 
     return params_copy
 
 
 class HARIClient:
-    BULK_UPLOAD_LIMIT = 500
-
     def __init__(self, config: config.Config):
         self.config = config
 
@@ -947,9 +945,9 @@ class HARIClient:
             MediaFileExtensionNotIdentifiedDuringUploadError: if the file_extension of the provided file_paths couldn't be identified.
         """
 
-        if len(medias) > HARIClient.BULK_UPLOAD_LIMIT:
+        if len(medias) > config.MEDIA_BULK_UPLOAD_LIMIT:
             raise errors.BulkUploadSizeRangeError(
-                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(medias)
+                limit=config.MEDIA_BULK_UPLOAD_LIMIT, found_amount=len(medias)
             )
         if with_media_files_upload:
             # 1. upload files - if necessary
@@ -1264,11 +1262,11 @@ class HARIClient:
             APIException: If the request fails.
             ParameterRangeError: If the batch_size is out of range.
         """
-        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
+        if batch_size < 1 or batch_size > config.PRESIGNED_URL_MAX_BATCH_SIZE:
             raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
-                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                maximum=config.PRESIGNED_URL_MAX_BATCH_SIZE,
                 value=batch_size,
             )
         return self._request(
@@ -1482,11 +1480,11 @@ class HARIClient:
             APIException: If the request fails.
             ParameterRangeError: If the validating input args fails.
         """
-        if batch_size < 1 or batch_size > HARIClient.BULK_UPLOAD_LIMIT:
+        if batch_size < 1 or batch_size > config.PRESIGNED_URL_MAX_BATCH_SIZE:
             raise errors.ParameterNumberRangeError(
                 param_name="batch_size",
                 minimum=1,
-                maximum=HARIClient.BULK_UPLOAD_LIMIT,
+                maximum=config.PRESIGNED_URL_MAX_BATCH_SIZE,
                 value=batch_size,
             )
         return self._request(
@@ -1557,7 +1555,7 @@ class HARIClient:
         dataset_id: uuid.UUID,
         media_objects: list[models.BulkMediaObjectCreate],
     ) -> models.BulkResponse:
-        """Creates new media_objects in the database. The limit is 500 per call.
+        """Creates new media_objects in the database. The limit is 5000 per call.
 
         Args:
             dataset_id: dataset id
@@ -1571,9 +1569,10 @@ class HARIClient:
             BulkUploadSizeRangeError: if the number of medias exceeds the per call upload limit.
         """
 
-        if len(media_objects) > HARIClient.BULK_UPLOAD_LIMIT:
+        if len(media_objects) > config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT:
             raise errors.BulkUploadSizeRangeError(
-                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(media_objects)
+                limit=config.MEDIA_OBJECT_BULK_UPLOAD_LIMIT,
+                found_amount=len(media_objects),
             )
 
         return self._request(
@@ -2048,7 +2047,7 @@ class HARIClient:
         dataset_id: uuid.UUID,
         attributes: list[models.BulkAttributeCreate],
     ) -> models.BulkResponse:
-        """Creates new attributes in the database. The limit is 500 per call.
+        """Creates new attributes in the database. The limit is 750 per call.
 
         Args:
             dataset_id: The dataset id
@@ -2064,9 +2063,9 @@ class HARIClient:
                 upload limit.
         """
 
-        if len(attributes) > HARIClient.BULK_UPLOAD_LIMIT:
+        if len(attributes) > config.ATTRIBUTE_BULK_UPLOAD_LIMIT:
             raise errors.BulkUploadSizeRangeError(
-                limit=HARIClient.BULK_UPLOAD_LIMIT, found_amount=len(attributes)
+                limit=config.ATTRIBUTE_BULK_UPLOAD_LIMIT, found_amount=len(attributes)
             )
 
         return self._request(

@@ -1,8 +1,5 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-### todo rearrange when it's known whether it goes to the next version
-### State aware uploader
-
 ### Breaking Changes
 
 - skip already uploaded media and media objects during upload by default (by comparing existing back references)
@@ -28,6 +25,8 @@ and assign existing media/annotatable id
 - created method for media and media objects validation that is executed before upload and move all validations there
 - removed subset creation from `check_and_upload_dataset` utility
 
+## [4.0.0] - 15-07-2025
+
 ### Breaking Changes
 
 - Deleted `name_filter` from get multiple datasets endpoint [PR#91](https://github.com/quality-match/hari-client/pull/91)
@@ -46,6 +45,15 @@ and assign existing media/annotatable id
 - Add method to download media files from dataset [PR#94](https://github.com/quality-match/hari-client/pull/94)
 - Add `CompositeLidarViewerVisualisationConfigParameters` model as possible visualisation configuration [PR#90](https://github.com/quality-match/hari-client/pull/90)
   - update field `type` of all `*VisualisationConfigParameters` models to be defined with enum values of `VisualisationParameterType`
+- Create separate bulk size limits in the config for medias, objects and attributes (500, 5000 and 750 respectively) [PR#106](https://github.com/quality-match/hari-client/pull/106)
+  - Set presigned url maximum batch size to 500 accordingly
+
+#### 3D
+
+- added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
+  - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
+- added small example 3D dataset which is used by the `quickstart_3D.py` script [PR#98](https://github.com/quality-match/hari-client/pull/98)
+- added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
 
 ### Fixes
 
@@ -61,13 +69,6 @@ and assign existing media/annotatable id
 
 - improved reporting of failed and skipped uploads [PR#80](https://github.com/quality-match/hari-client/pull/80)
   - failed uploads are now reported in the `HARIUploadResults.failures` field
-
-#### 3D
-
-- added automatic scene creation to HARIUploader to support setting up a dataset with 3D data [PR#86](https://github.com/quality-match/hari-client/pull/86)
-  - added `quickstart_3D.py` example script to show how to upload 3D data with the HARIUploader
-- added small example 3D dataset which is used by the `quickstart_3D.py` script [PR#98](https://github.com/quality-match/hari-client/pull/98)
-- added `sensor_id` and `timestamp` to `PointCloudMetadata` and `ImageMetadata` models [PR#90](https://github.com/quality-match/hari-client/pull/90)
 
 ### Internal
 
