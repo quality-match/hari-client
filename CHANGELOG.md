@@ -1,5 +1,30 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Breaking Changes
+
+- skip already uploaded media and media objects during upload by default (by comparing existing back references)
+- get existing attribute metadata and reuse the existing ids on new attributes.
+- removed _`media_back_references`, _`media_object_back_references`, _`media_object_cnt` and _`attribute_cnt` fields from the HARIUploader
+
+### New features
+
+- added `skip_uploaded_medias` and `skip_uploaded_media_objects` flags to uploader to enable/disable uploading
+existing medias and media objects (defaulting to `True`)
+
+### Fixes
+
+- handle bulk responses parsing properly in hari uploader if bulk response status is `FAILURE` and 4xx error is returned
+  - now no error is raised, but the response is parsed again to `BulkResponse` model
+- remove all validation and other type of logic from `add_media` method of the uploader
+- assign attribute annotatable type in `add_attribute` method
+
+### Internal
+
+- added `id` and `uploaded` fields to `HARIMedia` and `HARIMediaObject` to check later on whether the entity was uploaded,
+and assign existing media/annotatable id
+- created method for media and media objects validation that is executed before upload and move all validations there
+- removed subset creation from `check_and_upload_dataset` utility
+
 ## [4.0.0] - 15-07-2025
 
 ### Breaking Changes
