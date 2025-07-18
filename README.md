@@ -85,12 +85,12 @@ To create a new release, follow these steps:
 1. Ensure the branch has the state you want to release. This means all tests and pre-commit hooks pass,
 and the changelog is up to date. Changelog entry should have a new release version and date.
 
-2. On the clean state of the branch, run bumpversion to update the version number:
+2. With the branch in a clean state, run bumpversion to update the version number:
    ```bash
    bumpversion patch/minor/major
    ```
 depending on the type of release you want to create.
-This will as well update the version in the setup and readme files,
+This will also update the version in the setup and readme files,
 and create a new git tag with the version number.
 
 3. Create a pull request with the changes to the main branch and merge it after approval.
