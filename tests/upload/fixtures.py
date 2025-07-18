@@ -501,10 +501,10 @@ def create_configurable_mock_uploader_successful_single_batch_state_aware(
     """
 
     def _create_uploader(
-        dataset_id: uuid.UUID,
-        medias_cnt: int,
-        media_objects_cnt: int,
-        attributes_cnt: int,
+        dataset_id: uuid.UUID = uuid.UUID(int=0),
+        medias_cnt: int = 0,
+        media_objects_cnt: int = 0,
+        attributes_cnt: int = 0,
         object_categories: set[str] | None = None,
         mock_attribute_response: models.BulkResponse | None = None,
     ) -> tuple[
