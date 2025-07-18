@@ -228,6 +228,59 @@ class HARIMedia(models.BulkMediaCreate):
         return v
 
 
+class ReferencedMediaObject(pydantic.BaseModel):
+    # required fields
+    back_reference: str
+
+    # new attributes to be uploaded
+    attributes: list[HARIAttribute] = pydantic.Field(default_factory=list, exclude=True)
+
+    # will be set internally during the upload
+    media_id: str = ""
+    bulk_operation_annotatable_id: str | None = None
+    # will be set internally to avoid the repeated upload
+    id: str = pydantic.Field(default=None, exclude=True)
+    uploaded: bool = pydantic.Field(default=None, exclude=True)
+
+    def add_attribute(self, *args: HARIAttribute) -> None:
+        for attribute in args:
+            if not attribute.annotatable_type:
+                attribute.annotatable_type = models.DataBaseObjectType.MEDIAOBJECT
+            self.attributes.append(attribute)
+
+
+class ReferencedMedia(pydantic.BaseModel):
+    # required fields
+    back_reference: str
+    media_type: models.MediaType  # used for media<->media_object compatibility checks
+
+    # new media objects to be uploaded or referenced ones to upload and new attributes
+    media_objects: list[HARIMediaObject | ReferencedMediaObject] = pydantic.Field(
+        default_factory=list, exclude=True
+    )
+    # new attributes to be uploaded
+    attributes: list[HARIAttribute] = pydantic.Field(default_factory=list, exclude=True)
+
+    # needed to attach media to object category subset of the media object if necessary
+    subset_ids: list = pydantic.Field(default_factory=list, title="Subset Ids")
+
+    # will be set internally during the upload
+    bulk_operation_annotatable_id: str = pydantic.Field(default=None, exclude=True)
+    # will be set to avoid the repeated upload
+    id: str = pydantic.Field(default=None, exclude=True)
+    uploaded: bool = pydantic.Field(default=None, exclude=True)
+
+    def add_media_object(self, *args: HARIMediaObject | ReferencedMediaObject) -> None:
+        for media_object in args:
+            self.media_objects.append(media_object)
+
+    def add_attribute(self, *args: HARIAttribute) -> None:
+        for attribute in args:
+            if not attribute.annotatable_type:
+                attribute.annotatable_type = models.DataBaseObjectType.MEDIA
+            self.attributes.append(attribute)
+
+
 class HARIUploadFailures(pydantic.BaseModel):
     """Tracks failed uploads and their dependencies with the reason for the failure."""
 
@@ -301,7 +354,7 @@ class HARIUploader:
             consistency_fields=["scene_back_reference", "frame_idx"],
         )
 
-    def add_media(self, *args: HARIMedia) -> None:
+    def add_media(self, *args: HARIMedia | ReferencedMedia) -> None:
         """
         Add one or more HARIMedia objects to the uploader.
 
@@ -328,7 +381,12 @@ class HARIUploader:
         object_category_subsets = [
             subset for subset in subsets if subset.object_category is True
         ]
-        log.info(f"All existing object_category subsets: {object_category_subsets=}")
+        existing_object_category_subsets_info = {
+            o.name: str(o.id) for o in object_category_subsets
+        }
+        log.info(
+            f"All existing object_category subsets: {existing_object_category_subsets_info=}"
+        )
         return object_category_subsets
 
     def _handle_scene_and_category_data(self) -> None:
@@ -521,6 +579,9 @@ class HARIUploader:
         Raises:
             ValueError: If the media object is not compatible with the media.
         """
+        if isinstance(media_object, ReferencedMediaObject):
+            return
+
         # Get the type value from the geometry object
         if media_object.media_object_type is None:
             raise ValueError("MediaObject type must be specified.")
@@ -543,7 +604,7 @@ class HARIUploader:
                         f" type {media.media_type}."
                     )
             case models.MediaType.VIDEO:
-                raise ValueError("Videos can not contian media objects.")
+                raise ValueError("Videos can not contain media objects.")
             case models.MediaType.POINT_CLOUD:
                 if geometry_type_value not in [
                     models.MediaObjectType.POINT3D_XYZ.value,
@@ -557,8 +618,12 @@ class HARIUploader:
                     )
 
     @staticmethod
-    def _validate_geometry_is_provided(media_object: models.MediaObjectCreate) -> None:
+    def _validate_geometry_is_provided(
+        media_object: models.MediaObjectCreate | ReferencedMediaObject,
+    ) -> None:
         """Validates that at least one geometry is provided."""
+        if isinstance(media_object, ReferencedMediaObject):
+            return
         if not media_object.geometry:
             raise ValueError(
                 f"Media object {media_object.back_reference} has no geometry."
@@ -603,7 +668,7 @@ class HARIUploader:
                             f"Found duplicate media object back_reference: {media.back_reference}. "
                             f"Back_references need to be unique across dataset "
                             f"in order to be able to match HARI media objects 1:1 to your own "
-                            f"and to check, which media objectss were already uploaded."
+                            f"and to check, which media objects were already uploaded."
                         )
                 else:
                     media_object_back_references.add(media_object.back_reference)
@@ -699,7 +764,11 @@ class HARIUploader:
         When using an external media source, the file_key must be set, otherwise the file_path must be set.
         """
         if self._dataset_uses_external_media_source():
-            if any(not media.file_key for media in self._medias):
+            if any(
+                not media.file_key
+                for media in self._medias
+                if not isinstance(media, ReferencedMedia)
+            ):
                 raise HARIMediaValidationError(
                     f"Dataset with id {self.dataset_id} uses an external media source, "
                     "but not all medias have a file_key set. Make sure to set their file_key."
@@ -710,14 +779,20 @@ class HARIUploader:
             )
             self._with_media_files_upload = False
         else:
-            if any(not media.file_path for media in self._medias):
+            if any(
+                not media.file_path
+                for media in self._medias
+                if not isinstance(media, ReferencedMedia)
+            ):
                 raise HARIMediaValidationError(
                     f"Dataset with id {self.dataset_id} requires media files to be uploaded, "
                     "but not all medias have a file_path set. Make sure to set their file_path."
                 )
             self._with_media_files_upload = True
 
-    def mark_already_uploaded_medias(self, medias: list[HARIMedia]) -> None:
+    def mark_already_uploaded_medias(
+        self, medias: list[HARIMedia | ReferencedMedia]
+    ) -> None:
         """
         Checks medias that already exist on the server by comparing back_references and mark them as uploaded.
 
@@ -729,7 +804,7 @@ class HARIUploader:
         self._mark_already_uploaded_entities(medias, uploaded_medias)
 
     def mark_already_uploaded_media_objects(
-        self, media_objects: list[HARIMediaObject]
+        self, media_objects: list[HARIMediaObject | ReferencedMediaObject]
     ) -> None:
         """
         Check media objects that already exist on the server by comparing back_references and mark them as uploaded.
@@ -745,7 +820,8 @@ class HARIUploader:
 
     def _mark_already_uploaded_entities(
         self,
-        entities_to_upload: list[HARIMediaObject] | list[HARIMedia],
+        entities_to_upload: list[HARIMediaObject | ReferencedMediaObject]
+        | list[HARIMedia | ReferencedMedia],
         entities_uploaded: list[models.MediaResponse]
         | list[models.MediaObjectResponse],
     ) -> None:
@@ -756,6 +832,9 @@ class HARIUploader:
         Args:
             entities_to_upload: The list of media or media objects to be uploaded.
             entities_uploaded: The media or media objects already present in the dataset.
+
+        Raises:
+            ValueError: If a back reference in entities_to_upload is not found in entities_uploaded for a referenced model.
         """
         # build look up table for back references
         # add warning if multiple of the same back reference are given, value will be overwritten
@@ -770,6 +849,12 @@ class HARIUploader:
             uploaded_back_references[entity.back_reference] = entity.id
 
         for entity in entities_to_upload:
+            if isinstance(entity, (ReferencedMedia, ReferencedMediaObject)):
+                if entity.back_reference not in uploaded_back_references:
+                    raise ValueError(
+                        f"Reference model's back reference is not found on the server: '{entity.back_reference}'"
+                    )
+
             # ensure uploaded marked are always having an id
             entity.uploaded = entity.back_reference in uploaded_back_references
             entity.id = uploaded_back_references.get(entity.back_reference)
@@ -837,7 +922,7 @@ class HARIUploader:
         )
 
     def _upload_media_batch(
-        self, medias_to_upload: list[HARIMedia]
+        self, medias_to_upload: list[HARIMedia | ReferencedMedia]
     ) -> models.BulkResponse:
         """
         Uploads a batch of medias, then update relevant ids, so that their media objects and attributes can reference them.
@@ -926,7 +1011,7 @@ class HARIUploader:
         return attributes_upload_responses
 
     def _upload_media_objects_in_batches(
-        self, media_objects: list[HARIMediaObject]
+        self, media_objects: list[HARIMediaObject | ReferencedMediaObject]
     ) -> list[models.BulkResponse]:
         """
         Uploads media objects in configured batch sizes, aggregating bulk responses.
@@ -1033,7 +1118,7 @@ class HARIUploader:
         )
 
     def _upload_media_object_batch(
-        self, media_objects_to_upload: list[HARIMediaObject]
+        self, media_objects_to_upload: list[HARIMediaObject | ReferencedMediaObject]
     ) -> models.BulkResponse:
         """
         Uploads a batch of media objects, then update relevant ids so attributes can reference them.
@@ -1087,7 +1172,7 @@ class HARIUploader:
 
     def _update_hari_media_object_media_ids(
         self,
-        medias_to_upload: list[HARIMedia],
+        medias_to_upload: list[HARIMedia | ReferencedMedia],
         media_upload_bulk_response: models.BulkResponse,
     ) -> None:
         """
@@ -1095,7 +1180,7 @@ class HARIUploader:
         IDs from the media upload response.
 
         Args:
-            medias_to_upload: The batch of HARIMedia that was just uploaded (or skipped).
+            medias_to_upload: The batch of HARIMedia that was uploaded (or already existed).
             media_upload_bulk_response: The server response for the batch upload of medias.
         """
         for media in medias_to_upload:
@@ -1132,7 +1217,7 @@ class HARIUploader:
 
     def _update_hari_attribute_media_object_ids(
         self,
-        media_objects_to_upload: list[HARIMedia] | list[HARIMediaObject],
+        media_objects_to_upload: list[HARIMediaObject | ReferencedMediaObject],
         media_object_upload_bulk_response: models.BulkResponse,
     ) -> None:
         """
@@ -1140,7 +1225,7 @@ class HARIUploader:
         the IDs from the server's media object upload response.
 
         Args:
-            media_objects_to_upload: The batch of HARIMediaObjects that was just uploaded.
+            media_objects_to_upload: The batch of HARIMediaObject that was just uploaded (or already existed).
             media_object_upload_bulk_response: The server response for uploading these media objects.
         """
         for media_object in media_objects_to_upload:
@@ -1285,7 +1370,7 @@ class HARIUploader:
 
     def _update_hari_attribute_media_ids(
         self,
-        medias_to_upload: list[HARIMedia] | list[HARIMediaObject],
+        medias_to_upload: list[HARIMedia | ReferencedMedia],
         media_upload_bulk_response: models.BulkResponse,
     ) -> None:
         """
@@ -1293,7 +1378,7 @@ class HARIUploader:
         the IDs from the server's media upload response.
 
         Args:
-            medias_to_upload: The batch of HARIMedia that was just uploaded.
+            medias_to_upload: The batch of HARIMedia that was uploaded (or already existed).
             media_upload_bulk_response: The server response for uploading these medias.
         """
         for media in medias_to_upload:
@@ -1329,7 +1414,8 @@ class HARIUploader:
                 media.attributes[i].annotatable_id = media_upload_response.item_id
 
     def _set_bulk_operation_annotatable_id(
-        self, item: HARIMedia | HARIMediaObject
+        self,
+        item: HARIMedia | ReferencedMedia | HARIMediaObject | ReferencedMediaObject,
     ) -> None:
         """
         Assign a random UUID as the bulk_operation_annotatable_id for items that do not already
@@ -1343,7 +1429,7 @@ class HARIUploader:
             item.bulk_operation_annotatable_id = str(uuid.uuid4())
 
     def _upload_single_batch(
-        self, medias_to_upload: list[HARIMedia]
+        self, medias_to_upload: list[HARIMedia | ReferencedMedia]
     ) -> tuple[
         models.BulkResponse, list[models.BulkResponse], list[models.BulkResponse]
     ]:
@@ -1428,7 +1514,7 @@ class HARIUploader:
                         )
 
         # filter out media_objects and attributes that should be skipped because its media failed to upload
-        media_objects_to_upload: list[HARIMediaObject] = [
+        media_objects_to_upload: list[HARIMediaObject | ReferencedMediaObject] = [
             media_object
             for media in medias_to_upload
             for media_object in media.media_objects
