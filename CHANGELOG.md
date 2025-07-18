@@ -20,6 +20,8 @@
 
 - added `skip_uploaded_medias` and `skip_uploaded_media_objects` flags to uploader to enable/disable uploading
 existing medias and media objects (defaulting to `True`)
+- added referenced media and media object models to the HARIUploader in order to reuse existing medias and media objects
+for further objects/attributes upload based on existing back references. [PR#111](https://github.com/quality-match/hari-client/pull/111)
 
 #### Fixes
 
