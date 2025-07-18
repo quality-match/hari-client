@@ -90,7 +90,7 @@ and the changelog is up to date. Changelog entry should have a new release versi
    bumpversion patch/minor/major
    ```
 depending on the type of release you want to create.
-This will as well update the version in the setup and readme files,
+This will also update the version in the setup and readme files,
 and create a new git tag with the version number.
 
 3. Create a pull request with the changes to the main branch and merge it after approval.
