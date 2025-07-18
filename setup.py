@@ -15,6 +15,7 @@ setup(
         "tqdm~=4.66",
     ],
     extras_require={
+        "tests": ["pytest", "pytest-mock", "pre-commit"],
         "dev": ["pytest", "pytest-mock", "pre-commit", "bumpversion"],
         "scripts": ["pandas", "scikit-learn", "Pillow"],
     },
