@@ -2634,7 +2634,7 @@ def test_hari_uploader_uses_referenced_media_object(
         create_attributes_mock,
     ) = create_configurable_mock_uploader_successful_single_batch_state_aware(
         medias_cnt=0,  # no media to be uploaded
-        media_objects_cnt=1,  # no media object to be uploaded
+        media_objects_cnt=0,  # no media object to be uploaded
         attributes_cnt=1,  # 1 to be uploaded
     )
 
