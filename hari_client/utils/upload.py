@@ -6,6 +6,7 @@ from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
 from hari_client.upload.hari_uploader import HARIMedia
+from hari_client.upload.hari_uploader import ReferencedMedia
 from hari_client.utils import logger
 
 log = logger.setup_logger(__name__)
@@ -135,7 +136,7 @@ def get_or_create_subset_for_all(
 def check_and_upload_dataset(
     hari: HARIClient,
     dataset_id: uuid.UUID,
-    medias: list[HARIMedia],
+    medias: list[HARIMedia | ReferencedMedia],
     object_categories: set[str] | None = None,
 ):
     """
@@ -159,13 +160,13 @@ def check_and_upload_dataset(
 
     # Inspect upload results
     log.info(f"media upload status: {upload_results.medias.status.value}")
-    log.info(f"media upload summary\n  {upload_results.medias.summary}")
+    log.info(f"media upload summary\n {upload_results.medias.summary}")
 
     log.info(f"media object upload status: {upload_results.media_objects.status.value}")
-    log.info(f"media object upload summary\n  {upload_results.media_objects.summary}")
+    log.info(f"media object upload summary\n {upload_results.media_objects.summary}")
 
     log.info(f"attribute upload status: {upload_results.attributes.status.value}")
-    log.info(f"attribute upload summary\n  {upload_results.attributes.summary}")
+    log.info(f"attribute upload summary\n {upload_results.attributes.summary}")
 
     if (
         upload_results.medias.status != models.BulkOperationStatusEnum.SUCCESS
@@ -176,6 +177,9 @@ def check_and_upload_dataset(
             "The data upload wasn't fully successful. Metadata creation are skipped. See the details below."
         )
         log.info(f"media upload details: {upload_results.medias.results}")
+        log.info(f"media object upload details: {upload_results.media_objects.results}")
+        log.info(f"media attributes details: {upload_results.attributes.results}")
+        return
 
     # Trigger metadata updates
     trigger_and_display_metadata_update(hari=hari, dataset_id=dataset_id)

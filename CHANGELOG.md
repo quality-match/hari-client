@@ -22,6 +22,9 @@
 existing medias and media objects (defaulting to `True`)
 - added referenced media and media object models to the HARIUploader in order to reuse existing medias and media objects
 for further objects/attributes upload based on existing back references. [PR#111](https://github.com/quality-match/hari-client/pull/111)
+- added example scripts to upload only media objects or attributes with referenced models:
+  - `scripts/data_upload/upload_only_media_objects.py`
+  - `scripts/data_upload/upload_only_attributes.py`
 
 #### Fixes
 
