@@ -87,7 +87,7 @@ and the changelog is up to date. Changelog entry should have a new release versi
 
 2. With the branch in a clean state, run bumpversion to update the version number:
    ```bash
-   bumpversion patch/minor/major
+   bumpversion [patch|minor|major]
    ```
 depending on the type of release you want to create.
 This will also update the version in the setup and readme files,
