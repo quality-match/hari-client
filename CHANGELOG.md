@@ -1,6 +1,6 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-#### Internal
+#### New features
 
 - added internal methods for getting annotation run metrics [PR#108](https://github.com/quality-match/hari-client/pull/108)
   - get_annotation_run_metrics
@@ -44,7 +44,6 @@ and assign existing media/annotatable id
   - get_annotation_run_node_metrics
   - get_annotation_run_project_status
   - get_annotation_run_project
-
 
 ## [4.0.0] - 15-07-2025
 
