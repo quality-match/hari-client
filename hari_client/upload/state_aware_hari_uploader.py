@@ -652,6 +652,7 @@ class HARIUploader:
         except APIError as e:
             # try to parse as Bulk response, might only be a conflict
             # TODO but could actually be a lot of errors e.g. if cant_solve is specified as possible value
+            print(e)
             response = _parse_response_model(
                 response_data=e.message, response_model=models.BulkResponse
             )

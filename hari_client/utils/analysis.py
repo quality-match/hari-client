@@ -51,7 +51,9 @@ def organize_attributes_by_group(
 
     for attr in attributes:
         # TODO known bug, ID is non unique for autoattributes
-        meta = ID2attribute_meta[attr.metadata_id]
+        meta = ID2attribute_meta.get(attr.metadata_id, None)
+        if meta is None:
+            continue  # wrong loading
         # get correct return dictionary
         if meta.annotatable_type == DataBaseObjectType.MEDIA:
             group2attribute = group2media_attribute
