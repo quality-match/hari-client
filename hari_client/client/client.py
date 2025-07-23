@@ -687,25 +687,27 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
-        total_datasets = self.get_datasets_count(
-            visibility_statuses=visibility_statuses, query=query, archived=archived
-        )
-
-        log.info(f"Fetching {total_datasets} datasets ...")
+        log.info("Fetching all datasets ...")
 
         datasets: list[models.DatasetResponse] = []
+        skip_offset = 0
 
-        for skip in tqdm(range(0, total_datasets, batch_size)):
+        while True:
             datasets_page = self.get_datasets(
                 subset=subset,
                 visibility_statuses=visibility_statuses,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 archived=archived,
             )
             datasets.extend(datasets_page)
+
+            if len(datasets_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(datasets)} datasets successfully.")
 
@@ -1190,27 +1192,28 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        total_medias: int = self.get_media_count(
-            dataset_id, archived, query
-        ).total_count
-
-        log.info(f"Fetching {total_medias} medias ...")
+        log.info("Fetching all medias ...")
 
         medias: list[models.MediaResponse] = []
+        skip_offset = 0
 
-        # Loop through media pages until all are retrieved
-        for skip in tqdm(range(0, total_medias, batch_size)):
+        while True:
             medias_page = self.get_medias(
                 dataset_id=dataset_id,
                 archived=archived,
                 presign_medias=presign_medias,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 projection=projection,
             )
             medias.extend(medias_page)
+
+            if len(medias_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(medias)} medias successfully.")
 
@@ -1808,27 +1811,28 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        total_media_objects: int = self.get_media_object_count(
-            dataset_id, archived, query
-        ).total_count
-
-        log.info(f"Fetching {total_media_objects} media objects ...")
+        log.info("Fetching all media objects ...")
 
         media_objects: list[models.MediaObjectResponse] = []
+        skip_offset = 0
 
-        # Loop through media object pages until all are retrieved
-        for skip in tqdm(range(0, total_media_objects, batch_size)):
+        while True:
             media_objects_page = self.get_media_objects(
                 dataset_id=dataset_id,
                 archived=archived,
                 presign_medias=presign_medias,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 projection=projection,
             )
             media_objects.extend(media_objects_page)
+
+            if len(media_objects_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(media_objects)} media objects successfully.")
 
@@ -2449,25 +2453,26 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        total_attributes: int = self.get_attribute_value_count(
-            dataset_id, archived, query
-        ).total_count
-
-        log.info(f"Fetching {total_attributes} attribute values ...")
+        log.info("Fetching all attribute values ...")
 
         attribute_values: list[models.AttributeValueResponse] = []
+        skip_offset = 0
 
-        # Loop through attribute value pages until all are retrieved
-        for skip in tqdm(range(0, total_attributes, batch_size)):
+        while True:
             attribute_values_page = self.get_attribute_values(
                 dataset_id=dataset_id,
                 archived=archived,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
             )
             attribute_values.extend(attribute_values_page)
+
+            if len(attribute_values_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(attribute_values)} attribute values successfully.")
 
@@ -2771,23 +2776,25 @@ class HARIClient:
             A list of AINT learning data objects.
         """
 
-        total_aint_learning_data = self.get_aint_learning_data_count(
-            query=query, archived=archived
-        )
-
-        log.info(f"Fetching {total_aint_learning_data} AINT learning data ...")
+        log.info("Fetching all AINT learning data ...")
 
         aint_learning_data: list[models.AINTLearningData] = []
+        skip_offset = 0
 
-        for skip in tqdm(range(0, total_aint_learning_data, batch_size)):
+        while True:
             aint_learning_data_page = self.get_multiple_aint_learning_data(
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 archived=archived,
             )
             aint_learning_data.extend(aint_learning_data_page)
+
+            if len(aint_learning_data_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(aint_learning_data)} AINT learning data successfully.")
 
@@ -2979,24 +2986,26 @@ class HARIClient:
              A list of ml annotation models.
         """
 
-        total_ml_annotation_models = self.get_ml_annotation_model_count(
-            query=query, archived=archived
-        )
-
-        log.info(f"Fetching {total_ml_annotation_models} ML annotation models ...")
+        log.info("Fetching all ML annotation models ...")
 
         ml_annotation_models: list[models.MlAnnotationModel] = []
+        skip_offset = 0
 
-        for skip in tqdm(range(0, total_ml_annotation_models, batch_size)):
+        while True:
             ml_annotation_models_page = self.get_ml_annotation_models(
                 projection=projection,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 archived=archived,
             )
             ml_annotation_models.extend(ml_annotation_models_page)
+
+            if len(ml_annotation_models_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(
             f"Fetched {len(ml_annotation_models)} ML annotation models successfully."
@@ -3221,23 +3230,25 @@ class HARIClient:
             A list of AI annotation runs.
         """
 
-        total_ai_annotation_runs = self.get_ai_annotation_run_count(
-            query=query, archived=archived
-        )
-
-        log.info(f"Fetching {total_ai_annotation_runs} AI annotation runs ...")
+        log.info("Fetching all AI annotation runs ...")
 
         ai_annotation_runs: list[models.AIAnnotationRun] = []
+        skip_offset = 0
 
-        for skip in tqdm(range(0, total_ai_annotation_runs, batch_size)):
+        while True:
             ai_annotation_runs_page = self.get_ai_annotation_runs(
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 archived=archived,
             )
             ai_annotation_runs.extend(ai_annotation_runs_page)
+
+            if len(ai_annotation_runs_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(ai_annotation_runs)} AI annotation runs successfully.")
 
@@ -3434,21 +3445,25 @@ class HARIClient:
             A list of pipeline objects.
         """
 
-        total_pipelines = self.get_pipeline_count(query=query, archived=archived)
-
-        log.info(f"Fetching {total_pipelines} pipelines ...")
+        log.info("Fetching all pipelines ...")
 
         pipelines: list[models.Pipeline] = []
+        skip_offset = 0
 
-        for skip in tqdm(range(0, total_pipelines, batch_size)):
+        while True:
             pipelines_page = self.get_pipelines(
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 archived=archived,
             )
             pipelines.extend(pipelines_page)
+
+            if len(pipelines_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(pipelines)} pipelines successfully.")
 
@@ -3548,23 +3563,25 @@ class HARIClient:
             A list of annotation run objects.
         """
 
-        total_annotation_runs = self.get_annotation_run_count(
-            query=query, archived=archived
-        )
-
-        log.info(f"Fetching {total_annotation_runs} annotation runs ...")
+        log.info("Fetching all annotation runs ...")
 
         annotation_runs: list[models.AnnotationRun] = []
+        skip_offset = 0
 
-        for skip in tqdm(range(0, total_annotation_runs, batch_size)):
+        while True:
             annotation_runs_page = self.get_annotation_runs(
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 archived=archived,
             )
             annotation_runs.extend(annotation_runs_page)
+
+            if len(annotation_runs_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(annotation_runs)} annotation runs successfully.")
 
