@@ -844,6 +844,93 @@ class HARIUploader:
             failures=self.failures,
         )
 
+    def upload_media_objects(
+        self, media_objects_mapping: list[tuple[str, HARIMediaObject]]
+    ) -> HARIUploadResults | None:
+        """
+        Uploads media objects and their attributes to the HARI dataset.
+
+        Args:
+            media_objects_mapping: A list of tuples, where each tuple contains a media back reference
+                and a HARIMediaObject object to be uploaded.
+        Returns:
+            HARIUploadResults: An object containing the results of the upload operation, including
+                only media objects and attributes, and any failures encountered during the upload.
+        """
+        # get existing media and validate back references
+        uploaded_medias = self.client.get_medias_paginated(self.dataset_id)
+        self.validate_back_references(uploaded_medias, media_objects_mapping)
+
+        uploaded_medias_lookup = {
+            media.back_reference: media for media in uploaded_medias
+        }
+
+        all_attributes = []
+        for media_back_reference, media_object in media_objects_mapping:
+            media = uploaded_medias_lookup[media_back_reference]
+
+            # update media objects with media ids
+            media_object.media_id = media.id
+
+            # validate media objects
+            self._validate_geometry_is_provided(media_object)
+            media = models.MediaCreate(**media.model_dump())
+            self._validate_media_object_compatible_with_media(media, media_object)
+
+            all_attributes.extend(media_object.attributes)
+
+        self.validate_all_attributes(all_attributes)
+
+        media_objects_to_upload = [mapping[1] for mapping in media_objects_mapping]
+
+        # todo unbound from media?
+        self._handle_scene_and_category_data()
+
+        if self.skip_uploaded_media_objects:
+            self.mark_already_uploaded_media_objects(media_objects_to_upload)
+
+        self._media_object_upload_progress = tqdm.tqdm(
+            desc="Media Object Upload", total=len(media_objects_mapping)
+        )
+        self._attribute_upload_progress = tqdm.tqdm(
+            desc="Attribute Upload", total=len(all_attributes)
+        )
+
+        media_object_upload_responses = self._upload_media_objects_in_batches(
+            media_objects_to_upload,
+        )
+        failed_media_object_attributes = self.process_media_objects_failed_responses(
+            media_objects_to_upload, media_object_upload_responses
+        )
+
+        # filter out media objects attributes that should be skipped because their media objects failed to upload
+        attributes_to_upload: list[HARIAttribute] = [
+            attribute
+            for media_object in media_objects_to_upload
+            for attribute in media_object.attributes
+            if attribute not in failed_media_object_attributes
+        ]
+
+        # upload attributes of this batch of media in batches
+        attributes_upload_responses = self._upload_attributes_in_batches(
+            attributes_to_upload
+        )
+        # add fake responses for skipped attributes
+        self.add_fake_bulk_responses_for_media_objects_and_attributes(
+            [],
+            [],
+            attributes_upload_responses,
+            failed_media_object_attributes,
+        )
+        self._media_object_upload_progress.close()
+        self._attribute_upload_progress.close()
+
+        return HARIUploadResults(
+            medias=models.BulkResponse(status=models.ResponseStatesEnum.SUCCESS.value),
+            media_objects=_merge_bulk_responses(*media_object_upload_responses),
+            attributes=_merge_bulk_responses(*attributes_upload_responses),
+        )
+
     def upload_media_attributes(
         self, media_attributes_mapping: list[tuple[str, HARIAttribute]]
     ) -> HARIUploadResults | None:
