@@ -50,6 +50,6 @@ if __name__ == "__main__":
         additional_fields=["attributes"],
     )
 
-    print(len(media_objects), media_objects[0])
-    print(len(medias), medias[0])
-    print(len(attributes), attributes[0])
+    print(len(media_objects), media_objects[0] if len(media_objects) else None)
+    print(len(medias), medias[0] if len(medias) else None)
+    print(len(attributes), attributes[0] if len(attributes) else None)

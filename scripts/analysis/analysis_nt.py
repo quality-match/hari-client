@@ -40,17 +40,6 @@ if __name__ == "__main__":
         help="Attribute ID for which the report should be created, Either this ID or AnnotationRunNode ID need to be specified",
     )
 
-    parser.add_argument(
-        "--reference_data_attribute_id",
-        type=str,
-        help="Attribute ID which should be used as reference data",
-    )
-
-    parser.add_argument(
-        "--reference_data_subset_id",
-        type=str,
-        help="Subset ID for on which the reference data is defined",
-    )
 
     parser.add_argument(
         "-c",
@@ -74,10 +63,6 @@ if __name__ == "__main__":
     dataset_id: uuid.UUID = args.dataset_id
     attribute_id: uuid.UUID = args.attribute_id
     subset_id: uuid.UUID = args.subset_id
-    reference_data_attribute_id: uuid.UUID = args.reference_data_attribute_id
-    reference_data_subset_id: uuid.UUID = (
-        args.reference_data_subset_id
-    )  # TODO check what happens if empty
 
     # load hari client
     config: Config = Config(_env_file=".env")
@@ -103,17 +88,23 @@ if __name__ == "__main__":
         cache_directory,
         subset_ids=[subset_id] if subset_id is not None else [],
         additional_fields=["attributes"],
+        cache=False,
     )
 
+    print(medias[0])
+    print(media_objects[0])
+
     # generate lookup tables
-    ID2attribute_meta = {a.id: a for a in attribute_metas}
+    ID2attribute_meta = {str(a.id): a for a in attribute_metas}
+
+    # print(attributes)
 
     # organize Attributes by type
     group2media_attribute, group2media_object_attribute = organize_attributes_by_group(
         attributes, ID2attribute_meta
     )
 
-    # print(group2media_object_attribute[AttributeGroup.AnnotationAttribute])
+    # print(group2media_object_attribute)
 
     # convert annotations into soft label
     ID2annotation, ID2ambiguity = create_soft_label_for_annotations(
@@ -126,7 +117,7 @@ if __name__ == "__main__":
 
     # visualize
     histograms_for_nanotask(
-        ID2annotation, ID2ambiguity, attribute_id, output_directory=output_directory
+        ID2annotation, ID2ambiguity, str(attribute_id), output_directory=output_directory
     )
 
     # group by operations
@@ -168,9 +159,9 @@ if __name__ == "__main__":
             histograms_for_nanotask(
                 ID2annotation,
                 ID2ambiguity,
-                attribute_id,
+                str(attribute_id),
                 ID2groupby_value=ID2initial_attribute,
-                groupby_value=group_value,
+                groupby_values=groupby_values,
                 groupy_name=initial_attribute_name,
                 output_directory=output_directory,
             )

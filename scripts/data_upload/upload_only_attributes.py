@@ -6,8 +6,7 @@ from hari_client import Config
 from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
-from hari_client.utils.upload import check_and_create_dataset
-from hari_client.utils.upload import check_and_upload_dataset
+from hari_client.utils.upload import check_and_upload_dataset, get_or_create_dataset
 
 if __name__ == "__main__":
     # Argument parser setup.
@@ -50,7 +49,7 @@ if __name__ == "__main__":
     hari: HARIClient = HARIClient(config=config)
 
     # create dataset
-    dataset_id = check_and_create_dataset(
+    dataset_id = get_or_create_dataset(
         hari=hari, dataset_name=dataset_name, user_group=user_group, is_anonymized=True
     )
 
@@ -95,10 +94,8 @@ if __name__ == "__main__":
     check_and_upload_dataset(
         hari=hari,
         dataset_id=dataset_id,
-        object_categories=[],
+        object_categories=set(),
         medias=[media],
-        new_subset_name="All Media",
-        subset_type=models.SubsetType.MEDIA,
     )
 
     # if media is uploaded already only the backreference is needed
@@ -120,6 +117,7 @@ if __name__ == "__main__":
         cant_solves=1,
         repeats=7,
     )
+
     media.add_attribute(
         att1, att2
     )  # att1 was already uploaded but uploader can handle this
@@ -131,8 +129,6 @@ if __name__ == "__main__":
     check_and_upload_dataset(
         hari=hari,
         dataset_id=dataset_id,
-        object_categories=[],
-        medias=[media],
-        new_subset_name="All Media",
-        subset_type=models.SubsetType.MEDIA,
+        object_categories=set(),
+        medias=[media]
     )

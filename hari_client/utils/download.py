@@ -129,8 +129,8 @@ def convert_internal_attributes_to_list(
 
 
 def get_ai_annotation_run_for_attribute_id(
-    hari, aint_attribute_id: str, ai_annoation_runs: list[models.AiAnnotationRun] = None
-) -> models.AiAnnotationRun | None:
+    hari, aint_attribute_id: uuid.UUID, ai_annoation_runs: list[models.AIAnnotationRun] = None
+) -> models.AIAnnotationRun | None:
     """
     Find an AI Annotation Run corresponding to a given attribute ID.
 
@@ -149,11 +149,11 @@ def get_ai_annotation_run_for_attribute_id(
     """
 
     if ai_annoation_runs is None:
-        ai_annoation_runs: list[models.AiAnnotationRun] = hari.get_ai_annotation_runs()
+        ai_annoation_runs: list[models.AIAnnotationRun] = hari.get_ai_annotation_runs()
         print(f"Found {len(ai_annoation_runs)} AI Annotation Runs")
 
     # search for the desired annotation run
-    ai_annotation_run: models.AiAnnotationRun = None
+    ai_annotation_run: models.AIAnnotationRun = None
     for run in ai_annoation_runs:
         if run.attribute_metadata_id == aint_attribute_id:
             ai_annotation_run = run
@@ -200,7 +200,7 @@ def collect_media_and_attributes(
 ) -> tuple[
     list[models.MediaResponse],
     list[models.MediaObjectResponse],
-    list[models.Attribute],
+    list[models.AttributeResponse],
     list[models.AttributeMetadataResponse],
 ]:
     """
@@ -270,7 +270,7 @@ def collect_media_and_attributes(
         if "attributes" not in additional_fields:
             print("Query the attributes from HARI.")
             attributes = get_all_attributes_for_media_and_objects(
-                hari, dataset_id, media_objects, medias
+                hari, str(dataset_id), media_objects, medias
             )
             pydantic_save_to_json(attr_file, attributes)
         else:
@@ -321,29 +321,29 @@ def get_media_and_objects(
 
     # Define projection for media objects, i.e. which fields we want to get at the returned value
     media_object_projection = {
-        "projection[id]": True,
-        "projection[tags]": True,
-        "projection[timestamp]": True,
-        "projection[back_reference]": True,
-        "projection[media_id]": True,
-        "projection[object_category]": True,
-        "projection[frame_idx]": True,
-        "projection[subset_ids]": True,
+        "id": True,
+        "tags": True,
+        "timestamp": True,
+        "back_reference": True,
+        "media_id": True,
+        "object_category": True,
+        "frame_idx": True,
+        "subset_ids": True,
     }
 
     for additional_field in additional_fields:
-        media_object_projection[f"projection[{additional_field}]"] = True
+        media_object_projection[f"{additional_field}"] = True
 
     # Define projection for medias, i.e. which fields we want to get at the returned value
     media_projection = {
-        "projection[id]": True,
-        "projection[back_reference]": True,
-        "projection[subset_ids]": True,
+        "id": True,
+        "back_reference": True,
+        "subset_ids": True,
     }
 
     # Fetch medias asynchronously
-    medias = hari.get_medias_paged(dataset_id, query=query, projection=media_projection)
-    media_objects = hari.get_media_objects_paged(
+    medias = hari.get_medias_paginated(dataset_id, query=query, projection=media_projection)
+    media_objects = hari.get_media_objects_paginated(
         dataset_id, query=query, projection=media_object_projection
     )
 
@@ -404,8 +404,8 @@ def get_all_attributes_for_media_and_objects(
         "value": annotatable_ids,
     }
 
-    attribute_values = hari.get_attribute_values_paged(
-        dataset_id, query=json.dumps(attribute_query_parameters)
+    attribute_values = hari.get_attribute_values_paginated(
+        uuid.UUID(dataset_id), query=json.dumps(attribute_query_parameters)
     )
 
     return attribute_values

@@ -13,7 +13,7 @@ from statsmodels.stats.proportion import proportion_confint
 from tqdm import tqdm
 
 from hari_client import HARIClient
-from hari_client.models.models import AnnotationResponse
+from hari_client.models.models import AnnotationResponse, AnnotationAnswer
 from hari_client.models.models import AttributeGroup
 from hari_client.models.models import AttributeMetadataResponse
 from hari_client.models.models import AttributeValueResponse
@@ -51,7 +51,7 @@ def organize_attributes_by_group(
 
     for attr in attributes:
         # TODO known bug, ID is non unique for autoattributes
-        meta = ID2attribute_meta.get(attr.metadata_id, None)
+        meta = ID2attribute_meta.get(str(attr.metadata_id), None)
         if meta is None:
             continue  # wrong loading
         # get correct return dictionary
@@ -767,7 +767,7 @@ def generate_reference_data_map(
     }
 
     # TODO expects media objects
-    media_objects_of_reference_subset = hari.get_media_objects_paged(
+    media_objects_of_reference_subset = hari.get_media_objects_paginated(
         dataset_id,
         query=json.dumps(in_subset),
         projection={
@@ -1327,17 +1327,17 @@ def get_annotation_run_node_id_for_attribute_id(
     }
     # get attribute values to get annotations and thus linked annotation run
     # TODO check if this works for multi node pipelines
-    attributes = hari.get_attribute_values(
+    attributes : list[AttributeValueResponse] = hari.get_attribute_values(
         dataset_id=dataset_id, query=json.dumps(query), limit=1
     )
     assert (
         len(attributes) == 1
     ), f"Found no entries for the attribute {attribute_id} in dataset {dataset_id}"
-    annotations = attributes[0].annotations
+    annotations : list[AnnotationAnswer] = attributes[0].annotations
     assert (
         len(annotations) > 0
     ), f"Found no annotations for attribute {attribute_id} in dataset {dataset_id}"
-    annotation_id = annotations[0]["annotation_id"]
+    annotation_id = annotations[0].annotation_id
     annotation = hari.get_annotation(dataset_id, annotation_id)
     annotation_run_node_id = annotation.annotation_run_node_id
 
@@ -1465,7 +1465,7 @@ def plot_histogram_with_wilson_ci(
 def histograms_for_nanotask(
     ID2annotation,
     ID2ambiguity,
-    attribute_id,
+    attribute_id:str,
     ID2groupby_value={},
     groupy_name=None,
     groupby_values=None,

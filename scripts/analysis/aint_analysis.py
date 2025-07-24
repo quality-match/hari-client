@@ -59,8 +59,8 @@ if __name__ == "__main__":
     # Extract arguments.
     dataset_id: uuid.uuid4() = args.dataset_id
     subset_id: str = args.subset_id
-    ai_annotation_attribute_id = args.ai_annotation_attribute_id
-    human_annotation_attribute_id = args.human_annotation_attribute_id
+    ai_annotation_attribute_id = uuid.UUID(args.ai_annotation_attribute_id)
+    human_annotation_attribute_id = uuid.UUID(args.human_annotation_attribute_id)
 
     # load hari client
     config: Config = Config(_env_file=".env")
@@ -84,8 +84,9 @@ if __name__ == "__main__":
     ai_annotation_run = get_ai_annotation_run_for_attribute_id(
         hari, ai_annotation_attribute_id
     )
+    # print(ai_annotation_run,ai_annotation_attribute_id)
     model_id = ai_annotation_run.ml_annotation_model_id
-    model: models.MlAnnotationModel = hari.get_aint_model(model_id)
+    model: models.MlAnnotationModel = hari.get_ml_annotation_model_by_id(model_id)
 
     # # try to find specific question by name
     # human_annotation_attribute_id = find_attribute_id_by_name(
@@ -93,10 +94,10 @@ if __name__ == "__main__":
     # )
 
     # generate lookup tables
-    ID2attribute_meta = {a.id: a for a in attribute_metas}
+    ID2attribute_meta = {str(a.id): a for a in attribute_metas}
 
     # primary target: media_objects, medias would also be possible
-    ID2subsets = {m.id: m.subset_ids for m in media_objects}
+    ID2subsets = {str(m.id): m.subset_ids for m in media_objects}
 
     # organize Attributes by type
     group2media_attribute, group2media_object_attribute = organize_attributes_by_group(
@@ -124,9 +125,9 @@ if __name__ == "__main__":
     calculate_ml_human_alignment(
         ID2annotation,
         ID2mlannotation,
-        ai_annotation_attribute_id,
-        human_attribute_key=human_annotation_attribute_id,
-        selected_subset_ids=[model.test_subset_id],
+        str(ai_annotation_attribute_id),
+        human_attribute_key=str(human_annotation_attribute_id),
+        selected_subset_ids=[str(model.test_subset_id)],
         ID2subsets=ID2subsets,
     )
 
@@ -135,11 +136,11 @@ if __name__ == "__main__":
         ID2annotation,
         ID2mlannotation,
         ID2confidence,
-        ai_annotation_attribute_id,
+        str(ai_annotation_attribute_id),
         ID2subsets,
-        model.validation_subset_id,
-        model.test_subset_id,
-        human_key=human_annotation_attribute_id,
+        str(model.validation_subset_id),
+        str(model.test_subset_id),
+        human_key=str(human_annotation_attribute_id),
     )
 
     print(cutoff_thresholds)
@@ -148,9 +149,9 @@ if __name__ == "__main__":
         calculate_ml_human_alignment(
             ID2annotation,
             ID2mlannotation,
-            ai_annotation_attribute_id,
-            human_attribute_key=human_annotation_attribute_id,
-            selected_subset_ids=[model.test_subset_id],
+            str(ai_annotation_attribute_id),
+            human_attribute_key=str(human_annotation_attribute_id),
+            selected_subset_ids=[str(model.test_subset_id)],
             ID2subsets=ID2subsets,
             confidence_threshold=cut_off_threshold,
             ID2confidence=ID2confidence,

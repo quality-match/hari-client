@@ -43,6 +43,7 @@ def delete_all_ai_attributes_from_dataset(
     for attribute in tqdm(attribute_metadata_list, desc="Processing attributes"):
         if delete:
             # Delete the attribute metadata from the dataset
+            # TODO this method does not exist anymore
             hari.delete_attributeMetadata(dataset_id, attribute.id)
             print(
                 f"Deleted attribute {attribute.id} with question '{attribute.question}'"

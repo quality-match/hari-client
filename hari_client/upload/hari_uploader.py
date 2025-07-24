@@ -107,6 +107,15 @@ class HARIMediaObject(models.BulkMediaObjectCreate):
         return v
 
 
+
+class HARIMediaObjectMockUpload(HARIMediaObject):
+    def __init__(self, **kwargs):
+        # Set not needed necessary values to random entries
+        # can be random, if already uploaded
+        name = "???"
+        media_type = models.MediaType.IMAGE
+        super().__init__(name=name, media_type=media_type, **kwargs)
+
 class HARIMediaUploadError(Exception):
     pass
 
@@ -227,6 +236,13 @@ class HARIMedia(models.BulkMediaCreate):
             )
         return v
 
+class HARIMediaMockUpload(HARIMedia):
+    def __init__(self, **kwargs):
+        # Set not needed necessary values to random entries
+        # can be random, if already uploaded
+        name = "???"
+        media_type = models.MediaType.IMAGE
+        super().__init__(name=name, media_type=media_type, **kwargs)
 
 class HARIUploadFailures(pydantic.BaseModel):
     """Tracks failed uploads and their dependencies with the reason for the failure."""

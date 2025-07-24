@@ -6,7 +6,7 @@ from hari_client import Config
 from hari_client import hari_uploader
 from hari_client import HARIClient
 from hari_client import models
-from hari_client.utils.upload import check_and_create_dataset
+from hari_client.utils.upload import get_or_create_dataset
 from hari_client.utils.upload import check_and_upload_dataset
 
 if __name__ == "__main__":
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     hari: HARIClient = HARIClient(config=config)
 
     # create dataset
-    dataset_id = check_and_create_dataset(
+    dataset_id = get_or_create_dataset(
         hari=hari, dataset_name=dataset_name, user_group=user_group, is_anonymized=True
     )
 
@@ -85,10 +85,8 @@ if __name__ == "__main__":
     check_and_upload_dataset(
         hari=hari,
         dataset_id=dataset_id,
-        object_categories=[],
+        object_categories=set(),
         medias=[media],
-        new_subset_name="All Media",
-        subset_type=models.SubsetType.MEDIA,
     )
 
     # if media is uploaded already only the backreference is needed
@@ -116,8 +114,6 @@ if __name__ == "__main__":
     check_and_upload_dataset(
         hari=hari,
         dataset_id=dataset_id,
-        object_categories=["cat", "dog"],
+        object_categories=set(["cat", "dog"]),
         medias=[media],
-        new_subset_name="All Media",
-        subset_type=models.SubsetType.MEDIA,
     )
