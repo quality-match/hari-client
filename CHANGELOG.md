@@ -1,24 +1,39 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-### Breaking Changes
+#### New features
+
+- added internal methods for getting annotation run metrics [PR#108](https://github.com/quality-match/hari-client/pull/108)
+  - get_annotation_run_metrics
+  - get_annotation_run_node_metrics
+  - get_annotation_run_project_status
+  - get_annotation_run_project
+
+### State aware uploader [PR#96](https://github.com/quality-match/hari-client/pull/96)
+
+#### Breaking Changes
 
 - skip already uploaded media and media objects during upload by default (by comparing existing back references)
 - get existing attribute metadata and reuse the existing ids on new attributes.
 - removed _`media_back_references`, _`media_object_back_references`, _`media_object_cnt` and _`attribute_cnt` fields from the HARIUploader
 
-### New features
+#### New features
 
 - added `skip_uploaded_medias` and `skip_uploaded_media_objects` flags to uploader to enable/disable uploading
 existing medias and media objects (defaulting to `True`)
+- added referenced media and media object models to the HARIUploader in order to reuse existing medias and media objects
+for further objects/attributes upload based on existing back references. [PR#111](https://github.com/quality-match/hari-client/pull/111)
+- added example scripts to upload only media objects or attributes with referenced models:
+  - `scripts/data_upload/upload_only_media_objects.py`
+  - `scripts/data_upload/upload_only_attributes.py`
 
-### Fixes
+#### Fixes
 
 - handle bulk responses parsing properly in hari uploader if bulk response status is `FAILURE` and 4xx error is returned
   - now no error is raised, but the response is parsed again to `BulkResponse` model
 - remove all validation and other type of logic from `add_media` method of the uploader
 - assign attribute annotatable type in `add_attribute` method
 
-### Internal
+#### Internal
 
 - added `id` and `uploaded` fields to `HARIMedia` and `HARIMediaObject` to check later on whether the entity was uploaded,
 and assign existing media/annotatable id
@@ -29,7 +44,6 @@ and assign existing media/annotatable id
   - get_annotation_run_node_metrics
   - get_annotation_run_project_status
   - get_annotation_run_project
-
 
 ## [4.0.0] - 15-07-2025
 
