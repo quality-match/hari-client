@@ -200,7 +200,7 @@ def upload_dataset_with_own_attributes(
             media_object.set_object_category_subset_name(majority_vote)
 
     check_and_upload_dataset(
-        hari, dataset_id, data.categories, medias=list(medias.values())
+        hari, dataset_id, object_categories=data.categories, medias=list(medias.values())
     )
 
 
