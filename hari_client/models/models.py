@@ -1757,6 +1757,7 @@ class AnnotationRun(BaseModel):
 
     model_config = pydantic.ConfigDict(extra="ignore")
 
+
 class Annotator(pydantic.BaseModel):
     annotator_id: str | None = pydantic.Field(
         default=None,
@@ -1856,6 +1857,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Visualisation Config ID",
         description="Reference to the configuration settings for the visualisation",
     )
+
 
 class BulkAttributeCreate(AttributeCreate):
     pass

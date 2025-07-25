@@ -3299,9 +3299,9 @@ class HARIClient:
         )
 
     def get_annotation(
-            self,
-            dataset_id: uuid.UUID,
-            annotation_id: str,
+        self,
+        dataset_id: uuid.UUID,
+        annotation_id: str,
     ) -> models.AnnotationResponse:
         """Returns an annotation with a given attribute_id.
 
@@ -3323,12 +3323,12 @@ class HARIClient:
         )
 
     def get_annotations(
-            self,
-            dataset_id: uuid.UUID,
-            limit: int | None = None,
-            skip: int | None = None,
-            query: models.QueryList | None = None,
-            sort: list[models.SortingParameter] | None = None,
+        self,
+        dataset_id: uuid.UUID,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
     ) -> list[models.AnnotationResponse]:
         """Get all annotations of a dataset
 
