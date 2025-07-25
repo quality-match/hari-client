@@ -77,6 +77,10 @@ def _parse_response_model(
                 message=f"Expected response_data to be None, but received {response_data=}",
             )
 
+        # No data is given
+        if response_data is None:
+            return None
+
         # handle pydantic models
         if isinstance(response_model, type) and issubclass(
             response_model, pydantic.BaseModel
@@ -121,6 +125,7 @@ def _parse_response_model(
             f"is unhandled.{response_data=}.",
         )
     except Exception as err:
+        print(err)
         raise errors.ParseResponseModelError(
             response_data=response_data,
             response_model=response_model,
@@ -2477,6 +2482,28 @@ class HARIClient:
             f"/datasets/{dataset_id}/attributeMetadata",
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.AttributeMetadataResponse],
+        )
+
+    def delete_attribute_metadata(
+        self, dataset_id: uuid.UUID, attribute_metadata_id: str
+    ) -> str:
+        """Delete an attribute metadata and all its attributes from a dataset.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_metadata_id: The ID of the attribute metedata
+
+        Returns:
+            The deleted attribute
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_metadata_id"]),
+            success_response_item_model=str,
         )
 
     def get_visualisation_configs(
