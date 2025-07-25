@@ -77,6 +77,10 @@ def _parse_response_model(
                 message=f"Expected response_data to be None, but received {response_data=}",
             )
 
+        # No data is given
+        if response_data is None:
+            return None
+
         # handle pydantic models
         if isinstance(response_model, type) and issubclass(
             response_model, pydantic.BaseModel
@@ -121,6 +125,7 @@ def _parse_response_model(
             f"is unhandled.{response_data=}.",
         )
     except Exception as err:
+        print(err)
         raise errors.ParseResponseModelError(
             response_data=response_data,
             response_model=response_model,
@@ -2628,6 +2633,28 @@ class HARIClient:
             success_response_item_model=list[models.AttributeMetadataResponse],
         )
 
+    def delete_attribute_metadata(
+        self, dataset_id: uuid.UUID, attribute_metadata_id: str
+    ) -> str:
+        """Delete an attribute metadata and all its attributes from a dataset.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_metadata_id: The ID of the attribute metedata
+
+        Returns:
+            The deleted attribute
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "attribute_metadata_id"]),
+            success_response_item_model=str,
+        )
+
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
@@ -3739,4 +3766,59 @@ class HARIClient:
             f"/annotationRuns/{annotation_run_id}/goliatProject",
             params=self._pack(locals()),
             success_response_item_model=models.AnnotationRunProjectDetails,
+        )
+
+    def get_annotation(
+        self,
+        dataset_id: uuid.UUID,
+        annotation_id: str,
+    ) -> models.AnnotationResponse:
+        """Returns an annotation with a given attribute_id.
+
+        Args:
+            dataset_id: The dataset id
+            annotation_id: The annotation id
+
+        Returns:
+            The annotation with the given annotation_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/annotations/{annotation_id}",
+            params=self._pack(locals(), ignore=["dataset_id", "annotation_id"]),
+            success_response_item_model=models.AnnotationResponse,
+        )
+
+    def get_annotations(
+        self,
+        dataset_id: uuid.UUID,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AnnotationResponse]:
+        """Get all annotations of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            limit: The number of medias tu return
+            skip: The number of medias to skip
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of all annotations in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/annotations",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AnnotationResponse],
         )
