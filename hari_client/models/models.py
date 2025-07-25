@@ -1034,6 +1034,7 @@ class AttributeType(str, enum.Enum):
     BBox2D = "BBOX2D"
     Point2D = "POINT2D"
     Point3D = "POINT3D"
+    FrameSlider = "FRAMESLIDER"
 
 
 class HistogramType(str, enum.Enum):
@@ -1756,6 +1757,105 @@ class AnnotationRun(BaseModel):
 
     model_config = pydantic.ConfigDict(extra="ignore")
 
+class Annotator(pydantic.BaseModel):
+    annotator_id: str | None = pydantic.Field(
+        default=None,
+        title="Annotator Id",
+        description="Unique identifier for the annotator",
+    )
+    vendor_id: str | None = pydantic.Field(
+        default=None,
+        title="Vendor Id",
+        description="Identifier for the vendor or annotation provider",
+    )
+
+
+class AnnotationResponse(pydantic.BaseModel):
+    id: str | None = pydantic.Field(
+        default=None, title="Id", description="Unique identifier for the annotation"
+    )
+    dataset_id: str | None = pydantic.Field(
+        default=None,
+        title="Dataset Id",
+        description="Identifier for the dataset this annotation belongs to",
+    )
+    tags: list[str] | None = pydantic.Field(
+        default=None,
+        title="Tags",
+        description="List of tags associated with the annotation",
+    )
+    timestamp: str | None = pydantic.Field(
+        default=None,
+        title="Timestamp",
+        description="Timestamp for when the annotation was created or updated",
+    )
+    archived: bool | None = pydantic.Field(
+        default=None,
+        title="Archived",
+        description="Flag indicating whether the annotation is archived",
+    )
+    annotatable_type: str | None = pydantic.Field(
+        default=None,
+        title="Annotatable Type",
+        description="Type of the item being annotated (e.g., Media, Document, etc.)",
+    )
+    annotatable_id: str | None = pydantic.Field(
+        default=None,
+        title="Annotatable ID",
+        description="Identifier for the specific item being annotated",
+    )
+
+    annotation_run_node_id: str | None = pydantic.Field(
+        default=None,
+        title="Annotation Run Node ID",
+        description="Identifier for the node within an annotation run",
+    )
+    annotation_run_id: str | None = pydantic.Field(
+        default=None,
+        title="Annotation Run ID",
+        description="Identifier for the overall annotation run",
+    )
+
+    question: str | None = pydantic.Field(
+        default=None,
+        title="Question",
+        description="Prompt or question posed to the annotator",
+    )
+    result: str | int | float | None = pydantic.Field(
+        default=None,
+        title="Result",
+        description="Content or outcome of the annotation (e.g., text, labels, etc.)",
+    )
+    cant_solve: bool | None = pydantic.Field(
+        default=None,
+        title="Can't Solve",
+        description="Indicates that the annotator could not resolve or answer the question",
+    )
+    errors: list[dict] | None = pydantic.Field(
+        default=None,
+        title="Errors",
+        description="Any errors encountered during the annotation process",
+    )
+    duration_ms: int | None = pydantic.Field(
+        default=None,
+        title="Duration (ms)",
+        description="Time spent on the annotation in milliseconds",
+    )
+    annotator: Annotator | None = pydantic.Field(
+        default=None,
+        title="Annotator",
+        description="Information about the individual or vendor who performed the annotation",
+    )
+    visualisation_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation ID",
+        description="Reference to a specific visualisation used during annotation",
+    )
+    visualisation_config_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation Config ID",
+        description="Reference to the configuration settings for the visualisation",
+    )
 
 class BulkAttributeCreate(AttributeCreate):
     pass
