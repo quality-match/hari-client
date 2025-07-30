@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [5.0.0] - 30-07-2025
+
 ### Breaking Changes
 
 #### State-aware uploader
