@@ -2,16 +2,33 @@
 
 ### Breaking Changes
 
+#### State-aware uploader
+
 - skip already uploaded media and media objects during upload by default (by comparing existing back references)
 - get existing attribute metadata and reuse the existing ids on new attributes.
 - removed _`media_back_references`, _`media_object_back_references`, _`media_object_cnt` and _`attribute_cnt` fields from the HARIUploader
 
 ### New features
 
+#### State-aware uploader
+
 - added `skip_uploaded_medias` and `skip_uploaded_media_objects` flags to uploader to enable/disable uploading
 existing medias and media objects (defaulting to `True`)
 
+#### Other changes
+
+- added internal methods for getting annotation run metrics [PR#108](https://github.com/quality-match/hari-client/pull/108)
+  - get_annotation_run_metrics
+  - get_annotation_run_node_metrics
+  - get_annotation_run_project_status
+  - get_annotation_run_project
+- Update get all entities client methods to fetch data in a paginated way when no limit is specified [PR#113](https://github.com/quality-match/hari-client/pull/113)
+  - Add paginated methods for getting datasets, attributes, visualisation configs, annotation runs, pipelines, AINT learning data, ML annotation models, AI annotation runs [PR#108](
+  - In paginated methods, get entities by batches until the end of the data is reached, instead of relying on the called count method
+
 ### Fixes
+
+#### State-aware uploader
 
 - handle bulk responses parsing properly in hari uploader if bulk response status is `FAILURE` and 4xx error is returned
   - now no error is raised, but the response is parsed again to `BulkResponse` model
@@ -20,16 +37,12 @@ existing medias and media objects (defaulting to `True`)
 
 ### Internal
 
+#### State-aware uploader
+
 - added `id` and `uploaded` fields to `HARIMedia` and `HARIMediaObject` to check later on whether the entity was uploaded,
 and assign existing media/annotatable id
 - created method for media and media objects validation that is executed before upload and move all validations there
 - removed subset creation from `check_and_upload_dataset` utility
-- added internal methods for getting annotation run metrics [PR#108](https://github.com/quality-match/hari-client/pull/108)
-  - get_annotation_run_metrics
-  - get_annotation_run_node_metrics
-  - get_annotation_run_project_status
-  - get_annotation_run_project
-
 
 ## [4.0.0] - 15-07-2025
 
