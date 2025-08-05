@@ -2825,6 +2825,7 @@ class HARIClient:
         name: str,
         training_attributes: list[models.TrainingAttribute],
         user_group: str | None = None,
+        embedding_group_name: str | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2835,6 +2836,7 @@ class HARIClient:
             name: A descriptive name for the AINT learning data.
             training_attributes: The training attributes to be used in the AINT learning data.
             user_group: The user group for creating the AINT learning data (default: None).
+            embedding_group_name: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
             Created AINT learning data object.
@@ -2851,6 +2853,7 @@ class HARIClient:
         aint_learning_data_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
+        embedding_group_name: str | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2861,6 +2864,7 @@ class HARIClient:
             aint_learning_data_id: The unique identifier of the AINT learning data.
             name: The desired name of the AINT learning data.
             user_group: The desired user group of the AINT learning data.
+            embedding_group_name: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
            Updated AINT learning data.
@@ -3757,9 +3761,28 @@ class HARIClient:
         Returns:
             The uploaded annotatable embeddings
         """
-        annotatable_embedding_dicts = [
-            item.model_dump() for item in annotatable_embeddings
-        ]
+        if len(annotatable_embeddings) == 0:
+            raise ValueError("annotatable_embeddings must not be empty")
+
+        embedding_group_vector_length: dict[str, int] = {}
+
+        annotatable_embedding_dicts = []
+        for embedding in annotatable_embeddings:
+            if embedding.embedding_group_name in embedding_group_vector_length:
+                if (
+                    len(embedding.embedding)
+                    != embedding_group_vector_length[embedding.embedding_group_name]
+                ):
+                    raise ValueError(
+                        "All embeddings must have the same length. "
+                        f"Found mismatching lengths: {embedding_group_vector_length[embedding.embedding_group_name]} and {len(embedding.embedding)}"
+                    )
+            else:
+                embedding_group_vector_length[embedding.embedding_group_name] = len(
+                    embedding.embedding
+                )
+            annotatable_embedding_dicts.append(embedding.model_dump())
+
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/annotatableEmbeddings",

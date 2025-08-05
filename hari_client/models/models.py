@@ -946,6 +946,9 @@ class AINTLearningData(BaseModel):
     repeats: int = pydantic.Field(title="Repeats")
     subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
     status: AINTLearningDataStatus = pydantic.Field(title="Status")
+    embedding_group_name: str | None = pydantic.Field(
+        default=None, title="Embedding Group Name"
+    )
 
 
 class MlAnnotationModel(BaseModel):
