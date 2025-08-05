@@ -3740,7 +3740,7 @@ class HARIClient:
             params=self._pack(locals()),
             success_response_item_model=models.AnnotationRunProjectDetails,
         )
-    
+
     ### annotatable embeddings ###
 
     def create_annotatable_embeddings(

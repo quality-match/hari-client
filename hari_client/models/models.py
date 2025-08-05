@@ -1893,6 +1893,8 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
     name: str
     nodes: dict[str, AnnotationRunNodeDetails]
     started: bool
+
+
 class AnnotatableEmbeddingCreate(BaseModel):
     annotatable_id: uuid.UUID
     annotatable_type: DataBaseObjectType
