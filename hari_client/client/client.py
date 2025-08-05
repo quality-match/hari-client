@@ -125,7 +125,6 @@ def _parse_response_model(
             f"is unhandled.{response_data=}.",
         )
     except Exception as err:
-        print(err)
         raise errors.ParseResponseModelError(
             response_data=response_data,
             response_model=response_model,
@@ -2486,15 +2485,12 @@ class HARIClient:
 
     def delete_attribute_metadata(
         self, dataset_id: uuid.UUID, attribute_metadata_id: str
-    ) -> str:
+    ) -> None:
         """Delete an attribute metadata and all its attributes from a dataset.
 
         Args:
             dataset_id: The ID of the dataset.
-            attribute_metadata_id: The ID of the attribute metedata
-
-        Returns:
-            The deleted attribute
+            attribute_metadata_id: The ID of the attribute metadata
 
         Raises:
             APIException: If the request fails.
@@ -2502,7 +2498,6 @@ class HARIClient:
         return self._request(
             "DELETE",
             f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
-            params=self._pack(locals(), ignore=["dataset_id", "attribute_metadata_id"]),
             success_response_item_model=str,
         )
 
@@ -3298,12 +3293,13 @@ class HARIClient:
             success_response_item_model=models.AnnotationRunProjectDetails,
         )
 
+    ### annotations ###
     def get_annotation(
         self,
         dataset_id: uuid.UUID,
         annotation_id: str,
     ) -> models.AnnotationResponse:
-        """Returns an annotation with a given attribute_id.
+        """Returns an annotation for the given annotation_id.
 
         Args:
             dataset_id: The dataset id
@@ -3318,7 +3314,6 @@ class HARIClient:
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/annotations/{annotation_id}",
-            params=self._pack(locals(), ignore=["dataset_id", "annotation_id"]),
             success_response_item_model=models.AnnotationResponse,
         )
 

@@ -1034,7 +1034,7 @@ class AttributeType(str, enum.Enum):
     BBox2D = "BBOX2D"
     Point2D = "POINT2D"
     Point3D = "POINT3D"
-    FrameSlider = "FRAMESLIDER"
+    VideoFrameSlider = "FRAMESLIDER"
 
 
 class HistogramType(str, enum.Enum):
@@ -1759,13 +1759,11 @@ class AnnotationRun(BaseModel):
 
 
 class Annotator(pydantic.BaseModel):
-    annotator_id: str | None = pydantic.Field(
-        default=None,
+    annotator_id: str = pydantic.Field(
         title="Annotator Id",
         description="Unique identifier for the annotator",
     )
-    vendor_id: str | None = pydantic.Field(
-        default=None,
+    vendor_id: str = pydantic.Field(
         title="Vendor Id",
         description="Identifier for the vendor or annotation provider",
     )
@@ -1795,7 +1793,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Archived",
         description="Flag indicating whether the annotation is archived",
     )
-    annotatable_type: str | None = pydantic.Field(
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
         default=None,
         title="Annotatable Type",
         description="Type of the item being annotated (e.g., Media, Document, etc.)",
@@ -1822,7 +1820,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Question",
         description="Prompt or question posed to the annotator",
     )
-    result: str | int | float | None = pydantic.Field(
+    result: typing.Any | GeometryUnion | None = pydantic.Field(
         default=None,
         title="Result",
         description="Content or outcome of the annotation (e.g., text, labels, etc.)",
@@ -1837,7 +1835,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Errors",
         description="Any errors encountered during the annotation process",
     )
-    duration_ms: int | None = pydantic.Field(
+    duration_ms: float | None = pydantic.Field(
         default=None,
         title="Duration (ms)",
         description="Time spent on the annotation in milliseconds",
