@@ -3283,6 +3283,7 @@ class HARIClient:
         subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
         user_group: str | None = None,
+        embedding_group_name: str | None = None,
     ) -> models.AIAnnotationRun:
         """
         Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
@@ -3293,6 +3294,7 @@ class HARIClient:
             subset_id: The unique identifier of the subset to be annotated.
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
+            embedding_group_name: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
             The created AI annotation run.

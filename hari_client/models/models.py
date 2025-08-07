@@ -1014,6 +1014,9 @@ class AIAnnotationRun(BaseModel):
     completed_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Completed At"
     )
+    embedding_group_name: str | None = pydantic.Field(
+        default=None, title="Embedding Group Name"
+    )
 
 
 class ValidationError(BaseModel):
