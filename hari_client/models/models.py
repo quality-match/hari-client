@@ -948,7 +948,7 @@ class AINTLearningData(BaseModel):
     status: AINTLearningDataStatus = pydantic.Field(title="Status")
 
 
-class MlAnnotationModel(BaseModel):
+class MLAnnotationModel(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     created_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Created At"
@@ -959,10 +959,10 @@ class MlAnnotationModel(BaseModel):
     archived_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Archived At"
     )
-    owner: str | None = pydantic.Field(default=None, title="Owner")
+    owner: uuid.UUID | None = pydantic.Field(default=None, title="Owner")
     user_group: str | None = pydantic.Field(default=None, title="User Group")
     status: MLAnnotationModelStatus = pydantic.Field(title="Status")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Reference Set Annotation Run Id"
     )
