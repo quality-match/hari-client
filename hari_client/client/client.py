@@ -3325,8 +3325,8 @@ class HARIClient:
 
         Args:
             dataset_id: The dataset id
-            limit: The number of medias tu return
-            skip: The number of medias to skip
+            limit: The number of annotations tu return
+            skip: The number of annotations to skip
             query: The filters to be applied to the search
             sort: The list of sorting parameters
 
@@ -3336,6 +3336,12 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if limit is None:
+            return self.get_annotations_paginated(
+                dataset_id=dataset_id,
+                query=query,
+                sort=sort,
+            )
 
         return self._request(
             "GET",
@@ -3343,3 +3349,49 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.AnnotationResponse],
         )
+
+    def get_annotations_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        batch_size: int = 100,
+    ) -> list[models.AnnotationResponse]:
+        """Get all annotations of a dataset but with pagination, could be used for larger amount of annotations.
+
+        Args:
+            dataset_id: The dataset id
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            batch_size: The number of annotations to fetch per request. Defaults to 100.
+
+        Returns:
+            A list of all annotations in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        log.info(f"Fetching all annotations of the dataset {dataset_id} ...")
+
+        annotations: list[models.DatasetResponse] = []
+        skip_offset = 0
+
+        while True:
+            annotations_page = self.get_annotations(
+                dataset_id=dataset_id,
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+            )
+            annotations.extend(annotations_page)
+
+            if len(annotations_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(annotations)} annotations successfully.")
+
+        return annotations
