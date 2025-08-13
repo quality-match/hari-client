@@ -650,7 +650,7 @@ class HARIUploader:
 
     def reuse_existing_attribute_ids(
         self, attribute_name_to_ids: dict[tuple[str, str], str | uuid.UUID]
-    ) -> None:
+    ) -> list[HARIAttribute]:
         """
         Reuses existing attribute ids for attributes that have the same name and annotatable type.
         Args:

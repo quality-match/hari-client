@@ -1,5 +1,10 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New features
+
+- added delete and update attribute metadata methods [PR#116](https://github.com/quality-match/hari-client/pull/116)
+- add get one or multiple (with and without pagination) annotations methods, and `Annotator` and `AnnotationResponse` models [PR#116](https://github.com/quality-match/hari-client/pull/116)
+
 ## [5.0.0] - 30-07-2025
 
 ### Breaking Changes
