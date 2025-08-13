@@ -1533,15 +1533,6 @@ class PipelineNodeTypes(str, enum.Enum):
     ROOT_NODE = "root_node"
 
 
-class VisualisationType(str, enum.Enum):
-    DEFAULT = "Default"  # full image
-    CROP = "Crop"
-    TILE = "Tile"
-    IMAGE_TRANSFORMATION = "ImageTransformation"
-    VIDEO = "Video"
-    RENDERED = "Rendered"
-
-
 class PipelineNodeConfig(pydantic.BaseModel):
     node_type: PipelineNodeTypes = PipelineNodeTypes.DEFAULT_NODE
     gui_settings: dict | None = None
@@ -1583,52 +1574,6 @@ class PipelineNode(pydantic.BaseModel):
 class PipelineWithNodes(Pipeline):
     nodes: list[PipelineNode] | None = pydantic.Field(default=None, title="nodes")
     root_node: PipelineNode | None = pydantic.Field(default=None, title="root_node")
-
-
-class MLAnnotationModelStatus(str, enum.Enum):
-    CREATED = "created"
-    TRAINING = "training"
-    TRAINING_FAILED = "training_failed"
-    TRAINING_DONE = "training_done"
-
-
-class MLAnnotationModel(BaseModel):
-    created_at: datetime.datetime = pydantic.Field(title="Created At")
-    updated_at: datetime.datetime | None = pydantic.Field(
-        default=None, title="Updated At"
-    )
-    archived_at: datetime.datetime | None = pydantic.Field(
-        default=None, title="Archived At"
-    )
-    owner: uuid.UUID | None = pydantic.Field(default=None, title="Owner")
-    user_group: str | None = pydantic.Field(default=None, title="User Group")
-    status: MLAnnotationModelStatus = pydantic.Field(title="Status")
-    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
-    reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Reference Set Annotation Run Id"
-    )
-    name: str = pydantic.Field(default="", title="Name")
-    training_subset_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Training Subset Id"
-    )
-    validation_subset_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Validation Subset Id"
-    )
-    test_subset_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Test Subset Id"
-    )
-    automation_correctness_curve: dict | None = pydantic.Field(
-        default=None, title="Automation Correctness Curve"
-    )
-    model_weight_location: str | None = pydantic.Field(
-        default=None, title="Model Weight Location"
-    )
-    training_set_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Training Set Id"
-    )
-    id: uuid.UUID = pydantic.Field(title="Id")
-
-    model_config = pydantic.ConfigDict(extra="ignore")
 
 
 class AnnotationRunStatus(str, enum.Enum):
