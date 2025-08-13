@@ -77,10 +77,6 @@ def _parse_response_model(
                 message=f"Expected response_data to be None, but received {response_data=}",
             )
 
-        # No data is given
-        if response_data is None:
-            return None
-
         # handle pydantic models
         if isinstance(response_model, type) and issubclass(
             response_model, pydantic.BaseModel

@@ -1770,11 +1770,10 @@ class Annotator(pydantic.BaseModel):
 
 
 class AnnotationResponse(pydantic.BaseModel):
-    id: str | None = pydantic.Field(
-        default=None, title="Id", description="Unique identifier for the annotation"
+    id: str = pydantic.Field(
+        title="Id", description="Unique identifier for the annotation"
     )
-    dataset_id: str | None = pydantic.Field(
-        default=None,
+    dataset_id: str = pydantic.Field(
         title="Dataset Id",
         description="Identifier for the dataset this annotation belongs to",
     )
@@ -1783,8 +1782,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Tags",
         description="List of tags associated with the annotation",
     )
-    timestamp: str | None = pydantic.Field(
-        default=None,
+    timestamp: str = pydantic.Field(
         title="Timestamp",
         description="Timestamp for when the annotation was created or updated",
     )
@@ -1798,8 +1796,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Annotatable Type",
         description="Type of the item being annotated (e.g., Media, Document, etc.)",
     )
-    annotatable_id: str | None = pydantic.Field(
-        default=None,
+    annotatable_id: str = pydantic.Field(
         title="Annotatable ID",
         description="Identifier for the specific item being annotated",
     )
@@ -1815,8 +1812,7 @@ class AnnotationResponse(pydantic.BaseModel):
         description="Identifier for the overall annotation run",
     )
 
-    question: str | None = pydantic.Field(
-        default=None,
+    question: str = pydantic.Field(
         title="Question",
         description="Prompt or question posed to the annotator",
     )
@@ -1825,8 +1821,7 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Result",
         description="Content or outcome of the annotation (e.g., text, labels, etc.)",
     )
-    cant_solve: bool | None = pydantic.Field(
-        default=None,
+    cant_solve: bool = pydantic.Field(
         title="Can't Solve",
         description="Indicates that the annotator could not resolve or answer the question",
     )
@@ -1835,13 +1830,11 @@ class AnnotationResponse(pydantic.BaseModel):
         title="Errors",
         description="Any errors encountered during the annotation process",
     )
-    duration_ms: float | None = pydantic.Field(
-        default=None,
+    duration_ms: float = pydantic.Field(
         title="Duration (ms)",
         description="Time spent on the annotation in milliseconds",
     )
-    annotator: Annotator | None = pydantic.Field(
-        default=None,
+    annotator: Annotator = pydantic.Field(
         title="Annotator",
         description="Information about the individual or vendor who performed the annotation",
     )
