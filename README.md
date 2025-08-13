@@ -1,6 +1,8 @@
 # hari-client
 
-**hari-client** is the official open source API client package for [HARI (Highly Actionable Real-Time Insights)](https://www.quality-match.com/product) by Quality Match GmbH. This package allows you to interact with the HARI backend, enabling you to create datasets and upload your data with ease.
+**hari-client** is the official open source API client package for [HARI (Highly Actionable Real-Time Insights)](https://www.quality-match.com/product)
+by Quality Match GmbH. This package allows you to interact with the HARI backend, enabling you to create datasets
+and upload your data with ease.
 
 ## Installation
 
@@ -9,7 +11,7 @@ Minimum python version: **3.11**
 To install the hari-client package, use pip with the following command:
 
 ```bash
-python -m pip install "hari_client @ git+https://github.com/quality-match/hari-client@v4.0.0"
+python -m pip install "hari_client @ git+https://github.com/quality-match/hari-client@v5.0.0"
 ```
 
 ## Quickstart
@@ -69,13 +71,37 @@ To set up your local development environment, follow these steps:
 - Setup a virtual environment with Python 3.11
 - Install the package in editable mode with the following command:
   ```bash
-  python -m pip install -e '.[tests]'
+  python -m pip install -e '.[dev]'
   ```
   - This also installs pytest and the [pre-commit](https://github.com/pre-commit/pre-commit) tool into the environment
 - Install the pre-commit hooks with the following command:
   ```bash
   pre-commit install
   ```
+
+## Release guide
+
+To create a new release, follow these steps:
+1. Ensure the branch has the state you want to release. This means all tests and pre-commit hooks pass,
+and the changelog is up to date. Changelog entry should have a new release version and date.
+
+2. With the branch in a clean state, run bumpversion to update the version number:
+   ```bash
+   bumpversion [patch|minor|major]
+   ```
+depending on the type of release you want to create.
+This will also update the version in the setup and readme files,
+and create a new git tag with the version number.
+
+3. Create a pull request with the changes to the main branch and merge it after approval.
+
+4. Push the tag to the remote repository:
+   ```bash
+   git push --tags
+   ```
+
+Now the new version is available on the GitHub repository.
+After that, the new installation link on the [documentation website](https://docs.quality-match.com/hari_client/installation/#installation) could be updated as well.
 
 ## License
 

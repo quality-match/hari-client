@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="hari_client",
-    version="4.0.0",
+    version="5.0.0",
     description="A Python client for the HARI API",
     author="Quality Match GmbH",
     author_email="info@quality-match.com",
@@ -16,6 +16,7 @@ setup(
     ],
     extras_require={
         "tests": ["pytest", "pytest-mock", "pre-commit"],
+        "dev": ["pytest", "pytest-mock", "pre-commit", "bumpversion"],
         "scripts": ["pandas", "scikit-learn", "Pillow"],
     },
     classifiers=[

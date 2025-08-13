@@ -600,10 +600,10 @@ class HARIUploader:
                         )
                     else:
                         raise ValueError(
-                            f"Found duplicate media object back_reference: {media.back_reference}. "
+                            f"Found duplicate media object back_reference: {media_object.back_reference}. "
                             f"Back_references need to be unique across dataset "
                             f"in order to be able to match HARI media objects 1:1 to your own "
-                            f"and to check, which media objectss were already uploaded."
+                            f"and to check, which media objects were already uploaded."
                         )
                 else:
                     media_object_back_references.add(media_object.back_reference)
