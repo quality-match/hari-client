@@ -1883,7 +1883,7 @@ class AnnotationRunMetrics(AnnotationRunNodeMetrics):
     pass
 
 
-class AnnotationRunNodeStatus(pydantic.BaseModel):
+class AnnotationRunProjectNodeStatus(pydantic.BaseModel):
     agglomerated_output_per_second: float
     first_task_submitted_at: datetime.datetime | None
     is_done: bool
@@ -1905,7 +1905,7 @@ class AnnotationRunNodeStatus(pydantic.BaseModel):
 
 class AnnotationRunProjectStatus(pydantic.BaseModel):
     is_done: bool
-    nodes: list[AnnotationRunNodeStatus]
+    nodes: list[AnnotationRunProjectNodeStatus]
 
 
 class Repeats(pydantic.BaseModel):
