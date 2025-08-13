@@ -2497,6 +2497,29 @@ class HARIClient:
             success_response_item_model=str,
         )
 
+    def update_attribute_metadata(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_metadata_id: str,
+        name: str | None = None,
+    ) -> models.AttributeMetadataResponse:
+        """Update attribute metadata.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_metadata_id: The ID of the attribute metadata
+            name: The desired name of the attribute metadata
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "PATCH",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
+            json=name,
+            success_response_item_model=models.AttributeMetadataResponse,
+        )
+
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
