@@ -1,5 +1,10 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Breaking Changes
+
+- rename `MlAnnotationModel` to `MLAnnotationModel` [PR#118](https://github.com/quality-match/hari-client/pull/118)
+- rename `AnnotationRunNodeStatus` to `AnnotationRunProjectNodeStatus` for annotation report [PR#118](https://github.com/quality-match/hari-client/pull/118)
+
 ### New features
 
 - added delete and update attribute metadata methods [PR#116](https://github.com/quality-match/hari-client/pull/116)
