@@ -976,9 +976,6 @@ class MLAnnotationModel(BaseModel):
     test_subset_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Test Subset Id"
     )
-    automation_correctness_curve: dict | None = pydantic.Field(
-        default_factory=dict, title="Automation Correctness Curve"
-    )
     model_weight_location: str | None = pydantic.Field(
         default=None, title="Model Weight Location"
     )

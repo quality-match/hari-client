@@ -1,5 +1,9 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Breaking Changes
+
+- removed the ADAC field from the MLAnnotationModel model
+
 ### New features
 
 - added delete and update attribute metadata methods [PR#116](https://github.com/quality-match/hari-client/pull/116)
