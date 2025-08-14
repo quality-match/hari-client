@@ -617,7 +617,7 @@ class HARIUploader:
                 self._validate_geometry_is_provided(media_object)
                 self._validate_media_object_compatible_with_media(media, media_object)
 
-    def validate_all_attributes(self, all_attributes: list[HARIAttribute]) -> int:
+    def validate_all_attributes(self, all_attributes: list[HARIAttribute]) -> None:
         """
         Validates all attributes for both media and media objects, ensuring they meet the
         dataset's requirements and do not exceed the allowed unique attribute limit.
@@ -625,9 +625,6 @@ class HARIUploader:
 
         Args:
             all_attributes: A list of all attributes to validate from both media and media objects.
-
-        Returns:
-            Number of all attributes.
 
         Raises:
             HARIUniqueAttributesLimitExceeded: If the number of unique attribute ids exceeds
@@ -644,7 +641,7 @@ class HARIUploader:
             for attr in existing_attr_metadata
         }
 
-        self.reuse_existing_attribute_ids(attribute_name_to_ids)
+        self.reuse_existing_attribute_ids(attribute_name_to_ids, all_attributes)
 
         # Raises an error if any requirements for attribute consistency aren't met.
         validation.validate_attributes(all_attributes)
@@ -655,45 +652,30 @@ class HARIUploader:
                 intended_attributes_number=len(attribute_name_to_ids),
             )
 
-        return len(all_attributes)
-
     def reuse_existing_attribute_ids(
-        self, attribute_name_to_ids: dict[tuple[str, str], str | uuid.UUID]
+        self,
+        attribute_name_to_ids: dict[tuple[str, str], str | uuid.UUID],
+        all_attributes: list[HARIAttribute],
     ) -> None:
         """
         Reuses existing attribute ids for attributes that have the same name and annotatable type.
         Args:
             attribute_name_to_ids: A dictionary mapping attribute names and annotatable types to their ids.
+            all_attributes: A list of attributes to upload
 
         Returns:
             attributes with reused ids.
         """
 
-        for media in self._medias:
-            for attr in media.attributes:
-                # assign an existing id if attribute with the same name exists, otherwise create a new one
-                if (attr.name, attr.annotatable_type) not in attribute_name_to_ids:
-                    attribute_name_to_ids[(attr.name, attr.annotatable_type)] = attr.id
-                else:
-                    log.info(
-                        f"reusing existing attribute id for attribute name {attr.name}"
-                    )
-                    attr.id = attribute_name_to_ids[(attr.name, attr.annotatable_type)]
-
-            for media_object in media.media_objects:
-                for attr in media_object.attributes:
-                    # assign an existing id if attribute with the same name exists, otherwise create a new one
-                    if (attr.name, attr.annotatable_type) not in attribute_name_to_ids:
-                        attribute_name_to_ids[
-                            (attr.name, attr.annotatable_type)
-                        ] = attr.id
-                    else:
-                        log.info(
-                            f"reusing existing attribute id for attribute name {attr.name}"
-                        )
-                        attr.id = attribute_name_to_ids[
-                            (attr.name, attr.annotatable_type)
-                        ]
+        for attr in all_attributes:
+            # assign an existing id if attribute with the same name exists, otherwise create a new one
+            if (attr.name, attr.annotatable_type) not in attribute_name_to_ids:
+                attribute_name_to_ids[(attr.name, attr.annotatable_type)] = attr.id
+            else:
+                log.info(
+                    f"reusing existing attribute id for attribute name {attr.name}"
+                )
+                attr.id = attribute_name_to_ids[(attr.name, attr.annotatable_type)]
 
     def _determine_media_files_upload_behavior(self) -> None:
         """Checks whether media file_path or file_key are set according to whether the dataset uses an external media source or not.
