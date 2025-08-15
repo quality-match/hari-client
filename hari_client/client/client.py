@@ -620,6 +620,15 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if limit is None:
+            return self.get_datasets_paginated(
+                subset=subset,
+                visibility_statuses=visibility_statuses,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+
         return self._request(
             "GET",
             "/datasets",
@@ -652,6 +661,57 @@ class HARIClient:
             params=self._pack(locals()),
             success_response_item_model=int,
         )
+
+    def get_datasets_paginated(
+        self,
+        subset: bool | None = False,
+        visibility_statuses: tuple | None = (models.VisibilityStatus.VISIBLE,),
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.DatasetResponse]:
+        """Returns datasets that a user has access to, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            subset: Return also subsets. If False, returns only parent datasets
+            visibility_statuses: Visibility statuses of the returned datasets
+            batch_size: The number of datasets to fetch per request. Defaults to 100.
+            query: query parameters to filter the datasets
+            sort: sorting parameters to sort the datasets
+            archived: if true, return only archived datasets; if false (default), return non-archived datasets.
+
+        Returns:
+            A list of datasets
+
+        Raises:
+            APIException: If the request fails.
+        """
+        log.info("Fetching all datasets ...")
+
+        datasets: list[models.DatasetResponse] = []
+        skip_offset = 0
+
+        while True:
+            datasets_page = self.get_datasets(
+                subset=subset,
+                visibility_statuses=visibility_statuses,
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+            datasets.extend(datasets_page)
+
+            if len(datasets_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(datasets)} datasets successfully.")
+
+        return datasets
 
     def get_subsets_for_dataset(
         self,
@@ -1086,6 +1146,15 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if limit is None:
+            return self.get_medias_paginated(
+                dataset_id=dataset_id,
+                archived=archived,
+                presign_medias=presign_medias,
+                query=query,
+                sort=sort,
+                projection=projection,
+            )
 
         return self._request(
             "GET",
@@ -1123,27 +1192,28 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        total_medias: int = self.get_media_count(
-            dataset_id, archived, query
-        ).total_count
-
-        log.info(f"Fetching {total_medias} medias ...")
+        log.info("Fetching all medias ...")
 
         medias: list[models.MediaResponse] = []
+        skip_offset = 0
 
-        # Loop through media pages until all are retrieved
-        for skip in tqdm(range(0, total_medias, batch_size)):
+        while True:
             medias_page = self.get_medias(
                 dataset_id=dataset_id,
                 archived=archived,
                 presign_medias=presign_medias,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 projection=projection,
             )
             medias.extend(medias_page)
+
+            if len(medias_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(medias)} medias successfully.")
 
@@ -1695,6 +1765,15 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if limit is None:
+            return self.get_media_objects_paginated(
+                dataset_id=dataset_id,
+                archived=archived,
+                presign_medias=presign_medias,
+                query=query,
+                sort=sort,
+                projection=projection,
+            )
 
         return self._request(
             "GET",
@@ -1732,27 +1811,28 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        total_media_objects: int = self.get_media_object_count(
-            dataset_id, archived, query
-        ).total_count
-
-        log.info(f"Fetching {total_media_objects} media objects ...")
+        log.info("Fetching all media objects ...")
 
         media_objects: list[models.MediaObjectResponse] = []
+        skip_offset = 0
 
-        # Loop through media object pages until all are retrieved
-        for skip in tqdm(range(0, total_media_objects, batch_size)):
+        while True:
             media_objects_page = self.get_media_objects(
                 dataset_id=dataset_id,
                 archived=archived,
                 presign_medias=presign_medias,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
                 projection=projection,
             )
             media_objects.extend(media_objects_page)
+
+            if len(media_objects_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(media_objects)} media objects successfully.")
 
@@ -2185,6 +2265,14 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if limit is None:
+            return self.get_attributes_paginated(
+                dataset_id=dataset_id,
+                archived=archived,
+                query=query,
+                sort=sort,
+                projection=projection,
+            )
 
         return self._request(
             "GET",
@@ -2192,6 +2280,59 @@ class HARIClient:
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.AttributeResponse],
         )
+
+    def get_attributes_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        projection: dict[str, bool] | None = None,
+    ) -> list[models.AttributeResponse]:
+        """Returns all attributes of a dataset, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            dataset_id: The dataset id
+            archived: if true, return only archived attributes; if false (default), return non-archived attributes.
+            batch_size: The number of attributes to fetch per request. Defaults to 100.
+            query: A query to filter attributes
+            sort: A order by which to sort attributes
+            projection: The fields to be returned (dictionary keys with value True are
+                returned, keys with value False are not returned). Mixing of True and False values is not allowed.
+
+        Returns:
+            A list of attributes
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        log.info("Fetching all attributes ...")
+
+        attributes: list[models.AttributeResponse] = []
+        skip_offset = 0
+
+        while True:
+            attributes_page = self.get_attributes(
+                dataset_id=dataset_id,
+                archived=archived,
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+                projection=projection,
+            )
+            attributes.extend(attributes_page)
+
+            if len(attributes_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(attributes)} attributes successfully.")
+
+        return attributes
 
     def get_attribute_value_count(
         self,
@@ -2273,6 +2414,13 @@ class HARIClient:
         Raises:
             APIException: If the request fails.
         """
+        if limit is None:
+            return self.get_attribute_values_paginated(
+                dataset_id=dataset_id,
+                archived=archived,
+                query=query,
+                sort=sort,
+            )
 
         return self._request(
             "GET",
@@ -2305,25 +2453,26 @@ class HARIClient:
             APIException: If the request fails.
         """
 
-        total_attributes: int = self.get_attribute_value_count(
-            dataset_id, archived, query
-        ).total_count
-
-        log.info(f"Fetching {total_attributes} attribute values ...")
+        log.info("Fetching all attribute values ...")
 
         attribute_values: list[models.AttributeValueResponse] = []
+        skip_offset = 0
 
-        # Loop through attribute value pages until all are retrieved
-        for skip in tqdm(range(0, total_attributes, batch_size)):
+        while True:
             attribute_values_page = self.get_attribute_values(
                 dataset_id=dataset_id,
                 archived=archived,
                 limit=batch_size,
-                skip=skip,
+                skip=skip_offset,
                 query=query,
                 sort=sort,
             )
             attribute_values.extend(attribute_values_page)
+
+            if len(attribute_values_page) < batch_size:
+                break
+
+            skip_offset += batch_size
 
         log.info(f"Fetched {len(attribute_values)} attribute values successfully.")
 
@@ -2479,6 +2628,47 @@ class HARIClient:
             success_response_item_model=list[models.AttributeMetadataResponse],
         )
 
+    def delete_attribute_metadata(
+        self, dataset_id: uuid.UUID, attribute_metadata_id: str
+    ) -> None:
+        """Delete an attribute metadata and all its attributes from a dataset.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_metadata_id: The ID of the attribute metadata
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
+            success_response_item_model=str,
+        )
+
+    def update_attribute_metadata(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_metadata_id: str,
+        name: str | None = None,
+    ) -> models.AttributeMetadataResponse:
+        """Update attribute metadata.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_metadata_id: The ID of the attribute metadata
+            name: The desired name of the attribute metadata
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "PATCH",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
+            json=name,
+            success_response_item_model=models.AttributeMetadataResponse,
+        )
+
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
@@ -2502,12 +2692,69 @@ class HARIClient:
         Returns:
             list[models.VisualisationConfiguration]: A list of visualization configuration objects.
         """
+        if limit is None:
+            return self.get_visualisation_configs_paginated(
+                dataset_id=dataset_id,
+                archived=archived,
+                query=query,
+                sort=sort,
+            )
+
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/visualisationConfigs",
             params=self._pack(locals(), ignore=["dataset_id"]),
             success_response_item_model=list[models.VisualisationConfiguration],
         )
+
+    def get_visualisation_configs_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        archived: bool | None = False,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        batch_size: int = 100,
+    ) -> list[models.VisualisationConfiguration]:
+        """
+        Retrieve the visualization configurations for a given dataset, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            dataset_id (UUID): The ID of the dataset for which to retrieve visualization configurations.
+            archived: if true, return only archived visualisation configurations; if false (default), return non-archived visualisation configurations.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            batch_size: The number of visualisation configs to fetch per request. Defaults to 100.
+
+        Returns:
+            list[models.VisualisationConfiguration]: A list of visualization configuration objects.
+        """
+
+        log.info("Fetching all visualisation configurations ...")
+
+        visualisation_configs: list[models.VisualisationConfiguration] = []
+        skip_offset = 0
+
+        while True:
+            visualisation_configs_page = self.get_visualisation_configs(
+                dataset_id=dataset_id,
+                archived=archived,
+                query=query,
+                sort=sort,
+                limit=batch_size,
+                skip=skip_offset,
+            )
+            visualisation_configs.extend(visualisation_configs_page)
+
+            if len(visualisation_configs_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(
+            f"Fetched {len(visualisation_configs)} visualisation configurations successfully."
+        )
+
+        return visualisation_configs
 
     ### AI Nano Tasks ###
 
@@ -2534,12 +2781,65 @@ class HARIClient:
         Returns:
             A list of AINT learning data objects.
         """
+        if limit is None:
+            return self.get_multiple_aint_learning_data_paginated(
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+
         return self._request(
             "GET",
             f"/aintLearningData",
             params=self._pack(locals()),
             success_response_item_model=list[models.AINTLearningData],
         )
+
+    def get_multiple_aint_learning_data_paginated(
+        self,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.AINTLearningData]:
+        """
+        !!! Only available for qm internal users !!!
+
+        Retrieve all AINT learning data available to the user, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            batch_size: The number of AINT learning data to fetch per request. Defaults to 100.
+            query: query parameters to filter the AINT learning data
+            sort: sorting parameters to sort the AINT learning data
+            archived: whether to include archived AINT learning data
+
+        Returns:
+            A list of AINT learning data objects.
+        """
+
+        log.info("Fetching all AINT learning data ...")
+
+        aint_learning_data: list[models.AINTLearningData] = []
+        skip_offset = 0
+
+        while True:
+            aint_learning_data_page = self.get_multiple_aint_learning_data(
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+            aint_learning_data.extend(aint_learning_data_page)
+
+            if len(aint_learning_data_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(aint_learning_data)} AINT learning data successfully.")
+
+        return aint_learning_data
 
     def get_aint_learning_data(
         self, aint_learning_data_id: uuid.UUID
@@ -2689,12 +2989,70 @@ class HARIClient:
         Returns:
              A list of ml annotation models.
         """
+        if limit is None:
+            return self.get_ml_annotation_models_paginated(
+                projection=projection,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+
         return self._request(
             "GET",
             f"/mlAnnotationModels",
             params=self._pack(locals()),
             success_response_item_model=list[models.MlAnnotationModel],
         )
+
+    def get_ml_annotation_models_paginated(
+        self,
+        projection: dict[str, bool] | None = None,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.MlAnnotationModel]:
+        """
+        Retrieve ml annotation models available to the user, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            projection: The fields to be returned (dictionary keys with value True are returned,
+            keys with value False are not returned). Mixing of True and False values is not allowed.
+            batch_size: The number of ml annotation models to fetch per request. Defaults to 100.
+            query: query parameters to filter the ml annotation models
+            sort: sorting parameters to sort the ml annotation models
+            archived: whether to include archived ml annotation models
+
+        Returns:
+             A list of ml annotation models.
+        """
+
+        log.info("Fetching all ML annotation models ...")
+
+        ml_annotation_models: list[models.MlAnnotationModel] = []
+        skip_offset = 0
+
+        while True:
+            ml_annotation_models_page = self.get_ml_annotation_models(
+                projection=projection,
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+            ml_annotation_models.extend(ml_annotation_models_page)
+
+            if len(ml_annotation_models_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(
+            f"Fetched {len(ml_annotation_models)} ML annotation models successfully."
+        )
+
+        return ml_annotation_models
 
     def get_ml_annotation_model_by_id(
         self,
@@ -2879,12 +3237,63 @@ class HARIClient:
         Returns:
             A list of AI annotation runs.
         """
+        if limit is None:
+            return self.get_ai_annotation_runs_paginated(
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+
         return self._request(
             "GET",
             f"/aiAnnotationRuns",
             params=self._pack(locals()),
             success_response_item_model=list[models.AIAnnotationRun],
         )
+
+    def get_ai_annotation_runs_paginated(
+        self,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.AIAnnotationRun]:
+        """
+        Retrieve AI annotation runs available to the user, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            batch_size: The number of AI annotation runs to fetch per request. Defaults to 100.
+            query: query parameters to filter the AI annotation runs
+            sort: sorting parameters to sort the AI annotation runs
+            archived: whether to include archived AI annotation runs
+
+        Returns:
+            A list of AI annotation runs.
+        """
+
+        log.info("Fetching all AI annotation runs ...")
+
+        ai_annotation_runs: list[models.AIAnnotationRun] = []
+        skip_offset = 0
+
+        while True:
+            ai_annotation_runs_page = self.get_ai_annotation_runs(
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+            ai_annotation_runs.extend(ai_annotation_runs_page)
+
+            if len(ai_annotation_runs_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(ai_annotation_runs)} AI annotation runs successfully.")
+
+        return ai_annotation_runs
 
     def get_ai_annotation_run(
         self, ai_annotation_run_id: uuid.UUID
@@ -3043,12 +3452,63 @@ class HARIClient:
         Returns:
             A list of pipeline objects.
         """
+        if limit is None:
+            return self.get_pipelines_paginated(
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+
         return self._request(
             "GET",
             "/pipelines",
             params=self._pack(locals()),
             success_response_item_model=list[models.Pipeline],
         )
+
+    def get_pipelines_paginated(
+        self,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.Pipeline]:
+        """
+        Get pipelines available for the user, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            batch_size: The number of pipelines to fetch per request. Defaults to 100.
+            query: query parameters to filter the pipelines
+            sort: sorting parameters to sort the pipelines
+            archived: whether to include archived pipelines
+
+        Returns:
+            A list of pipeline objects.
+        """
+
+        log.info("Fetching all pipelines ...")
+
+        pipelines: list[models.Pipeline] = []
+        skip_offset = 0
+
+        while True:
+            pipelines_page = self.get_pipelines(
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+            pipelines.extend(pipelines_page)
+
+            if len(pipelines_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(pipelines)} pipelines successfully.")
+
+        return pipelines
 
     def get_pipeline(self, pipeline_id: uuid.UUID) -> models.PipelineWithNodes:
         """
@@ -3110,12 +3570,63 @@ class HARIClient:
         Returns:
             A list of annotation run objects.
         """
+        if limit is None:
+            return self.get_annotation_runs_paginated(
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+
         return self._request(
             "GET",
             "/annotationRuns",
             params=self._pack(locals()),
             success_response_item_model=list[models.AnnotationRun],
         )
+
+    def get_annotation_runs_paginated(
+        self,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.AnnotationRun]:
+        """
+        Get annotation runs available to the users, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            batch_size: The number of annotation runs to fetch per request. Defaults to 100.
+            query: query parameters to filter the annotation runs
+            sort: sorting parameters to sort the annotation runs
+            archived: whether to include archived annotation runs
+
+        Returns:
+            A list of annotation run objects.
+        """
+
+        log.info("Fetching all annotation runs ...")
+
+        annotation_runs: list[models.AnnotationRun] = []
+        skip_offset = 0
+
+        while True:
+            annotation_runs_page = self.get_annotation_runs(
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+            annotation_runs.extend(annotation_runs_page)
+
+            if len(annotation_runs_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(annotation_runs)} annotation runs successfully.")
+
+        return annotation_runs
 
     def get_annotation_run(self, annotation_run_id: uuid.UUID) -> models.AnnotationRun:
         """
@@ -3270,3 +3781,110 @@ class HARIClient:
             params=self._pack(locals()),
             success_response_item_model=models.AnnotationRunProjectDetails,
         )
+
+    ### annotations ###
+    def get_annotation(
+        self,
+        dataset_id: uuid.UUID,
+        annotation_id: str,
+    ) -> models.AnnotationResponse:
+        """Returns an annotation for the given annotation_id.
+
+        Args:
+            dataset_id: The dataset id
+            annotation_id: The annotation id
+
+        Returns:
+            The annotation with the given annotation_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/annotations/{annotation_id}",
+            success_response_item_model=models.AnnotationResponse,
+        )
+
+    def get_annotations(
+        self,
+        dataset_id: uuid.UUID,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AnnotationResponse]:
+        """Get all annotations of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            limit: The number of annotations tu return
+            skip: The number of annotations to skip
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of all annotations in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+        if limit is None:
+            return self.get_annotations_paginated(
+                dataset_id=dataset_id,
+                query=query,
+                sort=sort,
+            )
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/annotations",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AnnotationResponse],
+        )
+
+    def get_annotations_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        batch_size: int = 100,
+    ) -> list[models.AnnotationResponse]:
+        """Get all annotations of a dataset but with pagination, could be used for larger amount of annotations.
+
+        Args:
+            dataset_id: The dataset id
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            batch_size: The number of annotations to fetch per request. Defaults to 100.
+
+        Returns:
+            A list of all annotations in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        log.info(f"Fetching all annotations of the dataset {dataset_id} ...")
+
+        annotations: list[models.DatasetResponse] = []
+        skip_offset = 0
+
+        while True:
+            annotations_page = self.get_annotations(
+                dataset_id=dataset_id,
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+            )
+            annotations.extend(annotations_page)
+
+            if len(annotations_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(annotations)} annotations successfully.")
+
+        return annotations
