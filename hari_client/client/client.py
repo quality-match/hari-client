@@ -2973,7 +2973,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         archived: bool | None = False,
-    ) -> list[models.MlAnnotationModel]:
+    ) -> list[models.MLAnnotationModel]:
         """
         Retrieve ml annotation models available to the user.
 
@@ -3001,7 +3001,7 @@ class HARIClient:
             "GET",
             f"/mlAnnotationModels",
             params=self._pack(locals()),
-            success_response_item_model=list[models.MlAnnotationModel],
+            success_response_item_model=list[models.MLAnnotationModel],
         )
 
     def get_ml_annotation_models_paginated(
@@ -3011,7 +3011,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         archived: bool | None = False,
-    ) -> list[models.MlAnnotationModel]:
+    ) -> list[models.MLAnnotationModel]:
         """
         Retrieve ml annotation models available to the user, but with pagination, could be used for larger datasets to avoid timeouts.
 
@@ -3029,7 +3029,7 @@ class HARIClient:
 
         log.info("Fetching all ML annotation models ...")
 
-        ml_annotation_models: list[models.MlAnnotationModel] = []
+        ml_annotation_models: list[models.MLAnnotationModel] = []
         skip_offset = 0
 
         while True:
@@ -3058,7 +3058,7 @@ class HARIClient:
         self,
         ml_annotation_model_id: uuid.UUID,
         projection: dict[str, bool] | None = None,
-    ) -> models.MlAnnotationModel:
+    ) -> models.MLAnnotationModel:
         """
         Retrieve a specific ml model by its ID.
 
@@ -3073,13 +3073,13 @@ class HARIClient:
             "GET",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
             params=self._pack(locals(), ignore=["ml_annotation_model_id"]),
-            success_response_item_model=models.MlAnnotationModel,
+            success_response_item_model=models.MLAnnotationModel,
         )
 
     def get_ml_annotation_models_by_training_ann_run_id(
         self,
         annotation_run_id: uuid.UUID,
-    ) -> list[models.MlAnnotationModel]:
+    ) -> list[models.MLAnnotationModel]:
         """
         Get all ml annotation  models trained on the data of a specific annotation run.
 
@@ -3095,7 +3095,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/annotationRun/{annotation_run_id}/mlAnnotationModels",
-            success_response_item_model=list[models.MlAnnotationModel],
+            success_response_item_model=list[models.MLAnnotationModel],
         )
 
     def train_ml_annotation_model(
@@ -3104,7 +3104,7 @@ class HARIClient:
         aint_learning_data_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
         user_group: str | None = None,
-    ) -> models.MlAnnotationModel:
+    ) -> models.MLAnnotationModel:
         """
         Train a new ml annotation model on the specified AINT learning data or reference set of the specified annotation run.
 
@@ -3132,7 +3132,7 @@ class HARIClient:
             "POST",
             "/mlAnnotationModels",
             json=body,
-            success_response_item_model=models.MlAnnotationModel,
+            success_response_item_model=models.MLAnnotationModel,
         )
 
     def update_ml_annotation_model(
@@ -3140,7 +3140,7 @@ class HARIClient:
         ml_annotation_model_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-    ) -> models.MlAnnotationModel:
+    ) -> models.MLAnnotationModel:
         """
         Update a ml annotation model.
 
@@ -3166,7 +3166,7 @@ class HARIClient:
             "PATCH",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
             json=body,
-            success_response_item_model=models.MlAnnotationModel,
+            success_response_item_model=models.MLAnnotationModel,
         )
 
     def delete_ml_annotation_model(
