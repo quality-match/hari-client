@@ -831,8 +831,8 @@ class HARIUploader:
         entities: list,
         prepare_fn: typing.Callable[[list], list],
         upload_fn: typing.Callable[[list], list],
-        init_progress_fn: typing.Callable[[], None] | None = None,
-        close_progress_fn: typing.Callable[[], None] | None = None,
+        init_progress_fn: typing.Callable[[], None],
+        close_progress_fn: typing.Callable[[], None],
     ) -> list:
         payloads = prepare_fn(entities)
 
@@ -908,15 +908,6 @@ class HARIUploader:
             close_progress_fn=close_media_object_progress,
         )
 
-        # for attributes
-        def init_attr_progress():
-            self._attribute_upload_progress = tqdm.tqdm(
-                desc="Attribute Upload", total=len(attrs_to_upload)
-            )
-
-        def close_attr_progress():
-            self._attribute_upload_progress.close()
-
         media_objects_to_upload = [mapping[1] for mapping in media_objects_mapping]
 
         failed_media_object_attrs = self.process_media_objects_failed_responses(
@@ -927,6 +918,15 @@ class HARIUploader:
             attr for mo in media_objects_to_upload for attr in mo.attributes
         ]
         attrs_to_upload = [a for a in all_attrs if a not in failed_media_object_attrs]
+
+        # for attributes
+        def init_attr_progress():
+            self._attribute_upload_progress = tqdm.tqdm(
+                desc="Attribute Upload", total=len(attrs_to_upload)
+            )
+
+        def close_attr_progress():
+            self._attribute_upload_progress.close()
 
         attr_responses = self._upload_entities_without_media(
             entities=attrs_to_upload,
@@ -994,7 +994,7 @@ class HARIUploader:
             close_progress_fn=close_progress,
         )
         return HARIUploadResults(
-            medias=models.BulkResponse(status=models.ResponseStatesEnum.SUCCESS),
+            medias=models.BulkResponse(status=models.ResponseStatesEnum.SUCCESS.value),
             media_objects=models.BulkResponse(
                 status=models.BulkOperationStatusEnum.SUCCESS
             ),
@@ -1051,7 +1051,7 @@ class HARIUploader:
         )
 
         return HARIUploadResults(
-            medias=models.BulkResponse(status=models.ResponseStatesEnum.SUCCESS),
+            medias=models.BulkResponse(status=models.ResponseStatesEnum.SUCCESS.value),
             media_objects=models.BulkResponse(
                 status=models.BulkOperationStatusEnum.SUCCESS
             ),
