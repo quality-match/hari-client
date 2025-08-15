@@ -3058,22 +3058,22 @@ class HARIClient:
         self,
         ml_annotation_model_id: uuid.UUID,
         projection: dict[str, bool] | None = None,
-    ) -> models.MLAnnotationModel:
+    ) -> models.MLAnnotationModelWithMetrics:
         """
-        Retrieve a specific ml model by its ID.
+        Retrieve a specific ml model by its ID. Also includes metrics for the model (ADC curves data).
 
         Args:
             ml_annotation_model_id: The unique identifier of the AI annotation model.
             projection: The fields to be returned (dictionary keys with value True are returned,
             keys with value False are not returned). Mixing of True and False values is not allowed.
         Returns:
-            The requested ml model.
+            The requested ml model with metrics.
         """
         return self._request(
             "GET",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
             params=self._pack(locals(), ignore=["ml_annotation_model_id"]),
-            success_response_item_model=models.MLAnnotationModel,
+            success_response_item_model=models.MLAnnotationModelWithMetrics,
         )
 
     def get_ml_annotation_models_by_training_ann_run_id(

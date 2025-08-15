@@ -976,15 +976,43 @@ class MLAnnotationModel(BaseModel):
     test_subset_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Test Subset Id"
     )
-    automation_correctness_curve: dict | None = pydantic.Field(
-        default_factory=dict, title="Automation Correctness Curve"
-    )
     model_weight_location: str | None = pydantic.Field(
         default=None, title="Model Weight Location"
     )
     aint_learning_data_id: uuid.UUID | None = pydantic.Field(
         default=None, title="AINT learning data Id"
     )
+
+
+class MLAnnotationModelMetrics(pydantic.BaseModel):
+    ml_model_id: uuid.UUID = pydantic.Field(
+        title="Id of ML Model the metrics belong to"
+    )
+    category: str = pydantic.Field(
+        title="Category of the metrics (either overall for all data or per answer option)"
+    )
+    test_curves: dict[str, list[float]] = pydantic.Field(
+        title="Automation Degree Correctness data for automation, correctness and confidence for test set"
+    )
+    val_curves: dict[str, list[float]] | None = pydantic.Field(
+        default=None,
+        title="Automation Degree Correctness data for automation, correctness and confidence for validation set",
+    )
+    precomputed_curves: dict[str, list[float]] | None = pydantic.Field(
+        default=None,
+        title="Precomputed automation, correctness and confidence for cut off threshold calculation. "
+        "Includes validation accuracy and confidence thresholds, test accuracy and automation degree.",
+    )
+    created_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Created At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
+
+
+class MLAnnotationModelWithMetrics(MLAnnotationModel):
+    metrics: list[MLAnnotationModelMetrics] | None = None
 
 
 class AIAnnotationRun(BaseModel):
