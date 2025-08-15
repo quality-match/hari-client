@@ -2,6 +2,8 @@
 
 ### Breaking Changes
 
+- rename `MlAnnotationModel` to `MLAnnotationModel` [PR#118](https://github.com/quality-match/hari-client/pull/118)
+- rename `AnnotationRunNodeStatus` to `AnnotationRunProjectNodeStatus` for annotation report [PR#118](https://github.com/quality-match/hari-client/pull/118)
 - removed the ADAC field from the MLAnnotationModel model [PR#119](https://github.com/quality-match/hari-client/pull/119)
 
 ### New features
