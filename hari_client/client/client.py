@@ -2866,6 +2866,7 @@ class HARIClient:
         name: str,
         training_attributes: list[models.TrainingAttribute],
         user_group: str | None = None,
+        embedding_group_name: str | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2876,6 +2877,7 @@ class HARIClient:
             name: A descriptive name for the AINT learning data.
             training_attributes: The training attributes to be used in the AINT learning data.
             user_group: The user group for creating the AINT learning data (default: None).
+            embedding_group_name: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
             Created AINT learning data object.
@@ -2892,6 +2894,7 @@ class HARIClient:
         aint_learning_data_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
+        embedding_group_name: str | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2902,6 +2905,7 @@ class HARIClient:
             aint_learning_data_id: The unique identifier of the AINT learning data.
             name: The desired name of the AINT learning data.
             user_group: The desired user group of the AINT learning data.
+            embedding_group_name: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
            Updated AINT learning data.
@@ -3320,6 +3324,7 @@ class HARIClient:
         subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
         user_group: str | None = None,
+        embedding_group_name: str | None = None,
     ) -> models.AIAnnotationRun:
         """
         Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
@@ -3330,6 +3335,7 @@ class HARIClient:
             subset_id: The unique identifier of the subset to be annotated.
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
+            embedding_group_name: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
             The created AI annotation run.
@@ -3782,7 +3788,53 @@ class HARIClient:
             success_response_item_model=models.AnnotationRunProjectDetails,
         )
 
+    ### annotatable embeddings ###
+
+    def create_annotatable_embeddings(
+        self,
+        dataset_id: uuid.UUID,
+        annotatable_embeddings: list[models.AnnotatableEmbeddingCreate],
+    ) -> list[models.AnnotatableEmbedding]:
+        """Upload a batch of annotatable embeddings.
+
+        Args:
+            dataset_id: The dataset to which the annotatable embeddings belong
+            annotatable_embeddings: The annotatable embeddings to upload
+
+        Returns:
+            The uploaded annotatable embeddings
+        """
+        if len(annotatable_embeddings) == 0:
+            raise ValueError("annotatable_embeddings must not be empty")
+
+        embedding_group_vector_length: dict[str, int] = {}
+
+        annotatable_embedding_dicts = []
+        for embedding in annotatable_embeddings:
+            if embedding.embedding_group_name in embedding_group_vector_length:
+                if (
+                    len(embedding.embedding)
+                    != embedding_group_vector_length[embedding.embedding_group_name]
+                ):
+                    raise ValueError(
+                        "All embeddings must have the same length. "
+                        f"Found mismatching lengths: {embedding_group_vector_length[embedding.embedding_group_name]} and {len(embedding.embedding)}"
+                    )
+            else:
+                embedding_group_vector_length[embedding.embedding_group_name] = len(
+                    embedding.embedding
+                )
+            annotatable_embedding_dicts.append(embedding.model_dump())
+
+        return self._request(
+            "POST",
+            f"/datasets/{dataset_id}/annotatableEmbeddings",
+            json=annotatable_embedding_dicts,
+            success_response_item_model=list[models.AnnotatableEmbedding],
+        )
+
     ### annotations ###
+
     def get_annotation(
         self,
         dataset_id: uuid.UUID,

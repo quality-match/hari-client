@@ -946,6 +946,9 @@ class AINTLearningData(BaseModel):
     repeats: int = pydantic.Field(title="Repeats")
     subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
     status: AINTLearningDataStatus = pydantic.Field(title="Status")
+    embedding_group_name: str | None = pydantic.Field(
+        default=None, title="Embedding Group Name"
+    )
 
 
 class MLAnnotationModel(BaseModel):
@@ -1038,6 +1041,9 @@ class AIAnnotationRun(BaseModel):
     )
     completed_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Completed At"
+    )
+    embedding_group_name: str | None = pydantic.Field(
+        default=None, title="Embedding Group Name"
     )
 
 
@@ -1959,3 +1965,22 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
     name: str
     nodes: dict[str, AnnotationRunNodeDetails]
     started: bool
+
+
+class AnnotatableEmbeddingCreate(BaseModel):
+    annotatable_id: uuid.UUID
+    annotatable_type: DataBaseObjectType
+    embedding_group_name: str
+    embedding: list[float]
+
+
+class AnnotatableEmbedding(BaseModel):
+    id: uuid.UUID
+    dataset_id: uuid.UUID
+    timestamp: datetime.datetime
+    tags: list[str] | None = None
+    archived: bool | None = False
+    annotatable_id: uuid.UUID
+    annotatable_type: DataBaseObjectType
+    embedding_group_name: str
+    embedding: list[float]
