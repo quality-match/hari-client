@@ -2628,6 +2628,47 @@ class HARIClient:
             success_response_item_model=list[models.AttributeMetadataResponse],
         )
 
+    def delete_attribute_metadata(
+        self, dataset_id: uuid.UUID, attribute_metadata_id: str
+    ) -> None:
+        """Delete an attribute metadata and all its attributes from a dataset.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_metadata_id: The ID of the attribute metadata
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "DELETE",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
+            success_response_item_model=str,
+        )
+
+    def update_attribute_metadata(
+        self,
+        dataset_id: uuid.UUID,
+        attribute_metadata_id: str,
+        name: str | None = None,
+    ) -> models.AttributeMetadataResponse:
+        """Update attribute metadata.
+
+        Args:
+            dataset_id: The ID of the dataset.
+            attribute_metadata_id: The ID of the attribute metadata
+            name: The desired name of the attribute metadata
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "PATCH",
+            f"/datasets/{dataset_id}/attributeMetadata/{attribute_metadata_id}",
+            json=name,
+            success_response_item_model=models.AttributeMetadataResponse,
+        )
+
     def get_visualisation_configs(
         self,
         dataset_id: uuid.UUID,
@@ -2936,7 +2977,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         archived: bool | None = False,
-    ) -> list[models.MlAnnotationModel]:
+    ) -> list[models.MLAnnotationModel]:
         """
         Retrieve ml annotation models available to the user.
 
@@ -2964,7 +3005,7 @@ class HARIClient:
             "GET",
             f"/mlAnnotationModels",
             params=self._pack(locals()),
-            success_response_item_model=list[models.MlAnnotationModel],
+            success_response_item_model=list[models.MLAnnotationModel],
         )
 
     def get_ml_annotation_models_paginated(
@@ -2974,7 +3015,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         archived: bool | None = False,
-    ) -> list[models.MlAnnotationModel]:
+    ) -> list[models.MLAnnotationModel]:
         """
         Retrieve ml annotation models available to the user, but with pagination, could be used for larger datasets to avoid timeouts.
 
@@ -2992,7 +3033,7 @@ class HARIClient:
 
         log.info("Fetching all ML annotation models ...")
 
-        ml_annotation_models: list[models.MlAnnotationModel] = []
+        ml_annotation_models: list[models.MLAnnotationModel] = []
         skip_offset = 0
 
         while True:
@@ -3021,28 +3062,28 @@ class HARIClient:
         self,
         ml_annotation_model_id: uuid.UUID,
         projection: dict[str, bool] | None = None,
-    ) -> models.MlAnnotationModel:
+    ) -> models.MLAnnotationModelWithMetrics:
         """
-        Retrieve a specific ml model by its ID.
+        Retrieve a specific ml model by its ID. Also includes metrics for the model (ADC curves data).
 
         Args:
             ml_annotation_model_id: The unique identifier of the AI annotation model.
             projection: The fields to be returned (dictionary keys with value True are returned,
             keys with value False are not returned). Mixing of True and False values is not allowed.
         Returns:
-            The requested ml model.
+            The requested ml model with metrics.
         """
         return self._request(
             "GET",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
             params=self._pack(locals(), ignore=["ml_annotation_model_id"]),
-            success_response_item_model=models.MlAnnotationModel,
+            success_response_item_model=models.MLAnnotationModelWithMetrics,
         )
 
     def get_ml_annotation_models_by_training_ann_run_id(
         self,
         annotation_run_id: uuid.UUID,
-    ) -> list[models.MlAnnotationModel]:
+    ) -> list[models.MLAnnotationModel]:
         """
         Get all ml annotation  models trained on the data of a specific annotation run.
 
@@ -3058,7 +3099,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/annotationRun/{annotation_run_id}/mlAnnotationModels",
-            success_response_item_model=list[models.MlAnnotationModel],
+            success_response_item_model=list[models.MLAnnotationModel],
         )
 
     def train_ml_annotation_model(
@@ -3067,7 +3108,7 @@ class HARIClient:
         aint_learning_data_id: uuid.UUID | None = None,
         reference_set_annotation_run_id: uuid.UUID | None = None,
         user_group: str | None = None,
-    ) -> models.MlAnnotationModel:
+    ) -> models.MLAnnotationModel:
         """
         Train a new ml annotation model on the specified AINT learning data or reference set of the specified annotation run.
 
@@ -3095,7 +3136,7 @@ class HARIClient:
             "POST",
             "/mlAnnotationModels",
             json=body,
-            success_response_item_model=models.MlAnnotationModel,
+            success_response_item_model=models.MLAnnotationModel,
         )
 
     def update_ml_annotation_model(
@@ -3103,7 +3144,7 @@ class HARIClient:
         ml_annotation_model_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
-    ) -> models.MlAnnotationModel:
+    ) -> models.MLAnnotationModel:
         """
         Update a ml annotation model.
 
@@ -3129,7 +3170,7 @@ class HARIClient:
             "PATCH",
             f"/mlAnnotationModels/{ml_annotation_model_id}",
             json=body,
-            success_response_item_model=models.MlAnnotationModel,
+            success_response_item_model=models.MLAnnotationModel,
         )
 
     def delete_ml_annotation_model(
@@ -3791,3 +3832,111 @@ class HARIClient:
             json=annotatable_embedding_dicts,
             success_response_item_model=list[models.AnnotatableEmbedding],
         )
+
+    ### annotations ###
+
+    def get_annotation(
+        self,
+        dataset_id: uuid.UUID,
+        annotation_id: str,
+    ) -> models.AnnotationResponse:
+        """Returns an annotation for the given annotation_id.
+
+        Args:
+            dataset_id: The dataset id
+            annotation_id: The annotation id
+
+        Returns:
+            The annotation with the given annotation_id
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/annotations/{annotation_id}",
+            success_response_item_model=models.AnnotationResponse,
+        )
+
+    def get_annotations(
+        self,
+        dataset_id: uuid.UUID,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+    ) -> list[models.AnnotationResponse]:
+        """Get all annotations of a dataset
+
+        Args:
+            dataset_id: The dataset id
+            limit: The number of annotations tu return
+            skip: The number of annotations to skip
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+
+        Returns:
+            A list of all annotations in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+        if limit is None:
+            return self.get_annotations_paginated(
+                dataset_id=dataset_id,
+                query=query,
+                sort=sort,
+            )
+
+        return self._request(
+            "GET",
+            f"/datasets/{dataset_id}/annotations",
+            params=self._pack(locals(), ignore=["dataset_id"]),
+            success_response_item_model=list[models.AnnotationResponse],
+        )
+
+    def get_annotations_paginated(
+        self,
+        dataset_id: uuid.UUID,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        batch_size: int = 100,
+    ) -> list[models.AnnotationResponse]:
+        """Get all annotations of a dataset but with pagination, could be used for larger amount of annotations.
+
+        Args:
+            dataset_id: The dataset id
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            batch_size: The number of annotations to fetch per request. Defaults to 100.
+
+        Returns:
+            A list of all annotations in a dataset
+
+        Raises:
+            APIException: If the request fails.
+        """
+
+        log.info(f"Fetching all annotations of the dataset {dataset_id} ...")
+
+        annotations: list[models.DatasetResponse] = []
+        skip_offset = 0
+
+        while True:
+            annotations_page = self.get_annotations(
+                dataset_id=dataset_id,
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+            )
+            annotations.extend(annotations_page)
+
+            if len(annotations_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(annotations)} annotations successfully.")
+
+        return annotations

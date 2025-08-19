@@ -1,5 +1,17 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Breaking Changes
+
+- rename `MlAnnotationModel` to `MLAnnotationModel` [PR#118](https://github.com/quality-match/hari-client/pull/118)
+- rename `AnnotationRunNodeStatus` to `AnnotationRunProjectNodeStatus` for annotation report [PR#118](https://github.com/quality-match/hari-client/pull/118)
+- removed the ADAC field from the MLAnnotationModel model [PR#119](https://github.com/quality-match/hari-client/pull/119)
+
+### New features
+
+- added delete and update attribute metadata methods [PR#116](https://github.com/quality-match/hari-client/pull/116)
+- add get one or multiple (with and without pagination) annotations methods, and `Annotator` and `AnnotationResponse` models [PR#116](https://github.com/quality-match/hari-client/pull/116)
+- add `MLAnnotationModelMetrics` and `MLAnnotationModelWithMetrics`, and return `MLAnnotationModelWithMetrics` for `get_ml_annotation_model_by_id` method [PR#119](https://github.com/quality-match/hari-client/pull/119)
+
 ## [5.0.0] - 30-07-2025
 
 ### Breaking Changes

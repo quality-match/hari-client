@@ -951,7 +951,7 @@ class AINTLearningData(BaseModel):
     )
 
 
-class MlAnnotationModel(BaseModel):
+class MLAnnotationModel(BaseModel):
     id: uuid.UUID = pydantic.Field(title="Id")
     created_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Created At"
@@ -962,10 +962,10 @@ class MlAnnotationModel(BaseModel):
     archived_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Archived At"
     )
-    owner: str | None = pydantic.Field(default=None, title="Owner")
+    owner: uuid.UUID | None = pydantic.Field(default=None, title="Owner")
     user_group: str | None = pydantic.Field(default=None, title="User Group")
     status: MLAnnotationModelStatus = pydantic.Field(title="Status")
-    dataset_id: str = pydantic.Field(title="Dataset Id")
+    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
     reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Reference Set Annotation Run Id"
     )
@@ -979,15 +979,43 @@ class MlAnnotationModel(BaseModel):
     test_subset_id: uuid.UUID | None = pydantic.Field(
         default=None, title="Test Subset Id"
     )
-    automation_correctness_curve: dict | None = pydantic.Field(
-        default_factory=dict, title="Automation Correctness Curve"
-    )
     model_weight_location: str | None = pydantic.Field(
         default=None, title="Model Weight Location"
     )
     aint_learning_data_id: uuid.UUID | None = pydantic.Field(
         default=None, title="AINT learning data Id"
     )
+
+
+class MLAnnotationModelMetrics(pydantic.BaseModel):
+    ml_model_id: uuid.UUID = pydantic.Field(
+        title="Id of ML Model the metrics belong to"
+    )
+    category: str = pydantic.Field(
+        title="Category of the metrics (either overall for all data or per answer option)"
+    )
+    test_curves: dict[str, list[float]] = pydantic.Field(
+        title="Automation Degree Correctness data for automation, correctness and confidence for test set"
+    )
+    val_curves: dict[str, list[float]] | None = pydantic.Field(
+        default=None,
+        title="Automation Degree Correctness data for automation, correctness and confidence for validation set",
+    )
+    precomputed_curves: dict[str, list[float]] | None = pydantic.Field(
+        default=None,
+        title="Precomputed automation, correctness and confidence for cut off threshold calculation. "
+        "Includes validation accuracy and confidence thresholds, test accuracy and automation degree.",
+    )
+    created_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Created At"
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        default=None, title="Archived At"
+    )
+
+
+class MLAnnotationModelWithMetrics(MLAnnotationModel):
+    metrics: list[MLAnnotationModelMetrics] | None = None
 
 
 class AIAnnotationRun(BaseModel):
@@ -1040,6 +1068,7 @@ class AttributeType(str, enum.Enum):
     BBox2D = "BBOX2D"
     Point2D = "POINT2D"
     Point3D = "POINT3D"
+    VideoFrameSlider = "FRAMESLIDER"
 
 
 class HistogramType(str, enum.Enum):
@@ -1538,15 +1567,6 @@ class PipelineNodeTypes(str, enum.Enum):
     ROOT_NODE = "root_node"
 
 
-class VisualisationType(str, enum.Enum):
-    DEFAULT = "Default"  # full image
-    CROP = "Crop"
-    TILE = "Tile"
-    IMAGE_TRANSFORMATION = "ImageTransformation"
-    VIDEO = "Video"
-    RENDERED = "Rendered"
-
-
 class PipelineNodeConfig(pydantic.BaseModel):
     node_type: PipelineNodeTypes = PipelineNodeTypes.DEFAULT_NODE
     gui_settings: dict | None = None
@@ -1588,52 +1608,6 @@ class PipelineNode(pydantic.BaseModel):
 class PipelineWithNodes(Pipeline):
     nodes: list[PipelineNode] | None = pydantic.Field(default=None, title="nodes")
     root_node: PipelineNode | None = pydantic.Field(default=None, title="root_node")
-
-
-class MLAnnotationModelStatus(str, enum.Enum):
-    CREATED = "created"
-    TRAINING = "training"
-    TRAINING_FAILED = "training_failed"
-    TRAINING_DONE = "training_done"
-
-
-class MLAnnotationModel(BaseModel):
-    created_at: datetime.datetime = pydantic.Field(title="Created At")
-    updated_at: datetime.datetime | None = pydantic.Field(
-        default=None, title="Updated At"
-    )
-    archived_at: datetime.datetime | None = pydantic.Field(
-        default=None, title="Archived At"
-    )
-    owner: uuid.UUID | None = pydantic.Field(default=None, title="Owner")
-    user_group: str | None = pydantic.Field(default=None, title="User Group")
-    status: MLAnnotationModelStatus = pydantic.Field(title="Status")
-    dataset_id: uuid.UUID = pydantic.Field(title="Dataset Id")
-    reference_set_annotation_run_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Reference Set Annotation Run Id"
-    )
-    name: str = pydantic.Field(default="", title="Name")
-    training_subset_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Training Subset Id"
-    )
-    validation_subset_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Validation Subset Id"
-    )
-    test_subset_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Test Subset Id"
-    )
-    automation_correctness_curve: dict | None = pydantic.Field(
-        default=None, title="Automation Correctness Curve"
-    )
-    model_weight_location: str | None = pydantic.Field(
-        default=None, title="Model Weight Location"
-    )
-    training_set_id: uuid.UUID | None = pydantic.Field(
-        default=None, title="Training Set Id"
-    )
-    id: uuid.UUID = pydantic.Field(title="Id")
-
-    model_config = pydantic.ConfigDict(extra="ignore")
 
 
 class AnnotationRunStatus(str, enum.Enum):
@@ -1763,6 +1737,98 @@ class AnnotationRun(BaseModel):
     model_config = pydantic.ConfigDict(extra="ignore")
 
 
+class Annotator(pydantic.BaseModel):
+    annotator_id: str = pydantic.Field(
+        title="Annotator Id",
+        description="Unique identifier for the annotator",
+    )
+    vendor_id: str = pydantic.Field(
+        title="Vendor Id",
+        description="Identifier for the vendor or annotation provider",
+    )
+
+
+class AnnotationResponse(pydantic.BaseModel):
+    id: str = pydantic.Field(
+        title="Id", description="Unique identifier for the annotation"
+    )
+    dataset_id: str = pydantic.Field(
+        title="Dataset Id",
+        description="Identifier for the dataset this annotation belongs to",
+    )
+    tags: list[str] | None = pydantic.Field(
+        default=None,
+        title="Tags",
+        description="List of tags associated with the annotation",
+    )
+    timestamp: str = pydantic.Field(
+        title="Timestamp",
+        description="Timestamp for when the annotation was created or updated",
+    )
+    archived: bool | None = pydantic.Field(
+        default=None,
+        title="Archived",
+        description="Flag indicating whether the annotation is archived",
+    )
+    annotatable_type: DataBaseObjectType | None = pydantic.Field(
+        default=None,
+        title="Annotatable Type",
+        description="Type of the item being annotated (e.g., Media, Document, etc.)",
+    )
+    annotatable_id: str = pydantic.Field(
+        title="Annotatable ID",
+        description="Identifier for the specific item being annotated",
+    )
+
+    annotation_run_node_id: str | None = pydantic.Field(
+        default=None,
+        title="Annotation Run Node ID",
+        description="Identifier for the node within an annotation run",
+    )
+    annotation_run_id: str | None = pydantic.Field(
+        default=None,
+        title="Annotation Run ID",
+        description="Identifier for the overall annotation run",
+    )
+
+    question: str = pydantic.Field(
+        title="Question",
+        description="Prompt or question posed to the annotator",
+    )
+    result: typing.Any | GeometryUnion | None = pydantic.Field(
+        default=None,
+        title="Result",
+        description="Content or outcome of the annotation (e.g., text, labels, etc.)",
+    )
+    cant_solve: bool = pydantic.Field(
+        title="Can't Solve",
+        description="Indicates that the annotator could not resolve or answer the question",
+    )
+    errors: list[dict] | None = pydantic.Field(
+        default=None,
+        title="Errors",
+        description="Any errors encountered during the annotation process",
+    )
+    duration_ms: float = pydantic.Field(
+        title="Duration (ms)",
+        description="Time spent on the annotation in milliseconds",
+    )
+    annotator: Annotator = pydantic.Field(
+        title="Annotator",
+        description="Information about the individual or vendor who performed the annotation",
+    )
+    visualisation_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation ID",
+        description="Reference to a specific visualisation used during annotation",
+    )
+    visualisation_config_id: str | None = pydantic.Field(
+        default=None,
+        title="Visualisation Config ID",
+        description="Reference to the configuration settings for the visualisation",
+    )
+
+
 class BulkAttributeCreate(AttributeCreate):
     pass
 
@@ -1851,7 +1917,7 @@ class AnnotationRunMetrics(AnnotationRunNodeMetrics):
     pass
 
 
-class AnnotationRunNodeStatus(pydantic.BaseModel):
+class AnnotationRunProjectNodeStatus(pydantic.BaseModel):
     agglomerated_output_per_second: float
     first_task_submitted_at: datetime.datetime | None
     is_done: bool
@@ -1873,7 +1939,7 @@ class AnnotationRunNodeStatus(pydantic.BaseModel):
 
 class AnnotationRunProjectStatus(pydantic.BaseModel):
     is_done: bool
-    nodes: list[AnnotationRunNodeStatus]
+    nodes: list[AnnotationRunProjectNodeStatus]
 
 
 class Repeats(pydantic.BaseModel):
