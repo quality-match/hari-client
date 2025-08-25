@@ -9,13 +9,13 @@ T = typing.TypeVar("T")
 
 class APIError(Exception):
     def __init__(self, response: requests.Response):
-        http_response_status_code = response.status_code
+        self.http_response_status_code = response.status_code
         self.message = ""
         try:
             self.message = response.json()
         except:
             pass
-        super().__init__(f"{http_response_status_code=}: {self.message=}")
+        super().__init__(f"{self.http_response_status_code=}: {self.message=}")
 
 
 class AuthenticationError(APIError):
