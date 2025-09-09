@@ -946,8 +946,8 @@ class AINTLearningData(BaseModel):
     repeats: int = pydantic.Field(title="Repeats")
     subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
     status: AINTLearningDataStatus = pydantic.Field(title="Status")
-    embedding_group_name: str | None = pydantic.Field(
-        default=None, title="Embedding Group Name"
+    embedding_source_id: str | None = pydantic.Field(
+        default=None, title="Embedding Source ID"
     )
 
 
@@ -1042,8 +1042,8 @@ class AIAnnotationRun(BaseModel):
     completed_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Completed At"
     )
-    embedding_group_name: str | None = pydantic.Field(
-        default=None, title="Embedding Group Name"
+    embedding_source_id: str | None = pydantic.Field(
+        default=None, title="Embedding Source ID"
     )
 
 
@@ -1967,11 +1967,23 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
     started: bool
 
 
+class AnnotatableEmbeddingSourceCreate(BaseModel):
+    name: str
+
+
+class AnnotatableEmbeddingSource(BaseModel):
+    id: uuid.UUID
+    name: str
+    dataset_id: uuid.UUID
+    timestamp: datetime.datetime
+    tags: list[str] | None = None
+    archived: bool | None = False
+
+
 class AnnotatableEmbeddingCreate(BaseModel):
-    annotatable_id: uuid.UUID
-    annotatable_type: DataBaseObjectType
-    embedding_group_name: str
-    embedding: list[float]
+    annotatable_ids: pydantic.conlist(str, min_length=1)
+    annotatable_type: DataBaseObjectType = DataBaseObjectType.MEDIA
+    embedding: pydantic.conlist(float, min_length=1)
 
 
 class AnnotatableEmbedding(BaseModel):
@@ -1980,7 +1992,7 @@ class AnnotatableEmbedding(BaseModel):
     timestamp: datetime.datetime
     tags: list[str] | None = None
     archived: bool | None = False
-    annotatable_id: uuid.UUID
+    annotatable_ids: list[uuid.UUID]
     annotatable_type: DataBaseObjectType
-    embedding_group_name: str
+    embedding_source_id: str
     embedding: list[float]
