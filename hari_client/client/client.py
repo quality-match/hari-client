@@ -3820,7 +3820,7 @@ class HARIClient:
         self,
         dataset_id: uuid.UUID,
         name: str,
-    ) -> models.AnnotatableEmbeddingSource:
+    ) -> models.EmbeddingSource:
         """Creates an embedding source.
 
         Args:
@@ -3833,15 +3833,15 @@ class HARIClient:
         return self._request(
             "POST",
             f"/datasets/{dataset_id}/annotatableEmbeddingSource",
-            json=models.AnnotatableEmbeddingSourceCreate(name=name),
-            success_response_item_model=models.AnnotatableEmbeddingSource,
+            json=models.EmbeddingSourceCreate(name=name),
+            success_response_item_model=models.EmbeddingSource,
         )
 
     def get_embedding_source(
         self,
         dataset_id: uuid.UUID,
         embedding_source_id: uuid.UUID,
-    ) -> models.AnnotatableEmbeddingSource | None:
+    ) -> models.EmbeddingSource | None:
         """Gets an embedding source by its id.
 
         Args:
@@ -3854,7 +3854,7 @@ class HARIClient:
         return self._request(
             "GET",
             f"/datasets/{dataset_id}/annotatableEmbeddingSource/{embedding_source_id}",
-            success_response_item_model=models.AnnotatableEmbeddingSource,
+            success_response_item_model=models.EmbeddingSource,
         )
 
     def get_embedding_sources(
@@ -3865,7 +3865,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         archived: bool | None = False,
-    ) -> list[models.AnnotatableEmbeddingSource]:
+    ) -> list[models.EmbeddingSource]:
         """Gets a list of embedding sources.
 
         Args:
@@ -3892,7 +3892,7 @@ class HARIClient:
             "GET",
             f"/datasets/{dataset_id}/annotatableEmbeddingSources",
             params=self._pack(locals()),
-            success_response_item_model=list[models.AnnotatableEmbeddingSource],
+            success_response_item_model=list[models.EmbeddingSource],
         )
 
     def get_annotatable_embedding_sources_paginated(
@@ -3902,7 +3902,7 @@ class HARIClient:
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
         archived: bool | None = False,
-    ) -> list[models.AnnotatableEmbeddingSource]:
+    ) -> list[models.EmbeddingSource]:
         """Get a list of embedding sources, but with pagination, could be used for larger datasets to avoid timeouts.
 
         Args:
@@ -3914,7 +3914,7 @@ class HARIClient:
         """
         log.info(f"Fetching all embedding sources of the dataset {dataset_id} ...")
 
-        embedding_sources: list[models.AnnotatableEmbeddingSource] = []
+        embedding_sources: list[models.EmbeddingSource] = []
         skip_offset = 0
 
         while True:
@@ -3939,9 +3939,9 @@ class HARIClient:
     def create_annotatable_embeddings(
         self,
         dataset_id: uuid.UUID,
-        annotatable_embeddings: list[models.AnnotatableEmbeddingCreate],
+        annotatable_embeddings: list[models.EmbeddingCreate],
         annotatable_embedding_source_id: uuid.UUID,
-    ) -> list[models.AnnotatableEmbedding]:
+    ) -> list[models.Embedding]:
         """Upload a batch of annotatable embeddings.
 
         Args:
@@ -3965,7 +3965,7 @@ class HARIClient:
             "POST",
             f"/datasets/{dataset_id}/annotatableEmbeddingSource/{annotatable_embedding_source_id}/annotatableEmbeddings",
             json=annotatable_embeddings,
-            success_response_item_model=list[models.AnnotatableEmbedding],
+            success_response_item_model=list[models.Embedding],
         )
 
     ### annotations ###

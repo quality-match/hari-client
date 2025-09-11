@@ -1967,11 +1967,11 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
     started: bool
 
 
-class AnnotatableEmbeddingSourceCreate(BaseModel):
+class EmbeddingSourceCreate(BaseModel):
     name: str
 
 
-class AnnotatableEmbeddingSource(BaseModel):
+class EmbeddingSource(BaseModel):
     id: uuid.UUID
     name: str
     dataset_id: uuid.UUID
@@ -1980,13 +1980,13 @@ class AnnotatableEmbeddingSource(BaseModel):
     archived: bool | None = False
 
 
-class AnnotatableEmbeddingCreate(BaseModel):
+class EmbeddingCreate(BaseModel):
     annotatable_ids: pydantic.conlist(str, min_length=1)
     annotatable_type: DataBaseObjectType = DataBaseObjectType.MEDIA
     embedding: pydantic.conlist(float, min_length=1)
 
 
-class AnnotatableEmbedding(BaseModel):
+class Embedding(BaseModel):
     id: uuid.UUID
     dataset_id: uuid.UUID
     timestamp: datetime.datetime
