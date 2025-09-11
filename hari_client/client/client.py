@@ -3817,9 +3817,7 @@ class HARIClient:
     ### annotatable embeddings ###
 
     def create_embedding_source(
-        self,
-        dataset_id: uuid.UUID,
-        name: str,
+        self, dataset_id: uuid.UUID, name: str, output_vector_length: int
     ) -> models.EmbeddingSource:
         """Creates an embedding source.
 
@@ -3832,8 +3830,10 @@ class HARIClient:
         """
         return self._request(
             "POST",
-            f"/datasets/{dataset_id}/annotatableEmbeddingSource",
-            json=models.EmbeddingSourceCreate(name=name),
+            f"/datasets/{dataset_id}/embeddingSources",
+            json=models.EmbeddingSourceCreate(
+                name=name, output_vector_length=output_vector_length
+            ),
             success_response_item_model=models.EmbeddingSource,
         )
 
@@ -3853,7 +3853,7 @@ class HARIClient:
         """
         return self._request(
             "GET",
-            f"/datasets/{dataset_id}/annotatableEmbeddingSource/{embedding_source_id}",
+            f"/datasets/{dataset_id}/embeddingSources/{embedding_source_id}",
             success_response_item_model=models.EmbeddingSource,
         )
 
@@ -3881,7 +3881,7 @@ class HARIClient:
         """
 
         if limit is None:
-            return self.get_annotatable_embedding_sources_paginated(
+            return self.get_embedding_sources_paginated(
                 dataset_id,
                 query=query,
                 sort=sort,
@@ -3890,12 +3890,12 @@ class HARIClient:
 
         return self._request(
             "GET",
-            f"/datasets/{dataset_id}/annotatableEmbeddingSources",
+            f"/datasets/{dataset_id}/embeddingSources",
             params=self._pack(locals()),
             success_response_item_model=list[models.EmbeddingSource],
         )
 
-    def get_annotatable_embedding_sources_paginated(
+    def get_embedding_sources_paginated(
         self,
         dataset_id: uuid.UUID,
         batch_size: int = 100,
@@ -3936,25 +3936,23 @@ class HARIClient:
 
         return embedding_sources
 
-    def create_annotatable_embeddings(
+    def create_embeddings(
         self,
         dataset_id: uuid.UUID,
-        annotatable_embeddings: list[models.EmbeddingCreate],
-        annotatable_embedding_source_id: uuid.UUID,
+        embeddings: list[models.EmbeddingCreate],
+        embedding_source_id: uuid.UUID,
     ) -> list[models.Embedding]:
         """Upload a batch of annotatable embeddings.
 
         Args:
             dataset_id: The dataset to which the annotatable embeddings belong
-            annotatable_embeddings: The annotatable embeddings to upload
-            annotatable_embedding_source_id: The id of the embedding source
+            embeddings: The annotatable embeddings to upload
+            embedding_source_id: The id of the embedding source
 
         Returns:
             The uploaded annotatable embeddings
         """
-        embedding_lengths = {
-            len(embedding.embedding) for embedding in annotatable_embeddings
-        }
+        embedding_lengths = {len(embedding.embedding) for embedding in embeddings}
         if len(embedding_lengths) > 1:
             raise ValueError(
                 "All embeddings must have the same length. "
@@ -3963,8 +3961,8 @@ class HARIClient:
 
         return self._request(
             "POST",
-            f"/datasets/{dataset_id}/annotatableEmbeddingSource/{annotatable_embedding_source_id}/annotatableEmbeddings",
-            json=annotatable_embeddings,
+            f"/datasets/{dataset_id}/embeddingSources/{embedding_source_id}/embeddings",
+            json=embeddings,
             success_response_item_model=list[models.Embedding],
         )
 

@@ -985,6 +985,9 @@ class MLAnnotationModel(BaseModel):
     aint_learning_data_id: uuid.UUID | None = pydantic.Field(
         default=None, title="AINT learning data Id"
     )
+    embedding_source_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Embedding Source Id"
+    )
 
 
 class MLAnnotationModelMetrics(pydantic.BaseModel):
