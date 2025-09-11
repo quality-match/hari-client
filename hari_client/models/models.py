@@ -1969,11 +1969,13 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
 
 class EmbeddingSourceCreate(BaseModel):
     name: str
+    output_vector_length: int
 
 
 class EmbeddingSource(BaseModel):
     id: uuid.UUID
     name: str
+    output_vector_length: int
     dataset_id: uuid.UUID
     timestamp: datetime.datetime
     tags: list[str] | None = None
