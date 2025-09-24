@@ -1,4 +1,5 @@
 import copy
+import time
 import typing
 import uuid
 
@@ -291,6 +292,7 @@ class HARIUploader:
         self._scenes: dict[str, str] = {}
         self._with_media_files_upload: bool = True
         self.failures: HARIUploadFailures = HARIUploadFailures()
+        self.medias_pending_verification: list[HARIMedia] = []
 
         # Set up the property validator for scene and object category validation
         self.validator = property_validator.PropertyValidator(
@@ -774,6 +776,93 @@ class HARIUploader:
             entity.uploaded = entity.back_reference in uploaded_back_references
             entity.id = uploaded_back_references.get(entity.back_reference)
 
+    def get_medias_pending_verification(self) -> list[HARIMedia]:
+        """Return a snapshot of medias remembered due to a 504 timeout.
+
+        These are medias we attempted to upload but the request timed out (504),
+        so their final state on the server is unknown until verification.
+        """
+        return list(self.medias_pending_verification)
+
+    def verify_pending_medias(self) -> tuple[list[HARIMedia], list[HARIMedia]]:
+        """Re-check whether medias remembered after a 504 were eventually created.
+
+        This uses the medias' `back_reference` to look them up on the server. If a
+        pending media is found, its `id` is set, `uploaded` is marked True, and it
+        is removed from `self.medias_pending_verification`.
+
+        Returns:
+            A tuple of (verified_now_uploaded, still_pending).
+        """
+        if not self.medias_pending_verification:
+            return ([], [])
+
+        # Build a lookup of existing medias on the server by back_reference
+        existing_medias = self.client.get_medias_paginated(self.dataset_id)
+        existing_by_backref = {m.back_reference: m.id for m in existing_medias}
+
+        verified: list[HARIMedia] = []
+        still_pending: list[HARIMedia] = []
+
+        # Iterate over a copy so we can mutate the original list safely
+        for media in list(self.medias_pending_verification):
+            back_ref = getattr(media, "back_reference", None)
+            if not back_ref:
+                # Can't verify without a back_reference; keep it pending
+                still_pending.append(media)
+                continue
+
+            if back_ref in existing_by_backref:
+                media.id = existing_by_backref[back_ref]
+                media.uploaded = True
+                verified.append(media)
+                # Remove from pending since we've verified it exists now
+                self.medias_pending_verification.remove(media)
+            else:
+                still_pending.append(media)
+
+        return (verified, still_pending)
+
+    def verify_pending_medias_until_clear(
+        self,
+        max_attempts: int = 5,
+        delay_seconds: int = 5,
+    ) -> tuple[list[HARIMedia], list[HARIMedia]]:
+        """Repeatedly runs verify_pending_medias until no pending remain or attempts exhausted.
+
+        Args:
+            max_attempts: Maximum number of verification attempts.
+            delay_seconds: Delay between attempts, in seconds.
+
+        Returns:
+            A tuple (all_verified, still_pending).
+                - all_verified: list of HARIMedias that were confirmed uploaded across all attempts.
+                - still_pending: list of HARIMedias that could not be verified within the attempts.
+        """
+        all_verified: list[HARIMedia] = []
+        still_pending: list[HARIMedia] = []
+
+        for attempt in range(1, max_attempts + 1):
+            verified, still_pending = self.verify_pending_medias()
+            if verified:
+                log.info(
+                    f"Attempt {attempt}: verified {len(verified)} pending medias now uploaded."
+                )
+            if not still_pending:
+                log.info(
+                    f"All pending medias have been verified after {attempt} attempts."
+                )
+                all_verified.extend(verified)
+                return all_verified, []
+            if attempt < max_attempts:
+                time.sleep(delay_seconds)
+            all_verified.extend(verified)
+
+        log.warning(
+            f"Verification attempts exhausted. {len(still_pending)} medias remain pending."
+        )
+        return all_verified, still_pending
+
     def upload(
         self,
     ) -> HARIUploadResults | None:
@@ -829,6 +918,31 @@ class HARIUploader:
             attribute_upload_responses,
         ) = self.upload_data_in_batches(attr_count, len(all_media_objects))
 
+        # Handle medias which are waiting for verification
+        if len(self.medias_pending_verification) > 0:
+            log.info(
+                f"There are {len(self.medias_pending_verification)} medias which are pending verification. Start polling to check they're uploaded."
+            )
+            all_verified, still_pending = self.verify_pending_medias_until_clear(
+                max_attempts=5, delay_seconds=5
+            )
+            if len(still_pending) > 0:
+                log.info(
+                    f"{len(still_pending)} medias are still pending and are likely actual upload failures."
+                )
+            else:
+                log.info(
+                    "No more medias are pending. Will start upload of their media objects and attributes."
+                )
+                self.mark_already_uploaded_medias(self._medias)
+                self.mark_already_uploaded_media_objects(all_media_objects)
+                # assumption: it's fine to overwrite the earlier media/media_object/attribute responses
+                (
+                    media_upload_responses,
+                    media_object_upload_responses,
+                    attribute_upload_responses,
+                ) = self.upload_data_in_batches(attr_count, len(all_media_objects))
+
         return HARIUploadResults(
             medias=_merge_bulk_responses(*media_upload_responses),
             media_objects=_merge_bulk_responses(*media_object_upload_responses),
@@ -850,8 +964,8 @@ class HARIUploader:
             the bulk response for medias.
         """
         # split medias into those needing upload and already uploaded that are skipped for the upload
-        medias_need_upload = []
-        medias_skipped = []
+        medias_need_upload: list[HARIMedia] = []
+        medias_skipped: list[HARIMedia] = []
         for media in medias_to_upload:
             self._set_bulk_operation_annotatable_id(item=media)
             if media.uploaded:
@@ -869,9 +983,47 @@ class HARIUploader:
                     with_media_files_upload=self._with_media_files_upload,
                 )
             except errors.APIError as e:
-                response = client._parse_response_model(
-                    response_data=e.message, response_model=models.BulkResponse
-                )
+                # Handle 504 Gateway Timeout explicitly: the server may still process the request
+                status_code = getattr(e, "status_code", None)
+                msg = getattr(e, "message", "")
+                if status_code == 504:
+                    # Remember all medias of this batch for later verification
+                    self.medias_pending_verification.extend(medias_need_upload)
+
+                    # Build a synthetic BulkResponse that marks these items as failed upload
+                    response = models.BulkResponse()
+                    response.status = models.BulkOperationStatusEnum.FAILURE
+
+                    for media in medias_need_upload:
+                        response.results.append(
+                            models.AnnotatableCreateResponse(
+                                bulk_operation_annotatable_id=media.bulk_operation_annotatable_id,
+                                item_id=None,
+                                status=models.ResponseStatesEnum.SERVER_ERROR,
+                                errors=[
+                                    "Upload timed out (504). Verification needed: server may still process the batch."
+                                ],
+                            )
+                        )
+                    # Set summary to reflect failures for this batch
+                    response.summary.total = len(response.results)
+                    response.summary.failed = len(response.results)
+
+                    # Also record these as failures with a specific reason to make them easy to find
+                    for media in medias_need_upload:
+                        self.failures.failed_medias.append(
+                            (media, ["Upload timed out (504). Verification needed."])
+                        )
+                elif status_code == 400:
+                    # On status 400 hari responds with a failure BulkResponse
+                    # Non-timeout errors: fall back to parsing the server response if possible
+                    response = client._parse_response_model(
+                        response_data=msg, response_model=models.BulkResponse
+                    )
+                else:
+                    # TODO: unknown backend error: create synthetic bulk response
+                    pass
+
         else:
             # if no media needs to be uploaded, return an empty response
             response = models.BulkResponse(
@@ -1121,6 +1273,15 @@ class HARIUploader:
                     f"Media upload response contains multiple items for "
                     f"{media.bulk_operation_annotatable_id=}."
                 )
+            elif (
+                filtered_upload_response[0].status
+                == models.BulkOperationStatusEnum.FAILURE
+            ):
+                log.debug(
+                    f"Media {media.id} has an upload failure. MediaObject.annotatable_id can't be set."
+                )
+                continue
+
             media_upload_response: models.AnnotatableCreateResponse = (
                 filtered_upload_response[0]
             )
@@ -1166,6 +1327,15 @@ class HARIUploader:
                     f"MediaObject upload response contains multiple items for "
                     f"{media_object.bulk_operation_annotatable_id=}."
                 )
+            elif (
+                filtered_upload_response[0].status
+                == models.BulkOperationStatusEnum.FAILURE
+            ):
+                log.debug(
+                    f"Media {media_object.id} has an upload failure. Attribute.annotatable_id can't be set."
+                )
+                continue
+
             media_object_upload_response: models.AnnotatableCreateResponse = (
                 filtered_upload_response[0]
             )
