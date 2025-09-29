@@ -337,13 +337,15 @@ class HARIUploader:
         )
         return object_category_subsets
 
-    def _handle_scene_and_category_data(self) -> None:
+    def _handle_scene_and_category_data(
+        self, medias: list[models.BulkMediaCreate]
+    ) -> None:
         """Handle scene and object category setup and validation."""
         log.info("Initializing scenes and object categories.")
 
         # 1. Validate all properties
         is_valid, validation_result, to_create = self.validator.validate_properties(
-            self._medias,
+            medias,
             HARIUnknownSceneNameError,
             HARIMediaObjectUnknownObjectCategorySubsetNameError,
             HARIInconsistentFieldError,
@@ -396,7 +398,7 @@ class HARIUploader:
         self._object_category_subsets = property_mappings["object_category_subset_name"]
 
         # 7. Assign IDs to objects
-        self._assign_property_ids()
+        self._assign_property_ids(medias)
 
         log.info(f"All scenes of this dataset: {self._scenes=}")
         log.info(
@@ -455,9 +457,9 @@ class HARIUploader:
                     f"Created object category: {category_name} with id {subset_id}"
                 )
 
-    def _assign_property_ids(self) -> None:
+    def _assign_property_ids(self, medias: list[models.BulkMediaCreate]) -> None:
         """Assign scene and object category IDs to medias and media objects."""
-        for media in self._medias:
+        for media in medias:
             # Track subset_ids to avoid duplicates
             media_subset_ids = set(media.subset_ids or [])
 
@@ -805,7 +807,7 @@ class HARIUploader:
         self.validate_all_attributes(all_attributes)
 
         # Handle scene and object category setup and validation
-        self._handle_scene_and_category_data()
+        self._handle_scene_and_category_data(self._medias)
 
         if self.skip_uploaded_medias:
             self.mark_already_uploaded_medias(self._medias)
@@ -826,6 +828,7 @@ class HARIUploader:
             failures=self.failures,
         )
 
+    # ---- start of upload entities without media ----#
     def _upload_entities_without_media(
         self,
         entities: list,
@@ -856,19 +859,22 @@ class HARIUploader:
 
         by_back_ref = {m.back_reference: m for m in uploaded_medias}
 
+        medias_to_check_consistency = []
         for back_ref, media_object in mappings:
             media = by_back_ref[back_ref]
             media_object.media_id = media.id
 
             # validations
             self._validate_geometry_is_provided(media_object)
-            media_for_check = models.MediaCreate(**media.model_dump())
+            media_for_check = HARIMedia(**media.model_dump())
             self._validate_media_object_compatible_with_media(
                 media_for_check, media_object
             )
 
-        # todo unbound from media!!!
-        self._handle_scene_and_category_data()
+            media_for_check.media_objects.append(media_object)
+            medias_to_check_consistency.append(media_for_check)
+
+        self._handle_scene_and_category_data(medias_to_check_consistency)
 
         media_objects = [media_object for _, media_object in mappings]
 
@@ -1095,6 +1101,8 @@ class HARIUploader:
             raise ValueError(
                 f"Uploaded back references are not unique across the dataset. Found duplicates: {duplicates}"
             )
+
+    # ---- end of upload entities without media ----#
 
     def _upload_media_batch(
         self, medias_to_upload: list[HARIMedia]
@@ -1505,7 +1513,7 @@ class HARIUploader:
     def _assign_object_category_subsets(self) -> None:
         """Assigns object_category_subsets to media_objects and media based on media_object.object_category_subset_name"""
         # Use the renamed method that handles all entity ID assignments
-        self._assign_property_ids()
+        self._assign_property_ids(self._medias)
 
     def _create_object_category_subsets(self, object_categories: list[str]) -> None:
         """Creates object_category subsets for the specified object_categories.
