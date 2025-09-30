@@ -3817,7 +3817,7 @@ class HARIClient:
     ### annotatable embeddings ###
 
     def create_embedding_source(
-        self, dataset_id: uuid.UUID, name: str, output_vector_length: int
+        self, name: str, output_vector_length: int, user_group: str | None = None
     ) -> models.EmbeddingSource:
         """Creates an embedding source.
 
@@ -3832,14 +3832,15 @@ class HARIClient:
             "POST",
             f"/embeddingSources",
             json=models.EmbeddingSourceCreate(
-                name=name, output_vector_length=output_vector_length
+                name=name,
+                output_vector_length=output_vector_length,
+                user_group=user_group,
             ),
             success_response_item_model=models.EmbeddingSource,
         )
 
     def get_embedding_source(
         self,
-        dataset_id: uuid.UUID,
         embedding_source_id: uuid.UUID,
     ) -> models.EmbeddingSource | None:
         """Gets an embedding source by its id.
@@ -3859,7 +3860,6 @@ class HARIClient:
 
     def get_embedding_sources(
         self,
-        dataset_id: uuid.UUID,
         limit: int | None = None,
         skip: int | None = None,
         query: models.QueryList | None = None,
@@ -3882,7 +3882,6 @@ class HARIClient:
 
         if limit is None:
             return self.get_embedding_sources_paginated(
-                dataset_id,
                 query=query,
                 sort=sort,
                 archived=archived,
@@ -3890,14 +3889,13 @@ class HARIClient:
 
         return self._request(
             "GET",
-            f"/datasets/{dataset_id}/embeddingSources",
-            params=self._pack(locals()),
+            f"/embeddingSources",
+            json=self._pack(locals()),
             success_response_item_model=list[models.EmbeddingSource],
         )
 
     def get_embedding_sources_paginated(
         self,
-        dataset_id: uuid.UUID,
         batch_size: int = 100,
         query: models.QueryList | None = None,
         sort: list[models.SortingParameter] | None = None,
@@ -3912,14 +3910,13 @@ class HARIClient:
             sort: The list of sorting parameters
             archived: Whether to include archived embedding sources
         """
-        log.info(f"Fetching all embedding sources of the dataset {dataset_id} ...")
+        log.info(f"Fetching all embedding sources ...")
 
         embedding_sources: list[models.EmbeddingSource] = []
         skip_offset = 0
 
         while True:
             embedding_sources_page = self.get_embedding_sources(
-                dataset_id=dataset_id,
                 limit=batch_size,
                 skip=skip_offset,
                 query=query,

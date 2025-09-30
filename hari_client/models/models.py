@@ -1973,16 +1973,24 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
 class EmbeddingSourceCreate(BaseModel):
     name: str
     output_vector_length: int
+    user_group: str
 
 
 class EmbeddingSource(BaseModel):
-    id: uuid.UUID
-    name: str
-    output_vector_length: int
-    dataset_id: uuid.UUID
-    timestamp: datetime.datetime
-    tags: list[str] | None = None
-    archived: bool | None = False
+    id: uuid.UUID = pydantic.Field(title="Id")
+    name: str = pydantic.Field(title="Name")
+    output_vector_length: int = pydantic.Field(title="Output Vector Length")
+    created_at: datetime.datetime | None = pydantic.Field(
+        title="Created At", default=None
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        title="Updated At", default=None
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        title="Archived At", default=None
+    )
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
 
 
 class EmbeddingCreate(BaseModel):
