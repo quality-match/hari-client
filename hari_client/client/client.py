@@ -3830,7 +3830,7 @@ class HARIClient:
         """
         return self._request(
             "POST",
-            f"/datasets/{dataset_id}/embeddingSources",
+            f"/embeddingSources",
             json=models.EmbeddingSourceCreate(
                 name=name, output_vector_length=output_vector_length
             ),
@@ -3853,7 +3853,7 @@ class HARIClient:
         """
         return self._request(
             "GET",
-            f"/datasets/{dataset_id}/embeddingSources/{embedding_source_id}",
+            f"/embeddingSources/{embedding_source_id}",
             success_response_item_model=models.EmbeddingSource,
         )
 
@@ -3961,7 +3961,7 @@ class HARIClient:
 
         return self._request(
             "POST",
-            f"/datasets/{dataset_id}/embeddingSources/{embedding_source_id}/embeddings",
+            f"/embeddingSources/{embedding_source_id}/datasets/{dataset_id}/embeddings",
             json=embeddings,
             success_response_item_model=list[models.Embedding],
         )
