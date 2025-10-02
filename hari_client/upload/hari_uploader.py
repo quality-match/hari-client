@@ -748,8 +748,9 @@ class HARIUploader:
     def _mark_already_uploaded_entities(
         self,
         entities_to_upload: list[HARIMediaObject] | list[HARIMedia],
-        entities_uploaded: list[models.MediaResponse]
-        | list[models.MediaObjectResponse],
+        entities_uploaded: (
+            list[models.MediaResponse] | list[models.MediaObjectResponse]
+        ),
     ) -> None:
         """
         Marks items in entities_to_upload as already uploaded if their back_references appear
@@ -984,8 +985,7 @@ class HARIUploader:
                 )
             except errors.APIError as e:
                 # Handle 504 Gateway Timeout explicitly: the server may still process the request
-                status_code = getattr(e, "status_code", None)
-                msg = getattr(e, "message", "")
+                status_code = e.http_response_status_code
                 if status_code == 504:
                     # Remember all medias of this batch for later verification
                     self.medias_pending_verification.extend(medias_need_upload)
@@ -1016,18 +1016,23 @@ class HARIUploader:
                         )
                 elif status_code == 400:
                     # On status 400 hari responds with a failure BulkResponse
-                    # Non-timeout errors: fall back to parsing the server response if possible
+                    # Non-timeout errors: fall back to parsing the server response as BulkResponse
                     response = client._parse_response_model(
-                        response_data=msg, response_model=models.BulkResponse
+                        response_data=e.message, response_model=models.BulkResponse
                     )
                 else:
-                    # TODO: unknown backend error: create synthetic bulk response
-                    pass
+                    # unknown backend error: create synthetic bulk response
+                    log.error(
+                        f"Unexpected error during media upload: {e}. No bulk response available."
+                    )
+                    response = models.BulkResponse(
+                        status=models.BulkOperationStatusEnum.FAILURE,
+                    )
 
         else:
             # if no media needs to be uploaded, return an empty response
             response = models.BulkResponse(
-                status=models.ResponseStatesEnum.SUCCESS,
+                status=models.BulkOperationStatusEnum.SUCCESS,
             )
 
         # mark medias that were skipped as already existing and treat as successful
