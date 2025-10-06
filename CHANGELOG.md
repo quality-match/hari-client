@@ -4,8 +4,6 @@
 
 - expose `http_response_status_code` in APIException
 
-## [major.minor.patch] - DD-MM-YYYY
-
 ## [6.0.0] - 25-08-2025
 
 ### Breaking Changes
