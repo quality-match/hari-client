@@ -340,7 +340,7 @@ class ExternalMediaSourceS3CrossAccountAccessInfoUpdate(pydantic.BaseModel):
 
 
 class ExternalMediaSourceAPIUpdate(pydantic.BaseModel):
-    type: ExternalMediaSourceCredentialsType
+    type: ExternalMediaSourceCredentialsType  # not optional in update, required to know which fields to expect in credentials
     credentials: (
         ExternalMediaSourceS3CrossAccountAccessInfoUpdate
         | ExternalMediaSourceAzureCredentialsUpdate
