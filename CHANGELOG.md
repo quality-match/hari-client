@@ -1,5 +1,13 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New features
+
+- add `update_external_media_source` method to client [PR#124](https://github.com/quality-match/hari-client/pull/124)
+and new models for it:
+  - `ExternalMediaSourceAPIUpdate`
+  - `ExternalMediaSourceS3CrossAccountAccessInfoUpdate`
+  - `ExternalMediaSourceAzureCredentialsUpdate`
+
 ### Breaking Changes
 
 - rename `MlAnnotationModel` to `MLAnnotationModel` [PR#118](https://github.com/quality-match/hari-client/pull/118)
