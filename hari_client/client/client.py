@@ -911,7 +911,7 @@ class HARIClient:
         return self._request(
             "PATCH",
             f"/externalMediaSources/{external_media_source_id}",
-            json=external_media_source_update,
+            json=external_media_source_update.model_dump(exclude_unset=True),
             success_response_item_model=models.ExternalMediaSourceAPIResponse,
         )
 
