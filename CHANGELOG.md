@@ -1,8 +1,13 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [6.1.0] - DD-MM-YYYY
+
 ### New features
 
 - expose `http_response_status_code` in APIException
+- add embeddings support to the hari-client
+  - new functionality for handling embeddings in the upload process
+  - enhanced data processing capabilities with embedding integration
 
 ## [6.0.0] - 25-08-2025
 

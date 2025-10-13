@@ -738,6 +738,32 @@ class HARIClient:
             success_response_item_model=list[models.DatasetResponse],
         )
 
+    def get_subsets(
+        self,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+    ) -> list[dict]:
+        """Returns all subsets belonging to a specific dataset
+
+        Args:
+            dataset_id: The dataset id of the parent dataset
+            visibility_statuses: Visibility statuses of the returned subsets
+
+        Returns:
+            A list of subsets
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "GET",
+            f"/subsets",
+            params=self._pack(locals()),
+            # the response model for a subset is the same as for a dataset
+            success_response_item_model=list[dict],
+        )
+
     def archive_dataset(self, dataset_id: uuid.UUID) -> str:
         """Archives a dataset and all its subsets.
 
@@ -2866,6 +2892,7 @@ class HARIClient:
         name: str,
         training_attributes: list[models.TrainingAttribute],
         user_group: str | None = None,
+        embedding_source_id: str | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2876,6 +2903,7 @@ class HARIClient:
             name: A descriptive name for the AINT learning data.
             training_attributes: The training attributes to be used in the AINT learning data.
             user_group: The user group for creating the AINT learning data (default: None).
+            embedding_source_id: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
             Created AINT learning data object.
@@ -2892,6 +2920,7 @@ class HARIClient:
         aint_learning_data_id: uuid.UUID,
         name: str | None = None,
         user_group: str | None = None,
+        embedding_source_id: str | None = None,
     ) -> models.AINTLearningData:
         """
         !!! Only available for qm internal users !!!
@@ -2902,6 +2931,7 @@ class HARIClient:
             aint_learning_data_id: The unique identifier of the AINT learning data.
             name: The desired name of the AINT learning data.
             user_group: The desired user group of the AINT learning data.
+            embedding_source_id: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
            Updated AINT learning data.
@@ -3320,6 +3350,7 @@ class HARIClient:
         subset_id: uuid.UUID,
         ml_annotation_model_id: uuid.UUID,
         user_group: str | None = None,
+        embedding_source_id: str | None = None,
     ) -> models.AIAnnotationRun:
         """
         Start a new AI annotation run. Applies the specified ml annotation model to the dataset and subset.
@@ -3330,6 +3361,7 @@ class HARIClient:
             subset_id: The unique identifier of the subset to be annotated.
             ml_annotation_model_id: The unique identifier of the ml annotation model to use.
             user_group: The user group for scoping this annotation run (default: None).
+            embedding_source_id: If provided, HARI will assume that the AINT base data is embeddings (default: None).
 
         Returns:
             The created AI annotation run.
@@ -3782,7 +3814,157 @@ class HARIClient:
             success_response_item_model=models.AnnotationRunProjectDetails,
         )
 
+    ### annotatable embeddings ###
+
+    def create_embedding_source(
+        self, name: str, output_vector_length: int, user_group: str | None = None
+    ) -> models.EmbeddingSource:
+        """Creates an embedding source.
+
+        Args:
+            dataset_id: The dataset to which the embedding source belongs
+            name: The name of the embedding source
+
+        Returns:
+            The created embedding source
+        """
+        return self._request(
+            "POST",
+            f"/embeddingSources",
+            json=models.EmbeddingSourceCreate(
+                name=name,
+                output_vector_length=output_vector_length,
+                user_group=user_group,
+            ),
+            success_response_item_model=models.EmbeddingSource,
+        )
+
+    def get_embedding_source(
+        self,
+        embedding_source_id: uuid.UUID,
+    ) -> models.EmbeddingSource | None:
+        """Gets an embedding source by its id.
+
+        Args:
+            dataset_id: The dataset to which the annotatable embedding source belong
+            embedding_source_id: The id of the embedding source
+
+        Returns:
+            The embedding source
+        """
+        return self._request(
+            "GET",
+            f"/embeddingSources/{embedding_source_id}",
+            success_response_item_model=models.EmbeddingSource,
+        )
+
+    def get_embedding_sources(
+        self,
+        limit: int | None = None,
+        skip: int | None = None,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.EmbeddingSource]:
+        """Gets a list of embedding sources.
+
+        Args:
+            dataset_id: The dataset to which the embedding sources belong
+            limit: The number of embedding sources to return
+            skip: The number of embedding sources to skip
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            archived: Whether to include archived embedding sources
+
+        Returns:
+            A list of embedding sources
+        """
+
+        if limit is None:
+            return self.get_embedding_sources_paginated(
+                query=query,
+                sort=sort,
+                archived=archived,
+            )
+
+        return self._request(
+            "GET",
+            f"/embeddingSources",
+            json=self._pack(locals()),
+            success_response_item_model=list[models.EmbeddingSource],
+        )
+
+    def get_embedding_sources_paginated(
+        self,
+        batch_size: int = 100,
+        query: models.QueryList | None = None,
+        sort: list[models.SortingParameter] | None = None,
+        archived: bool | None = False,
+    ) -> list[models.EmbeddingSource]:
+        """Get a list of embedding sources, but with pagination, could be used for larger datasets to avoid timeouts.
+
+        Args:
+            dataset_id: The dataset to which the annotatable embedding sources belong
+            batch_size: The number of embedding sources to fetch per request.
+            query: The filters to be applied to the search
+            sort: The list of sorting parameters
+            archived: Whether to include archived embedding sources
+        """
+        log.info(f"Fetching all embedding sources ...")
+
+        embedding_sources: list[models.EmbeddingSource] = []
+        skip_offset = 0
+
+        while True:
+            embedding_sources_page = self.get_embedding_sources(
+                limit=batch_size,
+                skip=skip_offset,
+                query=query,
+                sort=sort,
+            )
+            embedding_sources.extend(embedding_sources_page)
+
+            if len(embedding_sources_page) < batch_size:
+                break
+
+            skip_offset += batch_size
+
+        log.info(f"Fetched {len(embedding_sources)} embedding sources successfully.")
+
+        return embedding_sources
+
+    def create_embeddings(
+        self,
+        dataset_id: uuid.UUID,
+        embeddings: list[models.EmbeddingCreate],
+        embedding_source_id: uuid.UUID,
+    ) -> list[models.Embedding]:
+        """Upload a batch of annotatable embeddings.
+
+        Args:
+            dataset_id: The dataset to which the annotatable embeddings belong
+            embeddings: The annotatable embeddings to upload
+            embedding_source_id: The id of the embedding source
+
+        Returns:
+            The uploaded annotatable embeddings
+        """
+        embedding_lengths = {len(embedding.embedding) for embedding in embeddings}
+        if len(embedding_lengths) > 1:
+            raise ValueError(
+                "All embeddings must have the same length. "
+                f"Found mismatching lengths: {embedding_lengths}."
+            )
+
+        return self._request(
+            "POST",
+            f"/embeddingSources/{embedding_source_id}/datasets/{dataset_id}/embeddings",
+            json=embeddings,
+            success_response_item_model=list[models.Embedding],
+        )
+
     ### annotations ###
+
     def get_annotation(
         self,
         dataset_id: uuid.UUID,

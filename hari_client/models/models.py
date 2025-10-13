@@ -946,6 +946,9 @@ class AINTLearningData(BaseModel):
     repeats: int = pydantic.Field(title="Repeats")
     subset_id: uuid.UUID = pydantic.Field(title="Subset Id")
     status: AINTLearningDataStatus = pydantic.Field(title="Status")
+    embedding_source_id: str | None = pydantic.Field(
+        default=None, title="Embedding Source ID"
+    )
 
 
 class MLAnnotationModel(BaseModel):
@@ -981,6 +984,9 @@ class MLAnnotationModel(BaseModel):
     )
     aint_learning_data_id: uuid.UUID | None = pydantic.Field(
         default=None, title="AINT learning data Id"
+    )
+    embedding_source_id: uuid.UUID | None = pydantic.Field(
+        default=None, title="Embedding Source Id"
     )
 
 
@@ -1038,6 +1044,9 @@ class AIAnnotationRun(BaseModel):
     )
     completed_at: datetime.datetime | None = pydantic.Field(
         default=None, title="Completed At"
+    )
+    embedding_source_id: str | None = pydantic.Field(
+        default=None, title="Embedding Source ID"
     )
 
 
@@ -1959,3 +1968,44 @@ class AnnotationRunProjectDetails(pydantic.BaseModel):
     name: str
     nodes: dict[str, AnnotationRunNodeDetails]
     started: bool
+
+
+class EmbeddingSourceCreate(BaseModel):
+    name: str
+    output_vector_length: int
+    user_group: str
+
+
+class EmbeddingSource(BaseModel):
+    id: uuid.UUID = pydantic.Field(title="Id")
+    name: str = pydantic.Field(title="Name")
+    output_vector_length: int = pydantic.Field(title="Output Vector Length")
+    created_at: datetime.datetime | None = pydantic.Field(
+        title="Created At", default=None
+    )
+    updated_at: datetime.datetime | None = pydantic.Field(
+        title="Updated At", default=None
+    )
+    archived_at: datetime.datetime | None = pydantic.Field(
+        title="Archived At", default=None
+    )
+    owner: str | None = pydantic.Field(default=None, title="Owner")
+    user_group: str | None = pydantic.Field(default=None, title="User Group")
+
+
+class EmbeddingCreate(BaseModel):
+    annotatable_ids: pydantic.conlist(str, min_length=1)
+    annotatable_type: DataBaseObjectType = DataBaseObjectType.MEDIA
+    embedding: pydantic.conlist(float, min_length=1)
+
+
+class Embedding(BaseModel):
+    id: uuid.UUID
+    dataset_id: uuid.UUID
+    timestamp: datetime.datetime
+    tags: list[str] | None = None
+    archived: bool | None = False
+    annotatable_ids: list[uuid.UUID]
+    annotatable_type: DataBaseObjectType
+    embedding_source_id: str
+    embedding: list[float]
