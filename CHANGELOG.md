@@ -1,7 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [6.1.0] - DD-MM-YYYY
 
+## [6.1.0] - 13-10-2025
 ### New features
 
 - expose `http_response_status_code` in APIException
