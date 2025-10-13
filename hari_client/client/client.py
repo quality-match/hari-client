@@ -31,7 +31,7 @@ class CustomJSONEncoder(json.JSONEncoder):
         elif isinstance(obj, datetime.datetime):
             return obj.isoformat()
         elif isinstance(obj, pydantic.BaseModel):
-            return obj.model_dump(exclude_unset=True)
+            return obj.model_dump()
         return super().default(obj)
 
 

@@ -304,7 +304,7 @@ class ExternalMediaSourceCredentialsType(str, enum.Enum):
     S3_CROSS_ACCOUNT_ACCESS = "s3_cross_account_access"
 
 
-class ExternalMediaSourceS3CrossAccountAccessInfo(pydantic.BaseModel):
+class ExternalMediaSourceS3CrossAccountAccessInfo(BaseModel):
     type: ExternalMediaSourceCredentialsType = (
         ExternalMediaSourceCredentialsType.S3_CROSS_ACCOUNT_ACCESS
     )
@@ -321,25 +321,25 @@ class ExternalMediaSourceAzureCredentials(pydantic.BaseModel):
     sas_token: str
 
 
-class ExternalMediaSourceAPICreate(pydantic.BaseModel):
+class ExternalMediaSourceAPICreate(BaseModel):
     credentials: (
         ExternalMediaSourceS3CrossAccountAccessInfo
         | ExternalMediaSourceAzureCredentials
     )
 
 
-class ExternalMediaSourceAzureCredentialsUpdate(pydantic.BaseModel):
+class ExternalMediaSourceAzureCredentialsUpdate(BaseModel):
     container_name: str | None = None
     account_name: str | None = None
     sas_token: str | None = None
 
 
-class ExternalMediaSourceS3CrossAccountAccessInfoUpdate(pydantic.BaseModel):
+class ExternalMediaSourceS3CrossAccountAccessInfoUpdate(BaseModel):
     bucket_name: str | None = None
     region: str | None = None
 
 
-class ExternalMediaSourceAPIUpdate(pydantic.BaseModel):
+class ExternalMediaSourceAPIUpdate(BaseModel):
     type: ExternalMediaSourceCredentialsType  # not optional in update, required to know which fields to expect in credentials
     credentials: (
         ExternalMediaSourceS3CrossAccountAccessInfoUpdate
