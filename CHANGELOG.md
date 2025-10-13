@@ -1,5 +1,11 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### New features
+
+- expose `http_response_status_code` in APIException
+
+## [6.0.0] - 25-08-2025
+
 ### Breaking Changes
 
 - rename `MlAnnotationModel` to `MLAnnotationModel` [PR#118](https://github.com/quality-match/hari-client/pull/118)
