@@ -917,6 +917,30 @@ class HARIClient:
             success_response_item_model=models.ExternalMediaSourceAPIResponse,
         )
 
+    def update_external_media_source(
+        self,
+        external_media_source_id: uuid.UUID,
+        external_media_source_update: models.ExternalMediaSourceAPIUpdate,
+    ) -> models.ExternalMediaSourceAPIResponse:
+        """Updates the external media source with the given id.
+
+        Args:
+            external_media_source_id: External media source id of the external media source to update
+            external_media_source_update: update information for the external media source
+
+        Returns:
+            The updated external media source
+
+        Raises:
+            APIException: If the request fails.
+        """
+        return self._request(
+            "PATCH",
+            f"/externalMediaSources/{external_media_source_id}",
+            json=external_media_source_update.model_dump(exclude_unset=True),
+            success_response_item_model=models.ExternalMediaSourceAPIResponse,
+        )
+
     ### media ###
     def create_media(
         self,

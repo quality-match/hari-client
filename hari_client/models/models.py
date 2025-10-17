@@ -328,6 +328,25 @@ class ExternalMediaSourceAPICreate(BaseModel):
     )
 
 
+class ExternalMediaSourceAzureCredentialsUpdate(BaseModel):
+    container_name: str | None = None
+    account_name: str | None = None
+    sas_token: str | None = None
+
+
+class ExternalMediaSourceS3CrossAccountAccessInfoUpdate(BaseModel):
+    bucket_name: str | None = None
+    region: str | None = None
+
+
+class ExternalMediaSourceAPIUpdate(BaseModel):
+    type: ExternalMediaSourceCredentialsType  # not optional in update, required to know which fields to expect in credentials
+    credentials: (
+        ExternalMediaSourceS3CrossAccountAccessInfoUpdate
+        | ExternalMediaSourceAzureCredentialsUpdate
+    )
+
+
 class ExternalMediaSourceCredentialsDB(pydantic.BaseModel):
     type: ExternalMediaSourceCredentialsType
     container_name: str | None
