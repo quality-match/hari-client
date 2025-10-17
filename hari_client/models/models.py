@@ -662,6 +662,9 @@ class Media(BaseModel):
     back_reference_json: str | None = pydantic.Field(
         default=None, title="Back Reference Json"
     )
+    embedding_source_ids: list[str] | None = pydantic.Field(
+        default=None, title="Embedding Source IDs"
+    )
 
 
 class MediaResponse(BaseModel):
@@ -698,6 +701,9 @@ class MediaResponse(BaseModel):
     frame_timestamp: str | None = pydantic.Field(default=None, title="Frame Timestamp")
     back_reference_json: str | None = pydantic.Field(
         default=None, title="Back Reference Json"
+    )
+    embedding_source_ids: list[str] | None = pydantic.Field(
+        default=None, title="Embedding Source IDs"
     )
 
 
@@ -2024,7 +2030,7 @@ class Embedding(BaseModel):
     timestamp: datetime.datetime
     tags: list[str] | None = None
     archived: bool | None = False
-    annotatable_ids: list[uuid.UUID]
+    annotatable_ids: list[str]
     annotatable_type: DataBaseObjectType
     embedding_source_id: str
     embedding: list[float]

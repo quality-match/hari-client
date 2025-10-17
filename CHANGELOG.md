@@ -1,5 +1,10 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Fixes
+
+- add `embedding_source_ids` to `Media` models [PR#127](https://github.com/quality-match/hari-client/pull/127)
+- update `Embedding` model to have `annotatable_ids` as list of strings [PR#127](https://github.com/quality-match/hari-client/pull/127)
+
 ### New features
 
 - add `update_external_media_source` method to client [PR#124](https://github.com/quality-match/hari-client/pull/124)
@@ -8,7 +13,7 @@ and new models for it:
   - `ExternalMediaSourceS3CrossAccountAccessInfoUpdate`
   - `ExternalMediaSourceAzureCredentialsUpdate`
 
-## [6.1.0] - DD-MM-YYYY
+## [6.1.0] - 13-10-2025
 
 ### New features
 
