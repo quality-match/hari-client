@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [6.2.0] - 23-10-2025
+
 ### Fixes
 
 - add `embedding_source_ids` to `Media` models [PR#127](https://github.com/quality-match/hari-client/pull/127)
