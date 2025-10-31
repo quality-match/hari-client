@@ -14,6 +14,11 @@ from hari_client.client import errors
 from hari_client.upload import property_validator
 from hari_client.utils import logger
 
+try:
+    from builtins import ExceptionGroup  # Python 3.11+
+except ImportError:
+    from exceptiongroup import ExceptionGroup  # Backport for Python <3.11
+
 log = logger.setup_logger(__name__)
 
 # the maximum attributes number for the whole dataset/upload
