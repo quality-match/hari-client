@@ -11,7 +11,7 @@ Minimum python version: **3.10**
 To install the hari-client package, use pip with the following command:
 
 ```bash
-python -m pip install "hari_client @ git+https://github.com/quality-match/hari-client@v6.2.0"
+python -m pip install "hari_client @ git+https://github.com/quality-match/hari-client@v6.2.1"
 ```
 
 ## Quickstart
