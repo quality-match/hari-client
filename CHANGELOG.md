@@ -1,5 +1,11 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [6.2.1] - 31-10-2025
+
+- allow using the client for `python 3.10` [PR#129](https://github.com/quality-match/hari-client/pull/129)
+  - update `pydantic` requirement to version `2.11+`, as the response parsing logic uses features only available in `2.11` and above
+  - conditionally import `ExceptionGroup` from `exceptiongroup` for python versions `<3.11` as it wasn't a built in module before `python 3.11`
+
 ## [6.2.0] - 23-10-2025
 
 ### Fixes
