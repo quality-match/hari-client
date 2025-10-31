@@ -6,7 +6,7 @@ and upload your data with ease.
 
 ## Installation
 
-Minimum python version: **3.11**
+Minimum python version: **3.10**
 
 To install the hari-client package, use pip with the following command:
 
