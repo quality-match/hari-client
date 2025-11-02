@@ -358,7 +358,7 @@ def test_assign_scenes_and_frames_correctly(mock_uploader_for_scene_validation, 
 
     # Act
     uploader._create_scenes(scenes_to_create)
-    uploader._assign_property_ids()
+    uploader._assign_property_ids(uploader._medias)
 
     # Assert
     for media in uploader._medias:
