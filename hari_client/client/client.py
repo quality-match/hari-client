@@ -24,6 +24,31 @@ T = typing.TypeVar("T")
 log = logger.setup_logger(__name__)
 
 
+def _is_pydantic_model_class(obj: typing.Any) -> bool:
+    """
+    Safely check if an object is a Pydantic BaseModel class.
+
+    This function provides a robust way to check if a type is a Pydantic BaseModel,
+    avoiding TypeError exceptions that can occur with certain typing constructs
+    in different versions of Python and Pydantic.
+
+    Args:
+        obj: The object to check
+
+    Returns:
+        True if obj is a Pydantic BaseModel class, False otherwise
+    """
+    try:
+        # First check if it's a type, then use issubclass
+        # This avoids TypeError when obj is not a class
+        if isinstance(obj, type) and issubclass(obj, pydantic.BaseModel):
+            return True
+    except TypeError:
+        # issubclass can raise TypeError for some special types
+        pass
+    return False
+
+
 class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, uuid.UUID):
@@ -78,9 +103,7 @@ def _parse_response_model(
             )
 
         # handle pydantic models
-        if isinstance(response_model, type) and issubclass(
-            response_model, pydantic.BaseModel
-        ):
+        if _is_pydantic_model_class(response_model):
             if isinstance(response_data, dict):
                 return response_model(**response_data)
 
@@ -94,9 +117,7 @@ def _parse_response_model(
                     return [
                         handle_union_parsing(item, item_type) for item in response_data
                     ]
-                elif isinstance(item_type, type) and issubclass(
-                    item_type, pydantic.BaseModel
-                ):
+                elif _is_pydantic_model_class(item_type):
                     return [item_type(**item) for item in response_data]
                 else:
                     return [item_type(item) for item in response_data]
@@ -130,9 +151,7 @@ def _parse_response_model(
 
 def handle_union_parsing(item, union_type):
     for possible_type in typing.get_args(union_type):
-        if isinstance(possible_type, type) and issubclass(
-            possible_type, pydantic.BaseModel
-        ):
+        if _is_pydantic_model_class(possible_type):
             try:
                 return possible_type(**item)
             except Exception:
@@ -449,9 +468,9 @@ class HARIClient:
 
             # 2. upload the image
             for idx, file_path in enumerate(file_extension_file_paths):
-                presign_response_by_file_path_idx[
-                    file_path[0]
-                ] = presign_response_batch[idx]
+                presign_response_by_file_path_idx[file_path[0]] = (
+                    presign_response_batch[idx]
+                )
                 self._upload_file(
                     session=session,
                     file_path=file_path[1],

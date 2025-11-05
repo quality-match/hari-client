@@ -10,7 +10,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "requests>=2.32",
-        "pydantic>=2.11",
+        "pydantic>=2.10",
         "pydantic-settings>=2.3",
         "tqdm~=4.66",
         "exceptiongroup==1.3.0",
