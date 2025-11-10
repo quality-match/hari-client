@@ -28,9 +28,11 @@ def _is_pydantic_model_class(obj: typing.Any) -> bool:
     """
     Safely check if an object is a Pydantic BaseModel class.
 
-    This function provides a robust way to check if a type is a Pydantic BaseModel,
-    avoiding TypeError exceptions that can occur with certain typing constructs
-    in different versions of Python and Pydantic.
+    This is a fallback for pydantic <2.11 that doesn't really support all generic model types as subclasses yet.
+    Pydantic <2.11 throws a TypeError when issubclass(obj, pydantic.BaseModel) is called and obj is not a class type
+    (for example, if obj is a generic type, a typing construct, or an instance).
+    issubclass only works with class objects, so passing anything else will raise a TypeError.
+    We let this TypeError pass because it simply means obj is not a Pydantic model class.
 
     Args:
         obj: The object to check
@@ -468,9 +470,9 @@ class HARIClient:
 
             # 2. upload the image
             for idx, file_path in enumerate(file_extension_file_paths):
-                presign_response_by_file_path_idx[file_path[0]] = (
-                    presign_response_batch[idx]
-                )
+                presign_response_by_file_path_idx[
+                    file_path[0]
+                ] = presign_response_batch[idx]
                 self._upload_file(
                     session=session,
                     file_path=file_path[1],

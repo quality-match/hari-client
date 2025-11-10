@@ -1,6 +1,13 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+### Internal
+
+- Allow using the client with `pydantic 2.10+` (used to be `pydantic 2.11+`) by wrapping response parsing logic
+that uses features only fully available in `2.11+` (`issubclass`). [PR#130](https://github.com/quality-match/hari-client/pull/130)
+
 ## [6.2.1] - 31-10-2025
+
+### Internal
 
 - allow using the client for `python 3.10` [PR#129](https://github.com/quality-match/hari-client/pull/129)
   - update `pydantic` requirement to version `2.11+`, as the response parsing logic uses features only available in `2.11` and above
