@@ -1,5 +1,7 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [6.2.2] - 13-11-2025
+
 ### Internal
 
 - Allow using the client with `pydantic 2.10+` (used to be `pydantic 2.11+`) by wrapping response parsing logic
