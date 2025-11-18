@@ -1,5 +1,37 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
+## [6.2.1] - 31-10-2025
+
+- allow using the client for `python 3.10` [PR#129](https://github.com/quality-match/hari-client/pull/129)
+  - update `pydantic` requirement to version `2.11+`, as the response parsing logic uses features only available in `2.11` and above
+  - conditionally import `ExceptionGroup` from `exceptiongroup` for python versions `<3.11` as it wasn't a built in module before `python 3.11`
+
+## [6.2.0] - 23-10-2025
+
+### Fixes
+
+- add `embedding_source_ids` to `Media` models [PR#127](https://github.com/quality-match/hari-client/pull/127)
+- update `Embedding` model to have `annotatable_ids` as list of strings [PR#127](https://github.com/quality-match/hari-client/pull/127)
+
+### New features
+
+- add `update_external_media_source` method to client [PR#124](https://github.com/quality-match/hari-client/pull/124)
+and new models for it:
+  - `ExternalMediaSourceAPIUpdate`
+  - `ExternalMediaSourceS3CrossAccountAccessInfoUpdate`
+  - `ExternalMediaSourceAzureCredentialsUpdate`
+
+## [6.1.0] - 13-10-2025
+
+### New features
+
+- expose `http_response_status_code` in APIException
+- add embeddings support to the hari-client
+  - new functionality for handling embeddings in the upload process
+  - enhanced data processing capabilities with embedding integration
+
+## [6.0.0] - 25-08-2025
+
 ### Breaking Changes
 
 - rename `MlAnnotationModel` to `MLAnnotationModel` [PR#118](https://github.com/quality-match/hari-client/pull/118)

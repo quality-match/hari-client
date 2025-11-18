@@ -8,6 +8,11 @@ from hari_client import hari_uploader
 from hari_client import models
 from hari_client.client import errors
 
+try:
+    from builtins import ExceptionGroup  # Python 3.11+
+except ImportError:
+    from exceptiongroup import ExceptionGroup  # Backport for Python <3.11
+
 
 # Helper functions for creating test objects with proper geometries
 def create_test_media(
