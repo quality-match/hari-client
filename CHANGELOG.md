@@ -1,7 +1,5 @@
 ## [major.minor.patch] - DD-MM-YYYY
 
-## [6.3.0] - 18-11-2025
-
 ### Features
 
 - allow uploading media objects and attributes without requiring media upload with `upload_media_objects`, `upload_media_attributes`
