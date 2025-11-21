@@ -7,11 +7,11 @@
 - Allow using the client with `pydantic 2.10+` (used to be `pydantic 2.11+`) by wrapping response parsing logic
 that uses features only fully available in `2.11+` (`issubclass`). [PR#130](https://github.com/quality-match/hari-client/pull/130)
 - Allow `exceptiongroup` from version `1.1.2` on. [PR#130](https://github.com/quality-match/hari-client/pull/130)
--
+
 ### Features
 
 - allow uploading media objects and attributes without requiring media upload with `upload_media_objects`, `upload_media_attributes`
-and `upload_media_object_attributes` methods of the `HariUploader`
+and `upload_media_object_attributes` methods of the `HariUploader` [PR#114](https://github.com/quality-match/hari-client/pull/114)
 
 ## [6.2.1] - 31-10-2025
 
